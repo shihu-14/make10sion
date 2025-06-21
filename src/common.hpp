@@ -2,7 +2,7 @@
 # include <Siv3D.hpp>
 # include <vector>
 # include "Block.hpp"
-//# include "Board.hpp"
+# include "Board.hpp"
 
 // シーンの名前
 enum class State

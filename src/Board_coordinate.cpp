@@ -4,17 +4,17 @@
 #include <vector>
 using namespace std;
 
-//private
+//private variables
+
+//private functions
 Point Board::PutBlockAt(){
-    Point offset = {0,0};//暫定
-    int32 cell = 32;
     double rSquared = 25.0;
     //Blockの左上の絶対座標
-    int32 px = block.GetPiece(0,0).x+Cursor::Pos().x+cell/2;
-    int32 py = block.GetPiece(0,0).y+Cursor::Pos().y+cell/2;
+    int32 px = block.GetPiece(0,0).x+Cursor::Pos().x+cell_size/2;
+    int32 py = block.GetPiece(0,0).y+Cursor::Pos().y+cell_size/2;
     //マス座標に変換
-    int32 bx = (px-offset.x)/cell;
-    int32 by = (py-offset.y)/cell;
+    int32 bx = (px-offset.x)/cell_size;
+    int32 by = (py-offset.y)/cell_size;
 
     Point putAt = {-1, -1};
     double minDist = rSquared;
@@ -57,14 +57,16 @@ void Board::PutBlock(){
     //blockが離されたら
     Point putAt = PutBlockAt();
     if(putAt != Point{-1, -1}){
+        /*
         for(int i=0;i<block.Size().second;i++){
             for(int j=0;j<block.Size().first;j++){
                 char content = block.GetPiece(j,i).content;
-                if(content != '$'){
-                    board_usage[putAt.y + i][putAt.x + j] = blockNum;
-                }
+                //if(content != '$'){
+                    //board_usage[putAt.y + i][putAt.x + j] = blockNum;
+                //}
             }
         }
+        */
     }
     else{
         //手札に戻す
@@ -83,6 +85,18 @@ Array<pair<int32,int32>> Board::TakeOutBlock(){
     }
     return blockCoords;
 }
+
+void Board::InitBoardCoordinate(){
+    for(int i=0;i<6;i++){
+        for(int j=0;j<7;j++){
+            Point cord;
+            cord.x = offset.x + cell_size/2 + cell_size*j;
+            cord.y = offset.y + cell_size/2 + cell_size*i;
+            board_coordinate[i][j] = cord;
+        }
+    }
+}
+
 
 //public
 //選択されているBlockが渡される

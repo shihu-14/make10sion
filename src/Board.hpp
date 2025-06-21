@@ -38,7 +38,7 @@ private:
 	void AddUsablePlace();
 	void ResetBoard();
 	void CalcRow();
-	void DrawBlockOnBoard(Block block_on_board);
+	void DrawBlock(Block block_on_board);
 	void BlockAnimation(Block moving_block, Point end_pos);
 
 	

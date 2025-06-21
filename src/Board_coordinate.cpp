@@ -8,14 +8,18 @@ using namespace std;
 //private variables
 
 //private functions
+double CalcDist(Point a, Point b){//2点間の距離の計算
+    return pow((a.x-b.x), 2)+pow((a.y-b.y), 2);
+}
+
 Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)のピースのマス座標を返す
     double rSquared = 25.0;
     //Blockの左上のピースの絶対座標
-    int32 px = block.GetPiece(0,0).x+Cursor::Pos().x;
-    int32 py = block.GetPiece(0,0).y+Cursor::Pos().y;
+    int32 px = block.GetPiece(0, 0).x+Cursor::Pos().x;
+    int32 py = block.GetPiece(0, 0).y+Cursor::Pos().y;
     //マスの中心同士を結んだ マス座標 に変換
-    int32 bx = (px-offset.x+cell_size/2)/cell_size;
-    int32 by = (py-offset.y+cell_size/2)/cell_size;
+    int32 bx = (px - offset.x + cell_size/2)/cell_size;
+    int32 by = (py - offset.y + cell_size/2)/cell_size;
 
     Point putAt = {-1, -1};
     double minDist = rSquared;
@@ -58,10 +62,6 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)の�
     }
 
     return putAt;
-}
-
-double CalcDist(Point a, Point b){//2点間の距離の計算
-    return pow((a.x-b.x), 2)+pow((a.y-b.y), 2);
 }
 
 void Board::PutBlock(){//blockを配置/手札に戻す

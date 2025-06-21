@@ -99,9 +99,16 @@ void Board::CalcRow() {
 
 std::pair<int, int> Board::Confirm() {  
     SetStat();
-    
-	// 数字の集計が終わったので、num_on_boardをクリア
-
+	CalcRow();
+	int attack, defense;
+	for (int i = 0; i < 6; i++) {
+		if (board_off_def[i] == 1) { //攻撃側の行  
+			attack = result_of_calc[i];  
+		} else if (board_off_def[i] == 0) { //防御側の行  
+			defense = result_of_calc[i];  
+		}
+	}
+	return { attack, defense };
 }  
 
 void Board::SetStat() {  

@@ -34,7 +34,7 @@ bool Deck::update() {
 		now_y = Clamp(now_y - wheel * 75, -max_y, 0.0); //ホイールでスクロール
 		is_pushed = (RectF{ 1600, 800, 225, 225 }.mouseOver());
 		if (is_pushed && MouseL.up()) return false; //戻るボタンが押された場合はfalseを返す
-
+		Cursor::RequestStyle(is_pushed ? CursorStyle::Hand : CursorStyle::Default);
 		if (fade_alpha < 0.4 && is_pushed) {
 			fade_alpha += 0.1;
 			if (fade_alpha > 0.4) fade_alpha = 0.4;
@@ -51,15 +51,22 @@ void Deck::draw() const {
 	background_img.draw(0, 0, ColorF{ 1.0, 1.0, 1.0 });
 	//デッキ画像を描画
 	for (int i = 0;i < deck_size;i++) {
-		if (fade_mode) {
-			deck_data.at(i).Draw({ card_pos.at(i).first, card_pos.at(i).second + now_y }, card_fade.at(i), M_PI * (1.0 - card_fade.at(i)), card_fade.at(i));
-		} else {
-			deck_data.at(i).Draw({ card_pos.at(i).first, card_pos.at(i).second + now_y }, 1.0, 0.0, 1.0);
+		{
+			double card_fade_value = (deck_data.at(i).GetStat() == -1) ? 0.5 : 1.0;
+			const ScopedColorMul2D colorMul{ ColorF{ card_fade_value, card_fade_value, fade_alpha } };
+			if (fade_mode) {
+				deck_data.at(i).Draw({ card_pos.at(i).first, card_pos.at(i).second + now_y }, card_fade.at(i), M_PI * (1.0 - card_fade.at(i)), card_fade.at(i));
+			} else {
+				deck_data.at(i).Draw({ card_pos.at(i).first, card_pos.at(i).second + now_y }, 1.0, 0.0, 1.0);
+			}
 		}
 	}
 	//戻るボタン
-	back_button_img.scaled(0.75).draw(1600, 800, ColorF{ 1.0, 1.0, 1.0 });
-	RectF{ 1600, 800, 225, 225 }.draw(ColorF{ 0.0, 0.0, 0.0, fade_alpha });
+	{
+		const ScopedColorMul2D colorMul{ ColorF{ 1.0 - fade_alpha, 1.0 - fade_alpha, 1.0 - fade_alpha } };
+		double scale = 1.0 - ((fade_alpha <= 0.4) ? (fade_alpha * 0.05) : 0.0); // アルファ値に応じて拡大
+		back_button_img.scaled(0.75 * scale).draw(1600, 800, ColorF{ 1.0, 1.0, 1.0 });
+	}
 }
 
 void Deck::updateFadeIn(double t) {

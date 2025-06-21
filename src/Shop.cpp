@@ -20,6 +20,7 @@ void Shop::update() {
     /////////////////////////////////////////////////////////////////////
     if (!void_normal_1) {
         bool isHovered_normal_1 = RoundRect{ 350, 500, 300, 100,20 }.mouseOver();
+        if (isHovered_normal_1)Cursor::RequestStyle(CursorStyle::Hand);
         //カードの購入処理
         if (isHovered_normal_1 && MouseL.down()) {
             if (getData().money >= 50) {
@@ -45,6 +46,7 @@ void Shop::update() {
     ////////////////////////////////////////////////////////////////////
     if (!void_normal_2) {
         bool isHovered_normal_2 = RoundRect{ 650, 500, 300, 100,20 }.mouseOver();
+        if (isHovered_normal_2)Cursor::RequestStyle(CursorStyle::Hand);
         //カードの購入処理
         if (isHovered_normal_2 && MouseL.down()) {
             if (getData().money >= 50) {
@@ -69,6 +71,7 @@ void Shop::update() {
     ////////////////////////////////////////////////////////////////////
     if (!void_uncommon) {
         bool isHovered_uncommon = RoundRect{ 950, 500, 300, 100,20 }.mouseOver();
+        if (isHovered_uncommon)Cursor::RequestStyle(CursorStyle::Hand);
         //カードの購入処理
         if (isHovered_uncommon && MouseL.down()) {
             if (getData().money >= 100) {
@@ -93,7 +96,7 @@ void Shop::update() {
     ////////////////////////////////////////////////////////////////////
     if (!void_rare) {
         bool isHovered_rare = RoundRect{ 1250, 500, 300, 100,20 }.mouseOver();
-        //カードの購入処理
+        if (isHovered_rare)Cursor::RequestStyle(CursorStyle::Hand);
         if (isHovered_rare && MouseL.down()) {
             if (getData().money >= 150) {
                 getData().Deck.push_back(rare);
@@ -118,14 +121,16 @@ void Shop::update() {
 
 
     //戻るボタンの更新
-    if (MouseL.down() && RectF { 1600, 800, 225, 225 }.mouseOver()) {
-        //TODO: 戻るボタンが押された場合の処理
+    bool isHovered_return = RectF{ 1600, 800, 225, 225 }.mouseOver();
+    if (isHovered_return)Cursor::RequestStyle(CursorStyle::Hand);
+    if (MouseL.down() && isHovered_return) {
+        changeScene(State::Map, 0.5s);
         return;
     }
-    if (return_alpha < 0.4 && RectF{ 1600, 800, 225, 225 }.mouseOver()) {
+    if (return_alpha < 0.4 && isHovered_return) {
         return_alpha += 0.1;
         if (return_alpha > 0.4) return_alpha = 0.4;
-    } else if (return_alpha > 0.0 && !RectF{ 1600, 800, 225, 225 }.mouseOver()) {
+    } else if (return_alpha > 0.0 && !isHovered_return) {
         return_alpha -= 0.1;
         if (return_alpha < 0.0) return_alpha = 0.0;
     }
@@ -138,29 +143,46 @@ void Shop::draw() const {
         // 背景の描画
         background_img.draw(0, 0);
         //商品(カード)の描画
+
         normal_1.Draw({ 500, 300 }, 1.5, 0.0, 1.0);
-        price_img.drawAt(500, 650);
-        fontBitMap(U"50G").drawAt(520, 550, money_check(50));
-        RoundRect{ 350, 500, 300, 100,20 }.draw(ColorF{ 0.0, 0.0, 0.0, normal_1_alpha });
+        {
+            const ScopedColorMul2D colorMul{ ColorF{ 1.0 - normal_1_alpha, 1.0 - normal_1_alpha, 1.0 - normal_1_alpha } };
+            double scale = 1.0 - ((normal_1_alpha <= 0.4) ? (normal_1_alpha * 0.05) : 0.0); // アルファ値に応じて拡大
+            price_img.scaled(scale).drawAt(500, 650);
+            fontBitMap(U"50G").drawAt(520, 550, money_check(50));
+        }
 
         normal_2.Draw({ 800, 300 }, 1.5, 0.0, 1.0);
-        price_img.drawAt(800, 650);
-        fontBitMap(U"50G").drawAt(820, 550, money_check(50));
-        RoundRect{ 650, 500, 300, 100,20 }.draw(ColorF{ 0.0, 0.0, 0.0, normal_2_alpha });
+        {
+            const ScopedColorMul2D colorMul{ ColorF{ 1.0 - normal_2_alpha, 1.0 - normal_2_alpha, 1.0 - normal_2_alpha } };
+            double scale = 1.0 - ((normal_2_alpha <= 0.4) ? (normal_2_alpha * 0.05) : 0.0); // アルファ値に応じて拡大
+            price_img.scaled(scale).drawAt(800, 650);
+            fontBitMap(U"50G").drawAt(820, 550, money_check(50));
+        }
+
 
         uncommon.Draw({ 1100, 300 }, 1.5, 0.0, 1.0);
-        price_img.drawAt(1100, 650);
-        fontBitMap(U"100G").drawAt(1120, 550, money_check(100));
-        RoundRect{ 950, 500, 300, 100,20 }.draw(ColorF{ 0.0, 0.0, 0.0, uncommon_alpha });
+        {
+            const ScopedColorMul2D colorMul{ ColorF{ 1.0 - uncommon_alpha, 1.0 - uncommon_alpha, 1.0 - uncommon_alpha } };
+            double scale = 1.0 - ((uncommon_alpha <= 0.4) ? (uncommon_alpha * 0.05) : 0.0); // アルファ値に応じて拡大
+            price_img.scaled(scale).drawAt(1100, 650);
+            fontBitMap(U"100G").drawAt(1120, 550, money_check(100));
+        }
 
         rare.Draw({ 1400, 300 }, 1.5, 0.0, 1.0);
-        price_img.drawAt(1400, 650);
-        fontBitMap(U"150G").drawAt(1420, 550, money_check(150));
-        RoundRect{ 1250, 500, 300, 100,20 }.draw(ColorF{ 0.0, 0.0, 0.0, rare_alpha });
+        {
+            const ScopedColorMul2D colorMul{ ColorF{ 1.0 - rare_alpha, 1.0 - rare_alpha, 1.0 - rare_alpha } };
+            double scale = 1.0 - ((rare_alpha <= 0.4) ? (rare_alpha * 0.05) : 0.0); // アルファ値に応じて拡大
+            price_img.scaled(scale).drawAt(1400, 650);
+            fontBitMap(U"150G").drawAt(1420, 550, money_check(150));
+        }
 
         //戻るボタン
-        back_button_img.scaled(0.75).draw(1600, 800, ColorF{ 1.0, 1.0, 1.0 });
-        RectF{ 1600, 800, 225, 225 }.draw(ColorF{ 0.0, 0.0, 0.0, return_alpha });
+        {
+            const ScopedColorMul2D colorMul{ ColorF{ 1.0 - return_alpha, 1.0 - return_alpha, 1.0 - return_alpha } };
+            double scale = 1.0 - ((return_alpha <= 0.4) ? (return_alpha * 0.05) : 0.0); // アルファ値に応じて拡大
+            back_button_img.scaled(0.75 * scale).draw(1600, 800, ColorF{ 1.0, 1.0, 1.0 });
+        }
     }
     // バナーの描画
     banner.draw();

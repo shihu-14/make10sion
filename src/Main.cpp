@@ -1,11 +1,11 @@
 ﻿# include <Siv3D.hpp> // Siv3D v0.6.16
 # include "common.hpp"
-//# include "Title.hpp"
+# include "Title.hpp"
 # include "Map.hpp"
 //# include "Battle.hpp"
 //# include "Result.hpp"
-//# include "Shop.hpp"
-//# include "Deck.hpp"
+# include "Shop.hpp"
+# include "Deck.hpp"
 
 using namespace std;
 
@@ -20,14 +20,14 @@ void Main()
 	//フルスクリーン
 	//Window::SetFullscreen(true);
 	//タイトル
-	Window::SetTitle(U"ShoutWars");
+	Window::SetTitle(U"Arithmancer");
 
 	App manager;
-	//manager.add<Title>(State::Title);
+	manager.add<Title>(State::Title);
 	manager.add<Map>(State::Map);
 	//manager.add<Battle>(State::Battle);
 	//manager.add<Result>(State::Result);
-	//manager.add<Shop>(State::Shop);
+	manager.add<Shop>(State::Shop);
 
 
 	//XXX:debug用

@@ -1,9 +1,9 @@
 ﻿# include <Siv3D.hpp> // Siv3D v0.6.16
 # include "common.hpp"
-# include "Title.hpp"
-# include "Map.hpp"
-# include "Battle.hpp"
-# include "Result.hpp"
+//# include "Title.hpp"
+//# include "Map.hpp"
+//# include "Battle.hpp"
+//# include "Result.hpp"
 # include "Deck.hpp"
 
 using namespace std;
@@ -22,11 +22,10 @@ void Main()
 	Window::SetTitle(U"ShoutWars");
 
 	App manager;
-	manager.add<Title>(State::Title);
-	manager.add<Map>(State::Map);
-	manager.add<Battle>(State::Battle);
-	manager.add<Result>(State::Result);
-	manager.add<Deck>(State::Deck);
+	//manager.add<Title>(State::Title);
+	//manager.add<Map>(State::Map);
+	//manager.add<Battle>(State::Battle);
+	//manager.add<Result>(State::Result);
 
 
 	//XXX:debug用

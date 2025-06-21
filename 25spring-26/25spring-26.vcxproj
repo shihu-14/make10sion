@@ -116,6 +116,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\src\Battle.cpp" />
+    <ClCompile Include="..\src\Board.cpp" />
     <ClCompile Include="..\src\Main.cpp" />
     <ClCompile Include="..\src\Title.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -328,6 +329,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Battle.hpp" />
+    <ClInclude Include="..\src\Board.hpp" />
     <ClInclude Include="..\src\Title.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

@@ -12,8 +12,10 @@ void Board::CalcRow() {
 				board_number[i][j] += board_effect[i][j]; // 効果を加える
 				num_on_board.push_back(board_number[i][j]); // 数字部分を取り出す
 			}
+
 		}
 	}
+
 	std::sort(num_on_board.begin(), num_on_board.end());
 
 	//構文解析するためにボード上の文字列を圧縮 
@@ -55,8 +57,8 @@ void Board::CalcRow() {
 				if (board_number[i][j] & (1 << 0)) { // Max  
 					function += Format(num_on_board.back()); // 修正: int を String に変換  
 				}
-				else if (board_number[i][j] & (1 << 1)) { // Min  
-					function += Format(num_on_board.front()); // 修正: int を String に変換  
+				else if (board_number[i][j] & (1 << 1)) { // Min
+					function += Format(num_on_board.front()); // 修正: int を String に変換
 				}
 				else if (board_number[i][j] & (1 << 2)) { // Ave  
 					double ave = 0;
@@ -90,8 +92,7 @@ void Board::CalcRow() {
 		if (function.length() > 0 && (function.back() == '+' || function.back() == '-' || function.back() == '*' || function.back() == '/')) {
 			function.pop_back();
 		}
-		Print << function;
-		Print << Eval(function);
+		 result_of_calc[i] = Eval(function);
 
 	}
 }

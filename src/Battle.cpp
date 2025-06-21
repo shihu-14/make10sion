@@ -1,5 +1,7 @@
 #include "Battle.hpp"
 #include "Board.hpp" // BoardクラスのConfirm()などを使うためにインクルード
+#include <tuple> // tie関数を使用するためにインクルード
+using std::tie; // std::tieを使用するために名前空間を指定
 
 // Constructor
 Battle::Battle(const InitData& init)
@@ -8,13 +10,13 @@ Battle::Battle(const InitData& init)
     board_locked(false), // 盤面の操作を初期状態ではロックしない
     num_turn(0), // ターン数を初期化
     table_size(getTableSize()), // 手札のサイズを取得
-    m_currentAnimState(BattleAnimationState::Idle), // アニメーション状態を初期化
+    m_currentAnimState(BattleAnimationState::Idle) // アニメーション状態を初期化
 {
 	// --- 戦う敵のセットアップ ---
 	setupEnemy();
 	// --- デッキの初期化 ---
 	// GameDataからマスターデッキを取得し、バトル用の山札にコピー
-	Deck_yama = Array<Block>(getData().Deck.begin(), getData().Deck.end());
+	Deck_yama = getData().Deck;
 	Deck_yama.shuffle();
 
 	// 最初の手札をセットアップ
@@ -24,68 +26,143 @@ Battle::Battle(const InitData& init)
 		Deck_table.push_back(Deck_yama.back());
 		Deck_yama.pop_back();
 	}
+    drawCombatEffect(); // 
 }
 
+
+void Battle::setupEnemy()
+{
+	// 1. データベースから、まだ倒されていない敵の「設計図」を取得します。
+	//    getOneEnemy() の内部で、倒されていない敵を選ぶロジックが実行されます。
+	const EnemyData& data = m_enemyDB.getOneEnemy(false);
+	// 2. 戦闘用の変数(m_enemy)に、設計図の情報をすべてコピーして初期化します。
+	//    これにより、マスターデータを汚さずに済みます。
+	m_enemy.name = data.name;
+	m_enemy.texture = Texture(data.texturePath);
+	m_enemy.maxHp = data.maxHp;
+	m_enemy.hp = data.maxHp;
+	m_enemy.actionPattern = data.actionPattern; // 行動パターンもコピーします
+}
 // 山札の枚数を盤面の情報から求める関数
-int Battle::getTableSize() const
+int32 Battle::getTableSize() const
 {
     // 未定
+    // boardの現在どれくらいunlockされているマスがあるか。-> unlocked_num;
+    // return num/2+2;
     return 0;
+}
+
+// 盤面のデッキの状況をリアルタイムで監視する関数
+void Battle::updateTableDeck()
+{
+    // 0:山札, 1:手札, 2:盤面, -1:捨て札
+    // グローバルのDeckのstate変数を見て、盤面か手札かを参照し、Deck_tableとDeck_boardを更新する。
+    for (const auto& block : getData().Deck)
+    {
+        if (block.GetStat() == 2 && Deck_board.includes(block) == false)
+        {
+            // 手札のブロックが盤面に移動している場合、盤面に追加する
+            Deck_board.push_back(block);
+        }
+        if (block.GetStat() == 1 && Deck_table.includes(block) == false)
+        {
+            // 盤面のブロックが手札に移動している場合、手札に追加する
+            Deck_table.push_back(block);
+        }
+    }
 }
 
 // 「=」ボタンが押された時に呼び出される
 void Battle::attack()
 {
 	// 現在アニメーション中でない場合のみ処理を開始
-	if (m_currentAnimState != BattleAnimationState::Idle)
+	if (m_currentAnimState == BattleAnimationState::Idle)
 	{
-		return;
+        // 盤面の操作をロックする
+        board_locked = true; // 盤面の操作をロック
+        num_turn++; // ターン数を増やす
+
+        // 攻撃・防御の処理を行う
+        // 盤面から攻撃力と防御力を取得
+         // BoardクラスのConfirm()を呼び出して攻撃力と防御力を取得
+        tie(my_attack, my_defense) = m_board.Confirm();
+        // 敵の攻撃・防御を取得
+        ene_attack = m_enemy.actionPattern[num_turn % m_enemy.actionPattern.size()].attack;
+        ene_defense = m_enemy.actionPattern[num_turn % m_enemy.actionPattern.size()].defense;
+        // 敵にダメージを与える
+        m_currentAnimState = BattleAnimationState::CombatEffect;
+        // ここから未定
+        m_currentAnimDuration = 1.0s; // アニメーションの時間を設定
+        m_animStopwatch.restart(); // ストップウォッチをリセットして開始
 	}
 }
 
-void Battle::update()
-{
-	// 「=」ボタンの代わりのデバッグ操作
-	if (KeyEnter.down() && !board_locked)
-	{
-        // 盤面の操作を不能にする
-        // SetStat(false);
-        board_locked = true; // 盤面の操作をロック
-        num_turn++;
-		attack();
-	}
-    // 現在の状態で処理を分岐
-	switch (m_currentAnimState)
-	{
-	case BattleAnimationState::Idle:
-		break;
-	case BattleAnimationState::CombatEffect:
-		updateCombatEffect();
-		break;
-	case BattleAnimationState::DiscardEffect:
-		updateDiscardEffect();
-		break;
-	case BattleAnimationState::CardDrawEffect:
-		updateCardDrawEffect();
-		break;
-	case BattleAnimationState::WinEffect:
-		updateWinEffect();
-		break;
-	case BattleAnimationState::GameOver:
-        // ゲームオーバーから戻る処理
-        changeScene(State::Title);
-		break;
-	}
-}
 
 // 戦闘演出の更新処理
 void Battle::updateCombatEffect()
 {
     // 演出時間が経過したら、次の状態（例えばDiscardEffect）に遷移する
-    // ここでは仮にIdleに戻す
-    if (m_animStopwatch > 0.5s)
+    if (m_animStopwatch > 1.0s)
     {
-        m_currentAnimState = BattleAnimationState::Idle;
+        // 敵にダメージを与える
+        if (ene_attack == -10)
+        {
+            ene_attack = 3+2*(table_size-Deck_table.size());
+        }
+        else if (ene_attack == -11)
+        {
+            ene_attack = 20;
+            // 保留
+        }
+        else if (ene_attack == -12)
+        {
+            ene_attack = 60-4*(table_size-Deck_table.size());
+        }
+        else if (ene_attack == -13)
+        {
+            ene_attack = 40;
+            getData().money -= 30;
+        }
+        else if (ene_attack == -14)
+        {
+            flag_exit = true;
+            // 逃走の処理は保留
+        }
+        else if (ene_attack == -15)
+        {
+            ene_attack = 10+14*(table_size-Deck_table.size());
+        }
+        else if (ene_attack == -16)
+        {
+            ene_attack = 30;
+            getData().money -= 20;
+        }
+        else if (ene_attack == -17)
+        {
+            ene_attack = 50-6*(table_size-Deck_table.size());
+        }
+        else if (ene_attack == -18)
+        {
+            ene_attack = 40;
+            getData().money -= 10;
+        }
+        else if (ene_attack == -19)
+        {
+            ene_attack = 60-8*(table_size-Deck_table.size());
+        }
+
+
+
+
+        // プレイヤー->敵の攻撃力を計算
+        int32 ene_real_attack = Min(0, ene_attack - my_defense); // 敵の攻撃力から防御力を引く
+        getData().HP -= ene_real_attack; // 敵のHPを減らす
+
+        // 敵->プレイヤーの攻撃力を計算
+        int32 my_real_attack = Min(0, my_attack - ene_defense); // プレイヤーの攻撃力から敵の防御力を引く
+        m_enemy.hp -= my_real_attack; // プレイヤーのHPを減らす
+        
+        m_currentAnimState = BattleAnimationState::DiscardEffect;
         m_animStopwatch.reset();
     }
 }
@@ -94,10 +171,10 @@ void Battle::updateCombatEffect()
 void Battle::updateDiscardEffect()
 {
 	// アニメーションが完了したら
-	if (m_animStopwatch > m_currentAnimDuration)
+	if (m_animStopwatch > 1.0s)
 	{
 		// 1. Boardクラスの公開されているブロック配列から直接、捨て札に追加する
-		for (const auto& block : m_board.placedBlocks)
+		for (const auto& block : Deck_board)
 		{
 			Deck_gomi.push_back(block);
 		}
@@ -109,10 +186,10 @@ void Battle::updateDiscardEffect()
             // 手札のブロックを捨て札に移動
             Deck_gomi.push_back(block);
         }
-        Deck_table.clear(); // 手札をクリア
+        Deck_table.clear();
 
 		// 2. 勝利判定を行う
-		bool isVictory = false; // (例: 敵のHP <= 0)
+		bool isVictory = m_enemy.hp <= 0;
 		if (isVictory)
 		{
 			m_currentAnimState = BattleAnimationState::WinEffect;
@@ -122,16 +199,11 @@ void Battle::updateDiscardEffect()
 		}
 
 		// (敗北判定もここで行う)
-		bool isLose = false; // (例: 自分のHP <= 0)
+		bool isLose = getData().HP <= 0; 
 		if (isLose)
 		{
 			m_currentAnimState = BattleAnimationState::GameOver;
-			// ゲームオーバー演出は即時開始するため、タイマー設定は不要な場合もある
             m_animStopwatch.restart();
-            // ここでゲームオーバーの処理を行う
-            // 例えば、HPをリセットしたり、タイトル画面に戻る準備をする
-            // ゲームオーバー画面へ遷移する
-            changeScene(State::Title); // タイトル画面へ戻る
 			return;
 		}
 		// 3. 次の状態（カードドロー）へ遷移する準備
@@ -156,12 +228,64 @@ void Battle::updateCardDrawEffect()
         Deck_table.push_back(card); // 手札に追加
     }
 	// アニメーションが完了したら
-	if (m_animStopwatch > m_currentAnimDuration)
+	if (m_animStopwatch > 1.0s)
 	{
 		m_currentAnimState = BattleAnimationState::Idle;
+        m_animStopwatch.reset(); // ストップウォッチをリセット
+        board_locked = false; // 盤面の操作をアンロック
 	}
 }
 
+
+void Battle::update()
+{
+	// 「=」ボタンの代わりのデバッグ操作
+	if (KeyEnter.down() && !board_locked)
+	{
+		attack();
+        return;
+	}
+    if (KeyS.down() && !board_locked)
+    {
+        // デッキの一覧を表示する。
+        // showDeck(Deck_gomi);
+        return;
+    }
+    // 現在の状態で処理を分岐
+	switch (m_currentAnimState)
+	{
+	case BattleAnimationState::Idle:
+        // ここにデッキと盤面の移動についての処理を記述する
+        updateTableDeck();
+		break;
+	case BattleAnimationState::CombatEffect:
+		updateCombatEffect();
+		break;
+	case BattleAnimationState::DiscardEffect:
+		updateDiscardEffect();
+		break;
+	case BattleAnimationState::CardDrawEffect:
+		updateCardDrawEffect();
+		break;
+	case BattleAnimationState::WinEffect:
+		updateWinEffect();
+        if (true) // 最後の勝利か
+        {
+            // ここで、勝利した敵を「倒した」状態にする
+            m_enemyDB.markAsDefeated(m_enemy.name); // 敵を倒した状態に更新
+            changeScene(State::Result); // リザルト画面へ遷移
+        }   
+        else{
+            // まだ倒すべき敵が残っている場合 -> Mapシーンへ戻る
+            changeScene(State::Map);
+        }
+		break;
+	case BattleAnimationState::GameOver:
+        // ゲームオーバーからリザルド画面へ戻る処理
+        changeScene(State::Result);
+		break;
+	}
+}
 
 
 void Battle::draw() const
@@ -172,7 +296,7 @@ void Battle::draw() const
 	switch (m_currentAnimState)
 	{
     case BattleAnimationState::Idle:
-        // 通常状態
+        drawTableDeck();
         break;
     case BattleAnimationState::CombatEffect:
         drawCombatEffect();
@@ -188,6 +312,12 @@ void Battle::draw() const
 		drawWinEffect();
 		break;
 	}
+}
+
+// 手札の描画
+void drawTableDeck()
+{
+    // 
 }
 
 // 戦闘演出の描画

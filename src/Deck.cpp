@@ -15,7 +15,7 @@ void Deck::init(vector<Block>& deck) {
 	max_y = max(0, (tmp == 0) ? 0 : 100 + 250 * tmp); //最大のy座標を設定
 }
 
-void Deck::update() {
+bool Deck::update() {
 	if (!first_call) {
 		first_call = true;
 		timer = (int)Time::GetMillisec();
@@ -31,11 +31,16 @@ void Deck::update() {
 		if (fade_alpha < 0.4 && is_pushed) {
 			fade_alpha += 0.1;
 			if (fade_alpha > 0.4) fade_alpha = 0.4;
+			if (MouseL.up()) {
+				// 戻るボタンが押された場合の処理
+				return true; // 戻る処理を行う
+			}
 		} else if (fade_alpha > 0.0 && !is_pushed) {
 			fade_alpha -= 0.1;
 			if (fade_alpha < 0.0) fade_alpha = 0.0;
 		}
 	}
+	return false;
 }
 
 void Deck::draw() const {

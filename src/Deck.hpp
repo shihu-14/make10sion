@@ -23,7 +23,7 @@ private:
 	void drawFadeIn(double t) const;
 public:
 	void init(std::vector<Block>& deck);
-	void update();
+	bool update();
 	void draw() const;
 };
 

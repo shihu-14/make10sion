@@ -22,7 +22,7 @@ private://Write private functions or varables here.
 	Block block;
 	Array<int32> board_off_def = { 1,1,1,0,0,0 };//攻1守0
 
-	//const Texture board_img{U"../image/{名前}.png"};
+	const Texture board_img{U"../image/banmen_kuuhaku.png"};
 
 	//function
 	Point PutBlockAt();

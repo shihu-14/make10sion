@@ -30,6 +30,22 @@ Point Board::PutBlockAt(){
             }
         }
     }
+
+    bool finish = false;
+    for(int i=0;i<block.Size().second;i++){
+        for(int j=0;j<block.Size().first;j++){
+            char content = block.GetPiece(j,i).content;
+            if(content != '$' && board_usage[putAt.y + i][putAt.x + j] != 0){
+                putAt = {-1, -1};
+                finish = true;
+                break;
+            }
+        }
+        if(finish){
+            break;
+        }
+    }
+
     return putAt;
 }
 
@@ -74,7 +90,7 @@ void Board::PassBlock(const Block& selectedBlock, const vector<Block> deck) {
     block = selectedBlock;
 
     auto itr = find(deck.begin(), deck.end(), block);
-    blockNum = distance(deck.begin(), itr);
+    blockNum = distance(deck.begin(), itr) + 1;//1-indexedに変更
     is_block_selected = true;
 }
 

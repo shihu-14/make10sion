@@ -3,6 +3,7 @@
 
 #include <utility>
 #include <vector>
+#include <array>
 #include <Siv3D.hpp>
 #include "Block.hpp"
 
@@ -22,10 +23,10 @@ private://Write private functions or varables here.
 	Block block;
 	Array<int32> board_off_def = { 1,1,1,0,0,0 };//攻1守0
 	const Texture board_img{U"../image/banmen_kuuhaku.png"};
-	const Texture block_top{U"../image/card_sukima_top.png"};
-	const Texture block_bottom{U"../image/card_sukima_bottom.png"};
-	const Texture block_right{U"../image/card_sukima_right.png"};
-	const Texture block_left{U"../image/card_sukima_left.png"};
+	const std::array<Texture, 4> block_sides = {Texture{U"../image/card_sukima_top.png"},
+												Texture{U"../image/card_sukima_bottom.png"},
+												Texture{U"../image/card_sukima_right.png"},
+												Texture{U"../image/card_sukima_left.png"}};
 	Point offset = {0,0};//Boardの左上の絶対座標
 	int32 cell_size = 50;
 
@@ -36,7 +37,7 @@ private://Write private functions or varables here.
 	void AddUsablePlace();
 	void ResetBoard();
 	void CalcRow();
-	void UpdateBoardNum();
+	void UpdateBoardNum(Point putAt);
 	void InitBoardCoordinate();
 
 

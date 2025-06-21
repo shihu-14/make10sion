@@ -10,17 +10,30 @@ enum class State
 	Title,
 	Battle,
 	Map,
-	Result
+	Result,
+	Shop
 };
 
 // 共有するデータ
 struct GameData
 {
-	std::vector<Block> Deck;
+	std::vector<Block> Deck = {
+		Block("2\n3"),
+		Block("2\n3"),
+		Block("3\n2"),
+		Block("3\n2"),
+		Block("2\n3"),
+		Block("q\nj"),
+		Block("+\n+"),
+		Block("+\n+"),
+		Block("+\n+"),
+		Block("+\n*"),
+		Block("+\n*")
+	};
 	int Layer = 0;
 	int HP = 80;
 	int MaxHP = 80;
-	int money = 0;
+	int money = 100;
 	//Board board;
 	long long status = 0; // 状態
 

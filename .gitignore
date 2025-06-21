@@ -394,6 +394,7 @@ rules.ninja
 gmon.out
 .vscode/
 *.PVS-Studio.stacktrace.txt
+*.code-workspace
 
 
 # Siv3D

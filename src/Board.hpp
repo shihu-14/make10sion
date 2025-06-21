@@ -16,11 +16,11 @@ private://Write private functions or varables here.
 	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };
 	Array<int32> num_on_board;
 	Block block;
-	Array<int32> board_off_def = { 1,1,1,0,0,0 };//U1ç0
+	Array<int32> board_off_def = { 1,1,1,0,0,0 };//ï¿½U1ï¿½ï¿½0
 
 	//function
 	void PutBlock();
-	Array<std::pair<int32,int32>> TakeOutBlock();
+	Array<std::pair<int32,int32>> TakeOutBlock();//{x, y}ã§è¿”ã™
 	void AddUsablePlace();
 	void ResetBoard();
 

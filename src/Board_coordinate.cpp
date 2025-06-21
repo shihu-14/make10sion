@@ -1,42 +1,65 @@
 #include <Siv3D.hpp>
+#include "common.hpp"
 #include "Board.hpp"
 using namespace std;
 
 //private
-bool Board::CanPutBlock(){
+Point Board::PutBlockAt(){
     Point offset = {0,0};
     int32 cell = 32;
-    double r = 25.0;
-    const Point pos = Cursor::Pos();
-    int32 px0 = block.GetPiece(0,0).x;
-    int32 py0 = block.GetPiece(0,0).y;
-    int32 px = pos.x+px0+cell/2;//Blockの左上の絶対座標
-    int32 py = pos.y+py0+cell/2;
-
-    int32 bx = (px-offset.x)/cell;//マス座標に変換
+    double rSquared = 25.0;
+    //Blockの左上の絶対座標
+    int32 px = block.GetPiece(0,0).x+Cursor::Pos().x+cell/2;
+    int32 py = block.GetPiece(0,0).y+Cursor::Pos().y+cell/2;
+    //マス座標に変換
+    int32 bx = (px-offset.x)/cell;
     int32 by = (py-offset.y)/cell;
 
-    Point c = board_coordinate[by][bx];
+    Point putAt = {-1, -1};
+    double minDist = rSquared;
 
-    if(pow((c.x-px), 2)+pow((c.y-py), 2) <= r){
-        return true;
+    for (int i=0;i<2;i++){
+        for (int j=0;j<2;j++){
+            if(bx<6 && by<5){
+                double distSquared = CalcDist(board_coordinate[by+i][bx+j], Point{px, py});
+                if(distSquared < minDist){
+                    minDist = distSquared;
+                    putAt = Point{bx+j, by+i};
+                }
+            }
+        }
     }
-    return false;
+    return putAt;
+}
+
+double CalcDist(Point a, Point b){
+    return pow((a.x-b.x), 2)+pow((a.y-b.y), 2);
 }
 
 void Board::PutBlock(){
-    //
+    //blockが離されたら
+    Point putAt = PutBlockAt();
+    if(putAt != Point{-1, -1}){
+        for(int i=0;i<block.Size().second;i++){
+            for(int j=0;j<block.Size().first;j++){
+                char content = block.GetPiece(j,i).content;
+                if(content != '$'){
+                    board_usage[putAt.y + i][putAt.x + j] = blockNum;
+                }
+            }
+        }
+    }
+    else{
+        //手札に戻す
+    }
+    is_block_selected = false;
 }
 
 Array<pair<int32,int32>> Board::TakeOutBlock(){
-    Array<int32> blockList(10);//Blockdeckのリスト(暫定、後で置き換える)
-    auto itr = find(blockList.begin(), blockList.end(), block);
-    int num = distance(blockList.begin(), itr);
-
     Array<pair<int32,int32>> blockCoords;
     for (int y=0;y<6;y++){
         for(int x=0;x<7;x++){
-            if(board_usage[y][x] == num){
+            if(board_usage[y][x] == blockNum){
                 blockCoords.push_back({x,y});
             }
         }
@@ -46,8 +69,12 @@ Array<pair<int32,int32>> Board::TakeOutBlock(){
 
 //public
 //選択されているBlockが渡される
-void Board::PassBlock(const Block& selectedBlock){
+void Board::PassBlock(const Block& selectedBlock, const vector<Block> deck) {
     block = selectedBlock;
+
+    auto itr = find(deck.begin(), deck.end(), block);
+    blockNum = distance(deck.begin(), itr);
+    is_block_selected = true;
 }
 
 //後でちゃんとかくUpdate

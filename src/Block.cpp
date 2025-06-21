@@ -41,6 +41,8 @@ void Block::Rotate() {
 	for (int y = 0; y < sizeY; y++) {
 		for (int x = 0; x < sizeX; x++) {
 			newContents[x][sizeY - 1 - y] = contents[y][x];
+			newContents[x][sizeY - 1 - y].x = contents[y][x].y;
+			newContents[x][sizeY - 1 - y].y = -contents[y][x].x;
 		}
 	}
 	contents = move(newContents);

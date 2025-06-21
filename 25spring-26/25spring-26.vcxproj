@@ -118,6 +118,7 @@
     <ClCompile Include="..\src\Battle.cpp" />
     <ClCompile Include="..\src\Block.cpp" />
     <ClCompile Include="..\src\Board.cpp" />
+    <ClCompile Include="..\src\Deck.cpp" />
     <ClCompile Include="..\src\Main.cpp" />
     <ClCompile Include="..\src\Map.cpp" />
     <ClCompile Include="..\src\Result.cpp" />
@@ -352,6 +353,7 @@
     <ClInclude Include="..\src\Battle.hpp" />
     <ClInclude Include="..\src\Block.hpp" />
     <ClInclude Include="..\src\Board.hpp" />
+    <ClInclude Include="..\src\Deck.hpp" />
     <ClInclude Include="..\src\Map.hpp" />
     <ClInclude Include="..\src\Result.hpp" />
     <ClInclude Include="..\src\Title.hpp" />

@@ -15,14 +15,16 @@ private://Write private functions or varables here.
 	Grid<Point> board_coordinate;
 	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };
 	Array<int32> num_on_board;
+	Array<int32> result_of_calc= { 0,0,0,0,0,0 };
 	Block block;
-	Array<int32> board_off_def = { 1,1,1,0,0,0 };//�U1��0
+	Array<int32> board_off_def = { 1,1,1,0,0,0 };//攻1守0
 
 	//function
 	void PutBlock();
 	Array<std::pair<int32,int32>> TakeOutBlock();//{x, y}で返す
 	void AddUsablePlace();
 	void ResetBoard();
+	void CalcRow();
 
 
 	

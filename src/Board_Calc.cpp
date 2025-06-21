@@ -137,6 +137,9 @@ void Board::ResetBoard() {
 	for (Block b : Deck_board) {
 		do_block_anim[b] = 2;
 	}
+	used_blocks.clear();
+	block_hand_pos.clear();
+	do_block_anim.clear();
 }
 
 
@@ -181,6 +184,8 @@ void Board::AddUsablePlace(){
 	//ココまで
 
 }
+
+
 
 
 

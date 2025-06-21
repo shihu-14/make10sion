@@ -17,24 +17,26 @@ Board::Board() :
 //ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
 void Board::Update(int32 idx){//idx : 0:バトル中, 1:リザルト(マス解放時)
 	if(idx == 0){
-		if(is_block_selected){//Blockをドラッグしているとき
-			//この時点で、PassBlock()が実行されている
-			block.SetPos(Cursor::Pos().x, Cursor::Pos().y);
+		if (is_board_active) {
+			if (is_block_selected) {//Blockをドラッグしているとき
+				//この時点で、PassBlock()が実行されている
+				block.SetPos(Cursor::Pos().x, Cursor::Pos().y);
 
-			if(!block.IsDragging()){
-				PutBlock();
-			}
+				if (!block.IsDragging()) {
+					PutBlock();
+				}
 
-			if(MouseR.down()){//blockの回転
-				block.Rotate();
+				if (MouseR.down()) {//blockの回転
+					block.Rotate();
+				}
 			}
-		}
-		else{
-			Point pos = Cursor::Pos();
-			if(0<= pos.x-offset.x <= cell_size*7 && 0 <= pos.y-offset.y <= cell_size*7 && MouseL.down()){//Board内でクリックされたとき
-				int32 bx = (pos.x - offset.x) / cell_size;
-				int32 by = (pos.y - offset.y) / cell_size;
-				//TakeOutBlock(Point{bx, by})を呼び出したい
+			else {
+				Point pos = Cursor::Pos();
+				if (0 <= pos.x - offset.x <= cell_size * 7 && 0 <= pos.y - offset.y <= cell_size * 7 && MouseL.down()) {//Board内でクリックされたとき
+					int32 bx = (pos.x - offset.x) / cell_size;
+					int32 by = (pos.y - offset.y) / cell_size;
+					//TakeOutBlock(Point{bx, by})を呼び出したい
+				}
 			}
 		}
 

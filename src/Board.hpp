@@ -13,7 +13,8 @@ private:
 	//variables
 	Grid<int32> board_usage;
 	Grid<int32> board_number;
-	Grid<int32> board_effect;
+	Grid<int32> board_effect_back;
+	Grid<int32> board_effect_front;
 	Grid<Point> board_coordinate;
 	Array<int32> num_on_board;
 	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };
@@ -25,7 +26,9 @@ private:
 	const Point offset = {0,0};//Boardの左上の絶対座標
 	const int32 cell_size = 50;
 	const Texture board_img{U"../image/banmen_kuuhaku.png"};
-	std::map<Block, Point> block_hand_pos;
+	Array<Block> used_blocks;//盤面に出てきたブロックの配列. blockNumは「このインデックス+1」とする
+	Array<Point> block_hand_pos;//各ブロックの手札上の位置を保存
+	Array<int32> do_block_anim;//0:アニメーション無し, 1:手札へ, 2:捨札へ, 3:ボード上, -1:盤面に無い
 
 
 	//function
@@ -34,13 +37,14 @@ private:
 	void UpdateBoardNum(Point putAt);
 	void GetPieceNum(char content, int y, int x);
 	void InitBoardCoordinate();
-	Array<std::pair<int32,int32>> TakeOutBlock();//{x, y}で返す
+	void TakeOutBlock(Point pos);
 	void AddUsablePlace();
 	void ResetBoard();
 	void CalcRow();
-	void DrawBlockOnBoard(Block block_on_board);
+	void DrawBlock(Block block_on_board);
 	void BlockAnimation(Block moving_block, Point end_pos);
 
+	double CalcDist(Point a, Point b);
 	
 	
 public:
@@ -50,12 +54,13 @@ public:
 	//variables
 	bool is_board_active = false;
 	int32 unlocked_num = 6;
+	int32 num_of_used_card;
 
 	//functions
 	void Update(int32 idx);
 	void SetStat();
 	std::pair<int32, int32> Confirm();
-	void PassBlock(const Block& selectedBlock, const Point hand_pos, const std::vector<Block> deck);
+	void PassBlock(const Block& selectedBlock, const Point hand_pos);
 	void DrawBoard();
 };
 

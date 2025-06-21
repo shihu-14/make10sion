@@ -8,14 +8,22 @@ using namespace std;
 //private variables
 
 //private functions
-Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)のピースのマス座標を返す
-    double rSquared = 25.0;
+double Board::CalcDist(Point a, Point b){//2点間の距離(の2乗)の計算
+    return pow((a.x-b.x), 2)+pow((a.y-b.y), 2);
+}
+
+Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)のピースのボード座標を返す
+
+    double rSquared = 25.0;//吸い込み半径(の2乗)
+    
     //Blockの左上のピースの絶対座標
-    int32 px = block.GetPiece(0,0).x+Cursor::Pos().x;
-    int32 py = block.GetPiece(0,0).y+Cursor::Pos().y;
-    //マスの中心同士を結んだ マス座標 に変換
-    int32 bx = (px-offset.x+cell_size/2)/cell_size;
-    int32 by = (py-offset.y+cell_size/2)/cell_size;
+    Point piece_pos;
+    piece_pos.x = block.GetPiece(0, 0).x+Cursor::Pos().x;
+    piece_pos.y = block.GetPiece(0, 0).y+Cursor::Pos().y;
+
+    //マスの中心同士を結んだ ボード座標' に変換
+    int32 bx = (piece_pos.x - offset.x + cell_size/2) / cell_size;
+    int32 by = (piece_pos.y - offset.y + cell_size/2) / cell_size;
 
     Point putAt = {-1, -1};
     double minDist = rSquared;
@@ -25,14 +33,15 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)の�
     array<int32, 4> dy = {-1, -1, 0, 0};
     for(int k=0;k<4;k++){
         if((0 <= by+dy[k] < 6) && (0 <= bx+dx[k] < 7)){
-            double distSquared = CalcDist(board_coordinate[by+dy[k]][bx+dy[k]], Point{px, py});
+            double distSquared = CalcDist(board_coordinate[by+dy[k]][bx+dy[k]], piece_pos);
             if(distSquared < minDist){
                 minDist = distSquared;
                 putAt = Point{bx+dx[k], by+dy[k]};
             }
         }
     }
-    if(putAt == Point{-1, -1}){
+
+    if(putAt == Point{-1, -1}){//まだ近くにマスが無い場合
         return putAt;
     }
 
@@ -52,20 +61,16 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)の�
         }
     }
     if(!finish){//吸い込まれる
-        int32 newx = offset.x + putAt.x*cell_size + cell_size/2;
-        int32 newy = offset.y + putAt.y*cell_size + cell_size/2;
-        block.SetPos(newx, newy);
+        int32 new_x = offset.x + putAt.x*cell_size + cell_size/2;
+        int32 new_y = offset.y + putAt.y*cell_size + cell_size/2;
+        block.SetPos(new_x, new_y);
     }
 
     return putAt;
+
 }
 
-double CalcDist(Point a, Point b){//2点間の距離の計算
-    return pow((a.x-b.x), 2)+pow((a.y-b.y), 2);
-}
-
-void Board::PutBlock(){//blockを配置/手札に戻す
-    //blockが離されたら、という前提
+void Board::PutBlock(){//blockがドロップされたら、配置/手札に戻す
     Point putAt = PutBlockAt();
     if(putAt != Point{-1, -1}){
         UpdateBoardNum(putAt);
@@ -75,44 +80,61 @@ void Board::PutBlock(){//blockを配置/手札に戻す
     }
     else{
         block.SetStat(1);
-        BlockAnimation(block, block_hand_pos[block]);
+        do_block_anim[blockNum] = 1;
     }
     is_block_selected = false;
 }
 
-Array<pair<int32,int32>> Board::TakeOutBlock(){//現在触っているBlockの座標を返す
-    Array<pair<int32,int32>> blockCoords;
-    for (int y=0;y<6;y++){
-        for(int x=0;x<7;x++){
-            if(board_usage[y][x] == blockNum){
-                blockCoords.push_back({x,y});
+void Board::TakeOutBlock(Point pos){//クリックしたBlockをボードから外す
+    int32 num = board_usage[pos.y][pos.x];
+
+    if(num > 0){
+        for (int y=0;y<6;y++){
+            for(int x=0;x<7;x++){
+                if(board_usage[y][x] == blockNum){
+                    board_usage[y][x] = 0;
+                    if(board_number[y][x] < 100){//数字マスなら
+                        auto itr = find(num_on_board.begin(), num_on_board.end(), board_number[y][x]);
+                        num_on_board.erase(itr);
+                    }
+                    board_number[y][x] = 0;
+                    board_effect_back[y][x] = 0;
+                }
             }
         }
+
+        blockNum = num;
+        block = used_blocks[blockNum - 1];
     }
-    return blockCoords;
 }
 
 void Board::InitBoardCoordinate(){//board_coordinateの初期化
     for(int i=0;i<6;i++){
         for(int j=0;j<7;j++){
             Point cord;
-            cord.x = offset.x + cell_size/2 + cell_size*j;
-            cord.y = offset.y + cell_size/2 + cell_size*i;
+            cord.x = offset.x + cell_size*j + cell_size/2;
+            cord.y = offset.y + cell_size*i + cell_size/2;
             board_coordinate[i][j] = cord;
         }
     }
 }
 
+//public variables
 
 //public　functions
-void Board::PassBlock(const Block& selectedBlock, const Point hand_pos, const vector<Block> deck) {//選択されているBlockが渡される
+void Board::PassBlock(const Block& selectedBlock, const Point hand_pos) {//選択されているBlockとその手札座標が渡される
     block = selectedBlock;
-    auto itr = find(deck.begin(), deck.end(), block);
-    blockNum = distance(deck.begin(), itr) + 1;//1-indexedに変更
-    is_block_selected = true;
-    block_hand_pos[block] = hand_pos;//手札の位置を記録
-}
 
-//Update()後でちゃんとかく
-//block.statを触る。
-//回転の実装
+    auto itr = find(used_blocks.begin(), used_blocks.end(), block);
+    if(itr != used_blocks.end()){
+        used_blocks.push_back(block);
+        blockNum = used_blocks.size();//1-indexed
+        block_hand_pos.push_back(hand_pos);//手札の位置を記録
+        do_block_anim.push_back(0); 
+    }
+    else{
+        blockNum = distance(used_blocks.begin(), itr) + 1;//1-indexed
+        do_block_anim[blockNum - 1] = 0;
+    }
+    is_block_selected = true;
+}

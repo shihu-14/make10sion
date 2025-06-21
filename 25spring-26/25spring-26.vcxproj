@@ -119,7 +119,9 @@
     <ClCompile Include="..\src\Block.cpp" />
     <ClCompile Include="..\src\Deck.cpp" />
     <ClCompile Include="..\src\Main.cpp" />
+    <ClCompile Include="..\src\Result.cpp" />
     <ClCompile Include="..\src\Shop.cpp" />
+    <ClCompile Include="..\src\Title.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
@@ -350,7 +352,9 @@
     <ClInclude Include="..\src\Block.hpp" />
     <ClInclude Include="..\src\common.hpp" />
     <ClInclude Include="..\src\Deck.hpp" />
+    <ClInclude Include="..\src\Result.hpp" />
     <ClInclude Include="..\src\Shop.hpp" />
+    <ClInclude Include="..\src\Title.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>

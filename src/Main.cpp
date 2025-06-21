@@ -1,6 +1,6 @@
 ﻿# include <Siv3D.hpp> // Siv3D v0.6.16
 # include "Block.hpp"
-//TODO:ここにBoard.hppを追加!!
+# include "Board.hpp"
 
 // シーンの名前
 enum class State

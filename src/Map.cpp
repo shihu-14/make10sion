@@ -1,16 +1,16 @@
-#include "Map.hpp" // Map.hpp ‚ğƒCƒ“ƒNƒ‹[ƒh
+#include "Map.hpp" // Map.hpp ã‚’ã‚¤ãƒ³ã‚¯ãƒ«ãƒ¼ãƒ‰
 
-// MapPointType‚Ìƒƒ“ƒo[‚ğ’¼Úg‚¦‚é‚æ‚¤‚É‚·‚é
+// MapPointTypeã®ãƒ¡ãƒ³ãƒãƒ¼ã‚’ç›´æ¥ä½¿ãˆã‚‹ã‚ˆã†ã«ã™ã‚‹
 using enum MapPointType;
 
-// MapƒNƒ‰ƒX‚ÌƒRƒ“ƒXƒgƒ‰ƒNƒ^‚ÌÀ‘•
+// Mapã‚¯ãƒ©ã‚¹ã®ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã®å®Ÿè£…
 Map::Map(const InitData& init) :
-	App::Scene<GameState>(init), // eƒNƒ‰ƒXApp::Scene‚ÌƒRƒ“ƒXƒgƒ‰ƒNƒ^‚ğŒÄ‚Ño‚·
+	App::Scene<GameState>(init), // è¦ªã‚¯ãƒ©ã‚¹App::Sceneã®ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã‚’å‘¼ã³å‡ºã™
 
-	// ”wŒi‰æ‘œ‚Ì“Ç‚İ‚İ
+	// èƒŒæ™¯ç”»åƒã®èª­ã¿è¾¼ã¿
 	m_background(GameConstants::BackgroundAssetPath),
 
-	// ’n“_‰æ‘œ‚Ì“Ç‚İ‚İ
+	// åœ°ç‚¹ç”»åƒã®èª­ã¿è¾¼ã¿
 	m_pointEnemyImage(GameConstants::PointEnemyImagePath),
 	m_pointTreasureImage(GameConstants::PointTreasureImagePath),
 	m_pointEliteImage(GameConstants::PointEliteImagePath),
@@ -18,69 +18,69 @@ Map::Map(const InitData& init) :
 	m_pointShopImage(GameConstants::PointShopImagePath),
 	m_pointEventImage(GameConstants::PointEventImagePath),
 
-	// ƒtƒHƒ“ƒg‚Ìì¬
+	// ãƒ•ã‚©ãƒ³ãƒˆã®ä½œæˆ
 	m_playerInfoFont(GameConstants::PlayerInfoFontSize),
 	m_buttonFont(GameConstants::ButtonFontSize, Typeface::Bold),
 
-	// BGM‚Ì“Ç‚İ‚İ
+	// BGMã®èª­ã¿è¾¼ã¿
 	m_mapBGM(GameConstants::MapBGMPath, Loop::Yes),
 
-	// ‰æ–Ê‰º•”ƒ{ƒ^ƒ“‚Ì—Ìˆæ’è‹`
+	// ç”»é¢ä¸‹éƒ¨ãƒœã‚¿ãƒ³ã®é ˜åŸŸå®šç¾©
 	m_battleButtonRect(Arg::center(Window::Center().x - 200, Window::Height() - 150), 180, 60),
 	m_restButtonRect(Arg::center(Window::Center().x, Window::Height() - 150), 180, 60),
 	m_shopButtonRect(Arg::center(Window::Center().x + 200, Window::Height() - 150), 180, 60)
 {
-	// BGM‚ÌÄ¶ŠJn
+	// BGMã®å†ç”Ÿé–‹å§‹
 	if (m_mapBGM.isValid() && !m_mapBGM.isPlaying()) {
 		m_mapBGM.play();
 	}
 
-	// ƒvƒŒƒCƒ„[‚Ì‰ŠúƒXƒe[ƒ^ƒX
+	// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®åˆæœŸã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹
 	m_playerScore = 0;
-	m_playerFloor = 1; // ŠK‘w‚Í1‚©‚ç”‚¦‚é
+	m_playerFloor = 1; // éšå±¤ã¯1ã‹ã‚‰æ•°ãˆã‚‹
 
-	// === 6‚Â‚Ìƒ}ƒbƒv”z’uƒpƒ^[ƒ“ (1`10‘wƒuƒƒbƒN) ‚Ì’è‹` ===
-	// Array‚É’¼ÚMapPatternƒIƒuƒWƒFƒNƒg‚ğ‰Šú‰»ƒŠƒXƒg‚ÅŠi”[‚µ‚Ü‚·
+	// === 6ã¤ã®ãƒãƒƒãƒ—é…ç½®ãƒ‘ã‚¿ãƒ¼ãƒ³ (1ï½10å±¤ãƒ–ãƒ­ãƒƒã‚¯) ã®å®šç¾© ===
+	// Arrayã«ç›´æ¥MapPatternã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’åˆæœŸåŒ–ãƒªã‚¹ãƒˆã§æ ¼ç´ã—ã¾ã™
 	m_stages = {
-		// --- ƒpƒ^[ƒ“1 --- (
+		// --- ãƒ‘ã‚¿ãƒ¼ãƒ³1 --- (
 		MapPattern{
-			// layerPointTypes (10‘w•ª‚Ì’n“_ƒ^ƒCƒv)
+			// layerPointTypes (10å±¤åˆ†ã®åœ°ç‚¹ã‚¿ã‚¤ãƒ—)
 			{
-				{ None, Enemy, None },     // Layer 0 (1‘w–Ú): ŒÅ’è‚³‚ê‚é‚ªA‚±‚±‚É‚Íƒpƒ^[ƒ“’è‹`‚Æ‚µ‚Ä“ü‚ê‚Ä‚¨‚­
-				{ Enemy, Event, Enemy },     // Layer 1 (2‘w–Ú)
-				{ Elite, Enemy, Enemy }, // Layer 2 (3‘w–Ú)
-				{ Enemy, Treasure, Event },    // Layer 3 (4‘w–Ú)
-				{ Elite, Enemy, None },    // Layer 4 (5‘w–Ú)
-				{ Enemy, Shop, Enemy },     // Layer 5 (6‘w–Ú)
-				{ Elite, Treasure, Enemy },     // Layer 6 (7‘w–Ú)
-				{ Shop, Enemy, Enemy },    // Layer 7 (8‘w–Ú)
-				{ Enemy, Elite, Event }, // Layer 8 (9‘w–Ú)
-				{ None, Boss, None }       // Layer 9 (10‘w–Ú): ŒÅ’è‚³‚ê‚é‚ªA‚±‚±‚É‚Íƒpƒ^[ƒ“’è‹`‚Æ‚µ‚Ä“ü‚ê‚Ä‚¨‚­
+				{ None, Enemy, None },     // Layer 0 (1å±¤ç›®): å›ºå®šã•ã‚Œã‚‹ãŒã€ã“ã“ã«ã¯ãƒ‘ã‚¿ãƒ¼ãƒ³å®šç¾©ã¨ã—ã¦å…¥ã‚Œã¦ãŠã
+				{ Enemy, Event, Enemy },     // Layer 1 (2å±¤ç›®)
+				{ Elite, Enemy, Enemy }, // Layer 2 (3å±¤ç›®)
+				{ Enemy, Treasure, Event },    // Layer 3 (4å±¤ç›®)
+				{ Elite, Enemy, None },    // Layer 4 (5å±¤ç›®)
+				{ Enemy, Shop, Enemy },     // Layer 5 (6å±¤ç›®)
+				{ Elite, Treasure, Enemy },     // Layer 6 (7å±¤ç›®)
+				{ Shop, Enemy, Enemy },    // Layer 7 (8å±¤ç›®)
+				{ Enemy, Elite, Event }, // Layer 8 (9å±¤ç›®)
+				{ None, Boss, None }       // Layer 9 (10å±¤ç›®): å›ºå®šã•ã‚Œã‚‹ãŒã€ã“ã“ã«ã¯ãƒ‘ã‚¿ãƒ¼ãƒ³å®šç¾©ã¨ã—ã¦å…¥ã‚Œã¦ãŠã
 			},
-		// layerConnections (9‘wŠÔ•ª‚ÌÚ‘±î•ñ)
+		// layerConnections (9å±¤é–“åˆ†ã®æ¥ç¶šæƒ…å ±)
 		{
-			// Layer 0->1 (1‘w->2‘w)
-			{ {0,0}, {0,1}, {0,2} }, // 1‘w‚Ì0‚©‚ç2‘w‚Ì0, 1‚Ö
-			// Layer 1->2 (2‘w->3‘w)
-			{ {0,1},{2,1} }, // 2‘w‚Ì0‚©‚ç3‘w‚Ì0‚Ö, 2‘w‚Ì1‚©‚ç3‘w‚Ì2‚Ö
-			// Layer 2->3 (3‘w->4‘w)
-			{ {1,0},{1,2} }, // 3‘w‚Ì0‚©‚ç4‘w‚Ì0‚Ö
-			// Layer 3->4 (4‘w->5‘w)
-			{  {0,1},{2,1}}, // 4‘w‚Ì0‚©‚ç5‘w‚Ì0‚Ö, 4‘w‚Ì1‚©‚ç5‘w‚Ì0,1‚Ö
-			// Layer 4->5 (5‘w->6‘w)
+			// Layer 0->1 (1å±¤->2å±¤)
+			{ {0,0}, {0,1}, {0,2} }, // 1å±¤ã®0ã‹ã‚‰2å±¤ã®0, 1ã¸
+			// Layer 1->2 (2å±¤->3å±¤)
+			{ {0,1},{2,1} }, // 2å±¤ã®0ã‹ã‚‰3å±¤ã®0ã¸, 2å±¤ã®1ã‹ã‚‰3å±¤ã®2ã¸
+			// Layer 2->3 (3å±¤->4å±¤)
+			{ {1,0},{1,2} }, // 3å±¤ã®0ã‹ã‚‰4å±¤ã®0ã¸
+			// Layer 3->4 (4å±¤->5å±¤)
+			{  {0,1},{2,1}}, // 4å±¤ã®0ã‹ã‚‰5å±¤ã®0ã¸, 4å±¤ã®1ã‹ã‚‰5å±¤ã®0,1ã¸
+			// Layer 4->5 (5å±¤->6å±¤)
 			{ {1,0},{1,2} },
-			// Layer 5->6 (6‘w->7‘w)
+			// Layer 5->6 (6å±¤->7å±¤)
 			{ {0,1},{2,1} },
-			// Layer 6->7 (7‘w->8‘w)
+			// Layer 6->7 (7å±¤->8å±¤)
 			{ {1,0},{1,2} },
-			// Layer 7->8 (8‘w->9‘w)
+			// Layer 7->8 (8å±¤->9å±¤)
 			{  },
-			// Layer 8->9 (9‘w->10‘w)
+			// Layer 8->9 (9å±¤->10å±¤)
 			{ {0,1},{2,1} }
 		}
-	}, // --- ƒpƒ^[ƒ“1 I‚í‚è ---
+	}, // --- ãƒ‘ã‚¿ãƒ¼ãƒ³1 çµ‚ã‚ã‚Š ---
 
-		// --- ƒpƒ^[ƒ“2 --- 
+		// --- ãƒ‘ã‚¿ãƒ¼ãƒ³2 --- 
 		MapPattern{
 			{
 				{ None,Enemy , None },
@@ -105,9 +105,9 @@ Map::Map(const InitData& init) :
 			{  {0,1},{2,1}},
 			{ {0,1},{2,1} }
 			}
-		}, // --- ƒpƒ^[ƒ“2 I‚í‚è ---
+		}, // --- ãƒ‘ã‚¿ãƒ¼ãƒ³2 çµ‚ã‚ã‚Š ---
 
-		// --- ƒpƒ^[ƒ“3 --- 
+		// --- ãƒ‘ã‚¿ãƒ¼ãƒ³3 --- 
 		MapPattern{
 			{
 				{ None,Enemy , None },
@@ -132,9 +132,9 @@ Map::Map(const InitData& init) :
 			{ {1,0},{1,2} },
 			{ {0,1},{2,1} }
 			}
-		}, // --- ƒpƒ^[ƒ“3 I‚í‚è ---
+		}, // --- ãƒ‘ã‚¿ãƒ¼ãƒ³3 çµ‚ã‚ã‚Š ---
 
-		// --- ƒpƒ^[ƒ“4 --- ‚Ü‚¾‚Å‚«‚Ä‚È‚¢‚Å‚·
+		// --- ãƒ‘ã‚¿ãƒ¼ãƒ³4 --- ã¾ã ã§ãã¦ãªã„ã§ã™
 		MapPattern{
 			{
 				{ None,Enemy , None },
@@ -159,9 +159,9 @@ Map::Map(const InitData& init) :
 			{ {1,0},{1,2} },
 			{ {0,1},{2,1} }
 			}
-		}, // --- ƒpƒ^[ƒ“4 I‚í‚è ---
+		}, // --- ãƒ‘ã‚¿ãƒ¼ãƒ³4 çµ‚ã‚ã‚Š ---
 
-		// --- ƒpƒ^[ƒ“5 --- (
+		// --- ãƒ‘ã‚¿ãƒ¼ãƒ³5 --- (
 		MapPattern{
 			{
 				{None,Enemy , None },
@@ -186,9 +186,9 @@ Map::Map(const InitData& init) :
 			{ {1,0},{1,2} },
 			{ {0,1},{2,1} }
 			}
-		}, // --- ƒpƒ^[ƒ“5 I‚í‚è ---
+		}, // --- ãƒ‘ã‚¿ãƒ¼ãƒ³5 çµ‚ã‚ã‚Š ---
 
-		// --- ƒpƒ^[ƒ“6 --- 
+		// --- ãƒ‘ã‚¿ãƒ¼ãƒ³6 --- 
 		MapPattern{
 			{
 				{ None,Enemy , None  },
@@ -213,33 +213,33 @@ Map::Map(const InitData& init) :
 			{ {1,0},{1,2} },
 			{ {0,1},{2,1} }
 			}
-		} // --- ƒpƒ^[ƒ“6 I‚í‚è ---
+		} // --- ãƒ‘ã‚¿ãƒ¼ãƒ³6 çµ‚ã‚ã‚Š ---
 	};
 
-	// ‘I‚Î‚ê‚½ƒpƒ^[ƒ“‚©‚çÀÛ‚Ì30‘wƒ}ƒbƒv‚ğ\’z‚·‚é
+	// é¸ã°ã‚ŒãŸãƒ‘ã‚¿ãƒ¼ãƒ³ã‹ã‚‰å®Ÿéš›ã®30å±¤ãƒãƒƒãƒ—ã‚’æ§‹ç¯‰ã™ã‚‹
 	BuildMapFromPatterns();
 
-	// ƒvƒŒƒCƒ„[‚Ì‰ŠúˆÊ’u‚Æó‘Ô
+	// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®åˆæœŸä½ç½®ã¨çŠ¶æ…‹
 	m_playerCurrentLayer = 0;
 	m_playerCurrentPoint = 0;
 	m_allMapPoints[m_playerCurrentLayer][m_playerCurrentPoint].isVisited = true;
 	m_allMapPoints[m_playerCurrentLayer][m_playerCurrentPoint].isAccessible = true;
 
-	// ‰ŠúƒAƒNƒZƒX‰Â”\’n“_‚ğXV
+	// åˆæœŸã‚¢ã‚¯ã‚»ã‚¹å¯èƒ½åœ°ç‚¹ã‚’æ›´æ–°
 	UpdateAccessiblePoints();
 }
 
-// update() ƒƒ\ƒbƒh‚ÌÀ‘•
+// update() ãƒ¡ã‚½ãƒƒãƒ‰ã®å®Ÿè£…
 void Map::update() {
 	m_currentAlpha = Min(m_currentAlpha + Scene::DeltaTime() * 0.5, 1.0);
-	m_currentTimeInMap += Scene::DeltaTime(); // ƒ}ƒbƒvƒV[ƒ“‚Å‚ÌŒo‰ßŠÔ‚ğXV
+	m_currentTimeInMap += Scene::DeltaTime(); // ãƒãƒƒãƒ—ã‚·ãƒ¼ãƒ³ã§ã®çµŒéæ™‚é–“ã‚’æ›´æ–°
 
 
 
-	// ’n“_‚ÌƒNƒŠƒbƒN”»’è‚ÆƒV[ƒ“‘JˆÚ
-	m_selectedPointIndex.reset(); // –ˆƒtƒŒ[ƒ€Aƒ}ƒEƒXƒI[ƒo[’†‚Ì’n“_‚ğƒŠƒZƒbƒg
+	// åœ°ç‚¹ã®ã‚¯ãƒªãƒƒã‚¯åˆ¤å®šã¨ã‚·ãƒ¼ãƒ³é·ç§»
+	m_selectedPointIndex.reset(); // æ¯ãƒ•ãƒ¬ãƒ¼ãƒ ã€ãƒã‚¦ã‚¹ã‚ªãƒ¼ãƒãƒ¼ä¸­ã®åœ°ç‚¹ã‚’ãƒªã‚»ãƒƒãƒˆ
 
-	// •`‰æ”ÍˆÍ‚Ì‘w‚Ì‚İƒNƒŠƒbƒN‰Â”\‚É‚·‚é
+	// æç”»ç¯„å›²ã®å±¤ã®ã¿ã‚¯ãƒªãƒƒã‚¯å¯èƒ½ã«ã™ã‚‹
 	int startLayerForInteraction = Max(0, m_playerCurrentLayer - 1);
 	int endLayerForInteraction = Min(29, m_playerCurrentLayer + 2);
 
@@ -247,44 +247,44 @@ void Map::update() {
 		for (int pointIdx = 0; pointIdx < m_allMapPoints[layerIdx].size(); ++pointIdx) {
 			MapPoint& point = m_allMapPoints[layerIdx][pointIdx];
 
-			// Noneƒ^ƒCƒv‚Ì’n“_‚Í‘€ì‚Å‚«‚È‚¢
+			// Noneã‚¿ã‚¤ãƒ—ã®åœ°ç‚¹ã¯æ“ä½œã§ããªã„
 			if (point.type == None) continue;
 
-			// ’n“_‰æ‘œ‚Æ“¯‚¶‚­‚ç‚¢‚ÌƒNƒŠƒbƒN‰Â”\‚È‰~Œ`—Ìˆæi‰æ‘œƒTƒCƒY‚É‡‚í‚¹‚Ä’²®j
+			// åœ°ç‚¹ç”»åƒã¨åŒã˜ãã‚‰ã„ã®ã‚¯ãƒªãƒƒã‚¯å¯èƒ½ãªå††å½¢é ˜åŸŸï¼ˆç”»åƒã‚µã‚¤ã‚ºã«åˆã‚ã›ã¦èª¿æ•´ï¼‰
 			RectF clickableArea = Circle(point.drawPos, 25);
 
 			if (point.isAccessible && clickableArea.mouseOver()) {
-				m_selectedPointIndex = pointIdx; // ƒ}ƒEƒX‚ªæ‚Á‚Ä‚¢‚é’n“_‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ‹L˜^
-				Cursor::RequestStyle(CursorStyle::Hand); // ƒJ[ƒ\ƒ‹‚ğè‚ÌŒ`‚É
+				m_selectedPointIndex = pointIdx; // ãƒã‚¦ã‚¹ãŒä¹—ã£ã¦ã„ã‚‹åœ°ç‚¹ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’è¨˜éŒ²
+				Cursor::RequestStyle(CursorStyle::Hand); // ã‚«ãƒ¼ã‚½ãƒ«ã‚’æ‰‹ã®å½¢ã«
 
 				if (clickableArea.leftClicked()) {
-					// “¯‚¶‘w‚Ì’n“_‚ğ‘I‘ğ‚µ‚½ê‡iÄ‘I‘ğj
+					// åŒã˜å±¤ã®åœ°ç‚¹ã‚’é¸æŠã—ãŸå ´åˆï¼ˆå†é¸æŠï¼‰
 					if (layerIdx == m_playerCurrentLayer) {
-						HandleCurrentPointAction(point.type); // ‹x–°AƒVƒ‡ƒbƒvA•ó” AÄí‚È‚Ç
-						// “¯‚¶‘w‚Ìí“¬Œn’n“_‚ğÄ‘I‘ğ‚µ‚½ê‡‚àí“¬ƒV[ƒ“‚Ö
+						HandleCurrentPointAction(point.type); // ä¼‘çœ ã€ã‚·ãƒ§ãƒƒãƒ—ã€å®ç®±ã€å†æˆ¦ãªã©
+						// åŒã˜å±¤ã®æˆ¦é—˜ç³»åœ°ç‚¹ã‚’å†é¸æŠã—ãŸå ´åˆã‚‚æˆ¦é—˜ã‚·ãƒ¼ãƒ³ã¸
 						if (point.type == Enemy || point.type == Elite || point.type == Boss) {
 							if (m_mapBGM.isValid() && m_mapBGM.isPlaying()) { m_mapBGM.stop(0.5s); }
 							changeScene(GameState::Battle, 0.5s);
 						}
 					}
-					// Ÿ‚Ì‘w‚Ì’n“_‚ğ‘I‘ğ‚µ‚½ê‡iˆÚ“®j
+					// æ¬¡ã®å±¤ã®åœ°ç‚¹ã‚’é¸æŠã—ãŸå ´åˆï¼ˆç§»å‹•ï¼‰
 					else if (layerIdx == m_playerCurrentLayer + 1) {
 						bool canMoveToNextLayer = false;
 
 						int currentBlockNum = m_playerCurrentLayer / 10;
 						int relativeLayerIdx = m_playerCurrentLayer % 10;
 
-						// Ú‘±‚Ì”»’èƒƒWƒbƒN
-						if (relativeLayerIdx == 0) { // 1‘w,11‘w,21‘w‚©‚ç‚ÌˆÚ“®i’Pˆê“_j
-							// í‚É0”Ô–Ú‚Ì’n“_‚©‚çŸ‚Ì‘w‚Ì0”Ô–Ú‚Ì’n“_‚ÉŒq‚ª‚é
+						// æ¥ç¶šã®åˆ¤å®šãƒ­ã‚¸ãƒƒã‚¯
+						if (relativeLayerIdx == 0) { // 1å±¤,11å±¤,21å±¤ã‹ã‚‰ã®ç§»å‹•ï¼ˆå˜ä¸€ç‚¹ï¼‰
+							// å¸¸ã«0ç•ªç›®ã®åœ°ç‚¹ã‹ã‚‰æ¬¡ã®å±¤ã®0ç•ªç›®ã®åœ°ç‚¹ã«ç¹‹ãŒã‚‹
 							canMoveToNextLayer = (m_playerCurrentPoint == 0 && pointIdx == 0);
 						}
-						else if (relativeLayerIdx == 9) { // 10‘w,20‘w,30‘w‚©‚ç‚ÍˆÚ“®‚Å‚«‚È‚¢
+						else if (relativeLayerIdx == 9) { // 10å±¤,20å±¤,30å±¤ã‹ã‚‰ã¯ç§»å‹•ã§ããªã„
 							canMoveToNextLayer = false;
 						}
-						else { // 2`9‘wA12`19‘wA22`29‘w‚©‚ç‚ÌˆÚ“®
+						else { // 2ï½9å±¤ã€12ï½19å±¤ã€22ï½29å±¤ã‹ã‚‰ã®ç§»å‹•
 							const MapPattern& currentPattern = m_stages[m_currentMapPattern[currentBlockNum]];
-							// layerConnections‚Í0-8‘w‚Ì’è‹`‚È‚Ì‚ÅArelativeLayerIdx-1‚ÅƒAƒNƒZƒX
+							// layerConnectionsã¯0-8å±¤ã®å®šç¾©ãªã®ã§ã€relativeLayerIdx-1ã§ã‚¢ã‚¯ã‚»ã‚¹
 							for (const auto& conn : currentPattern.layerConnections[relativeLayerIdx - 1]) {
 								if (conn.sourceIndex == m_playerCurrentPoint && conn.targetIndex == pointIdx && conn.isConnected) {
 									canMoveToNextLayer = true;
@@ -294,14 +294,14 @@ void Map::update() {
 						}
 
 						if (canMoveToNextLayer) {
-							// ƒvƒŒƒCƒ„[‚ÌˆÊ’u‚ğXV‚µA–K–âÏ‚İ‚Æ‚·‚é
+							// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ä½ç½®ã‚’æ›´æ–°ã—ã€è¨ªå•æ¸ˆã¿ã¨ã™ã‚‹
 							m_playerCurrentLayer = layerIdx;
 							m_playerCurrentPoint = pointIdx;
 							m_allMapPoints[m_playerCurrentLayer][m_playerCurrentPoint].isVisited = true;
 							UpdateAccessiblePoints();
-							System::Print(U"{}‘w {}’n“_‚ÖˆÚ“®I".format(m_playerCurrentLayer + 1, m_playerCurrentPoint));
+							System::Print(U"{}å±¤ {}åœ°ç‚¹ã¸ç§»å‹•ï¼".format(m_playerCurrentLayer + 1, m_playerCurrentPoint));
 
-							// ƒV[ƒ“‘JˆÚiV‚µ‚¢’n“_ƒ^ƒCƒv‚É‘Î‰j
+							// ã‚·ãƒ¼ãƒ³é·ç§»ï¼ˆæ–°ã—ã„åœ°ç‚¹ã‚¿ã‚¤ãƒ—ã«å¯¾å¿œï¼‰
 							if (m_mapBGM.isValid() && m_mapBGM.isPlaying()) { m_mapBGM.stop(0.5s); }
 
 							if (point.type == Enemy || point.type == Elite || point.type == Boss) {
@@ -311,36 +311,36 @@ void Map::update() {
 								changeScene(GameState::Shop, 0.5s);
 							}
 							else if (point.type == Event) {
-								System::Print(U"ƒCƒxƒ“ƒgƒ}ƒX‚É~‚Ü‚è‚Ü‚µ‚½I’Š‘I‚ğŠJn‚µ‚Ü‚·B");
-								int diceRoll = Random(0, 99); // 0‚©‚ç99‚Ü‚Å‚Ì—”‚ğ¶¬ (‡Œv100)
+								System::Print(U"ã‚¤ãƒ™ãƒ³ãƒˆãƒã‚¹ã«æ­¢ã¾ã‚Šã¾ã—ãŸï¼æŠ½é¸ã‚’é–‹å§‹ã—ã¾ã™ã€‚");
+								int diceRoll = Random(0, 99); // 0ã‹ã‚‰99ã¾ã§ã®ä¹±æ•°ã‚’ç”Ÿæˆ (åˆè¨ˆ100)
 
 								if (diceRoll < 10) { // 0-9 (10%)
-									System::Print(U"¨ ƒGƒlƒ~[‚ªoŒ»I");
-									changeScene(GameState::Battle, 0.5s); // ƒGƒlƒ~[‚Íí“¬ƒV[ƒ“‚Ö
+									System::Print(U"â†’ ã‚¨ãƒãƒŸãƒ¼ãŒå‡ºç¾ï¼");
+									changeScene(GameState::Battle, 0.5s); // ã‚¨ãƒãƒŸãƒ¼ã¯æˆ¦é—˜ã‚·ãƒ¼ãƒ³ã¸
 								}
 								else if (diceRoll < 20) { // 10-19 (10%)
-									System::Print(U"¨ ƒGƒŠ[ƒg‚ªoŒ»I");
-									changeScene(GameState::Battle, 0.5s); // ƒGƒŠ[ƒg‚àí“¬ƒV[ƒ“‚Ö
+									System::Print(U"â†’ ã‚¨ãƒªãƒ¼ãƒˆãŒå‡ºç¾ï¼");
+									changeScene(GameState::Battle, 0.5s); // ã‚¨ãƒªãƒ¼ãƒˆã‚‚æˆ¦é—˜ã‚·ãƒ¼ãƒ³ã¸
 								}
 								else if (diceRoll < 30) { // 20-29 (10%)
-									System::Print(U"¨ ƒVƒ‡ƒbƒv‚ªoŒ»I");
-									changeScene(GameState::Shop, 0.5s); // ƒVƒ‡ƒbƒvƒV[ƒ“‚Ö
+									System::Print(U"â†’ ã‚·ãƒ§ãƒƒãƒ—ãŒå‡ºç¾ï¼");
+									changeScene(GameState::Shop, 0.5s); // ã‚·ãƒ§ãƒƒãƒ—ã‚·ãƒ¼ãƒ³ã¸
 								}
 								else if (diceRoll < 40) { // 30-39 (10%)
-									System::Print(U"¨ •ó” ‚ğ”­Œ©I");
-									HandleCurrentPointAction(MapPointType::Treasure); // •ó” ‚Í‚±‚±‚Åˆ—iƒXƒRƒA‰ÁZ‚È‚Çj
+									System::Print(U"â†’ å®ç®±ã‚’ç™ºè¦‹ï¼");
+									HandleCurrentPointAction(MapPointType::Treasure); // å®ç®±ã¯ã“ã“ã§å‡¦ç†ï¼ˆã‚¹ã‚³ã‚¢åŠ ç®—ãªã©ï¼‰
 								}
 								else { // 40-99 (60%)
-									System::Print(U"¨ “ÁêƒCƒxƒ“ƒg‚ª”­¶I");
-									changeScene(GameState::Event, 0.5s); // u‰½‚©‚ğ‚à‚ç‚¤vƒCƒxƒ“ƒgƒV[ƒ“‚Ö
+									System::Print(U"â†’ ç‰¹æ®Šã‚¤ãƒ™ãƒ³ãƒˆãŒç™ºç”Ÿï¼");
+									changeScene(GameState::Event, 0.5s); // ã€Œä½•ã‹ã‚’ã‚‚ã‚‰ã†ã€ã‚¤ãƒ™ãƒ³ãƒˆã‚·ãƒ¼ãƒ³ã¸
 								}
 							}
 							else if (point.type == Treasure) {
-								HandleCurrentPointAction(point.type); // •ó” ‚Íƒ}ƒbƒvã‚Å’¼Úˆ—
+								HandleCurrentPointAction(point.type); // å®ç®±ã¯ãƒãƒƒãƒ—ä¸Šã§ç›´æ¥å‡¦ç†
 							}
 						}
 						else {
-							System::Print(U"‚»‚Ì“¹‚Í‚Â‚È‚ª‚Á‚Ä‚¢‚Ü‚¹‚ñI");
+							System::Print(U"ãã®é“ã¯ã¤ãªãŒã£ã¦ã„ã¾ã›ã‚“ï¼");
 						}
 					}
 				}
@@ -348,37 +348,37 @@ void Map::update() {
 		}
 	}
 
-	// ƒJ[ƒ\ƒ‹‚ğƒfƒtƒHƒ‹ƒg‚É–ß‚·
-	if (!m_selectedPointIndex.has_value()) { // ‚Ç‚Ì’n“_‚É‚àƒ}ƒEƒX‚ªæ‚Á‚Ä‚¢‚È‚¢ê‡
+	// ã‚«ãƒ¼ã‚½ãƒ«ã‚’ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã«æˆ»ã™
+	if (!m_selectedPointIndex.has_value()) { // ã©ã®åœ°ç‚¹ã«ã‚‚ãƒã‚¦ã‚¹ãŒä¹—ã£ã¦ã„ãªã„å ´åˆ
 		Cursor::RequestStyle(CursorStyle::Arrow);
 	}
 
 }
 
-// draw() ƒƒ\ƒbƒh‚ÌÀ‘•
+// draw() ãƒ¡ã‚½ãƒƒãƒ‰ã®å®Ÿè£…
 void Map::draw() const {
 	m_background.draw();
 
-	// ƒvƒŒƒCƒ„[î•ñ•`‰æ
-	m_playerInfoFont(U"ƒXƒRƒA: {}", m_playerScore).draw(20, 20, Palette::White);
-	m_playerInfoFont(U"ŠK‘w: {}F", m_playerCurrentLayer + 1).draw(20, 70, Palette::White);
-	m_playerInfoFont(U"Œ»İ‚Ì’n“_: {}".format(m_playerCurrentPoint)).draw(20, 120, Palette::Cyan);
+	// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼æƒ…å ±æç”»
+	m_playerInfoFont(U"ã‚¹ã‚³ã‚¢: {}", m_playerScore).draw(20, 20, Palette::White);
+	m_playerInfoFont(U"éšå±¤: {}F", m_playerCurrentLayer + 1).draw(20, 70, Palette::White);
+	m_playerInfoFont(U"ç¾åœ¨ã®åœ°ç‚¹: {}".format(m_playerCurrentPoint)).draw(20, 120, Palette::Cyan);
 
-	// •`‰æ”ÍˆÍ‚ÌŒvZ
+	// æç”»ç¯„å›²ã®è¨ˆç®—
 	int startLayerForDrawing = Max(0, m_playerCurrentLayer - 1);
-	int endLayerForDrawing = Min(29, m_playerCurrentLayer + 2); // 30‘w‚È‚Ì‚ÅÅ‘å29
+	int endLayerForDrawing = Min(29, m_playerCurrentLayer + 2); // 30å±¤ãªã®ã§æœ€å¤§29
 
-	// --- Ú‘±ü‚Ì•`‰æ ---
+	// --- æ¥ç¶šç·šã®æç”» ---
 	for (int layerIdx = startLayerForDrawing; layerIdx <= endLayerForDrawing; ++layerIdx) {
-		if (layerIdx < 29) { // ÅI‘w‚Ìè‘O‚Ü‚Å
+		if (layerIdx < 29) { // æœ€çµ‚å±¤ã®æ‰‹å‰ã¾ã§
 			int currentBlockNum = layerIdx / 10;
 			int relativeLayerIdx = layerIdx % 10;
 
-			// Ú‘±‚ÍA(1‘w,11‘w,21‘w) ‚Ü‚½‚Í (10‘w,20‘w,30‘w) ‚Ì’Pˆê“_‘w‚É‚Í‘¶İ‚µ‚È‚¢
-			// ‚©‚ÂA‚»‚ÌƒuƒƒbƒN‚ÌÅI‘w (9‘w) ‚©‚ç‚ÌÚ‘±‚à‘¶İ‚µ‚È‚¢
-			if (relativeLayerIdx > 0 && relativeLayerIdx < 9) { // 2`9‘wA12`19‘wA22`29‘w‚Ìê‡
+			// æ¥ç¶šã¯ã€(1å±¤,11å±¤,21å±¤) ã¾ãŸã¯ (10å±¤,20å±¤,30å±¤) ã®å˜ä¸€ç‚¹å±¤ã«ã¯å­˜åœ¨ã—ãªã„
+			// ã‹ã¤ã€ãã®ãƒ–ãƒ­ãƒƒã‚¯ã®æœ€çµ‚å±¤ (9å±¤) ã‹ã‚‰ã®æ¥ç¶šã‚‚å­˜åœ¨ã—ãªã„
+			if (relativeLayerIdx > 0 && relativeLayerIdx < 9) { // 2ï½9å±¤ã€12ï½19å±¤ã€22ï½29å±¤ã®å ´åˆ
 				const MapPattern& currentPattern = m_stages[m_currentMapPattern[currentBlockNum]];
-				// layerConnections‚Í0-8‘w‚Ì’è‹`‚È‚Ì‚ÅArelativeLayerIdx-1‚ÅƒAƒNƒZƒX
+				// layerConnectionsã¯0-8å±¤ã®å®šç¾©ãªã®ã§ã€relativeLayerIdx-1ã§ã‚¢ã‚¯ã‚»ã‚¹
 				for (const auto& conn : currentPattern.layerConnections[relativeLayerIdx - 1]) {
 					if (conn.isConnected) {
 						Vec2 startPos = m_allMapPoints[layerIdx][conn.sourceIndex].drawPos;
@@ -395,14 +395,14 @@ void Map::draw() const {
 		}
 	}
 
-	// --- Še‘w‚Ì’n“_‚Ì•`‰æi‰æ‘œ‚ğg—pj ---
+	// --- å„å±¤ã®åœ°ç‚¹ã®æç”»ï¼ˆç”»åƒã‚’ä½¿ç”¨ï¼‰ ---
 	for (int layerIdx = startLayerForDrawing; layerIdx <= endLayerForDrawing; ++layerIdx) {
 		for (int pointIdx = 0; pointIdx < m_allMapPoints[layerIdx].size(); ++pointIdx) {
 			const MapPoint& point = m_allMapPoints[layerIdx][pointIdx];
 
-			if (point.type == None) continue; // Noneƒ^ƒCƒv‚Ì’n“_‚Í•`‰æ‚µ‚È‚¢
+			if (point.type == None) continue; // Noneã‚¿ã‚¤ãƒ—ã®åœ°ç‚¹ã¯æç”»ã—ãªã„
 
-			// •`‰æ‚·‚é‰æ‘œ‚ğ‘I‘ği6í—Ş‚É‘Î‰j
+			// æç”»ã™ã‚‹ç”»åƒã‚’é¸æŠï¼ˆ6ç¨®é¡ã«å¯¾å¿œï¼‰
 			const Texture* pointImage = nullptr;
 			if (point.type == Enemy) { pointImage = &m_pointEnemyImage; }
 			else if (point.type == Treasure) { pointImage = &m_pointTreasureImage; }
@@ -412,18 +412,18 @@ void Map::draw() const {
 			else if (point.type == Event) { pointImage = &m_pointEventImage; }
 
 			if (pointImage && pointImage->isValid()) {
-				pointImage->drawAt(point.drawPos, ColorF(1.0, m_currentAlpha)); // “§–¾“x‚ğ“K—p
+				pointImage->drawAt(point.drawPos, ColorF(1.0, m_currentAlpha)); // é€æ˜åº¦ã‚’é©ç”¨
 			}
 
-			// ƒvƒŒƒCƒ„[‚ªŒ»İ‚¢‚é’n“_‚Éƒ}[ƒN‚ğ•\¦‚·‚é
+			// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒç¾åœ¨ã„ã‚‹åœ°ç‚¹ã«ãƒãƒ¼ã‚¯ã‚’è¡¨ç¤ºã™ã‚‹
 			if (layerIdx == m_playerCurrentLayer && pointIdx == m_playerCurrentPoint) {
-				Circle(point.drawPos, 20).drawFrame(4, Palette::Yellow.withAlpha(m_currentAlpha)); // ‘¾‚¢‰©F‚¢˜g
+				Circle(point.drawPos, 20).drawFrame(4, Palette::Yellow.withAlpha(m_currentAlpha)); // å¤ªã„é»„è‰²ã„æ 
 			}
-			// ƒAƒNƒZƒX‰Â”\‚È’n“_‚É‹­’²•\¦
+			// ã‚¢ã‚¯ã‚»ã‚¹å¯èƒ½ãªåœ°ç‚¹ã«å¼·èª¿è¡¨ç¤º
 			else if (point.isAccessible) {
 				Circle(point.drawPos, 22).drawFrame(2, Palette::Cyan.withAlpha(m_currentAlpha * 0.7));
 			}
-			// –K–âÏ‚İ‚¾‚ªƒAƒNƒZƒX•s‰Â”\i‰ß‹‚Ì’n“_j‚Í”¼“§–¾‚Å•\¦
+			// è¨ªå•æ¸ˆã¿ã ãŒã‚¢ã‚¯ã‚»ã‚¹ä¸å¯èƒ½ï¼ˆéå»ã®åœ°ç‚¹ï¼‰ã¯åŠé€æ˜ã§è¡¨ç¤º
 			else if (point.isVisited) {
 				if (pointImage && pointImage->isValid()) {
 					pointImage->drawAt(point.drawPos, ColorF(0.5, m_currentAlpha));
@@ -432,38 +432,38 @@ void Map::draw() const {
 		}
 	}
 
-	RectF(Scene::Size()).draw(ColorF(0.0, 0.0, 0.0, 1.0 - m_currentAlpha)); // ƒtƒF[ƒhƒCƒ“‰‰o
+	RectF(Scene::Size()).draw(ColorF(0.0, 0.0, 0.0, 1.0 - m_currentAlpha)); // ãƒ•ã‚§ãƒ¼ãƒ‰ã‚¤ãƒ³æ¼”å‡º
 }
 
-// ƒwƒ‹ƒp[ŠÖ”iMapƒNƒ‰ƒX‚Ìƒvƒ‰ƒCƒx[ƒgƒƒ\ƒbƒh‚Æ‚µ‚Ä’è‹`j
-// Map.cpp‚Ì‚Ç‚±‚©‚ÉÀ‘•‚µ‚Ä‚­‚¾‚³‚¢
+// ãƒ˜ãƒ«ãƒ‘ãƒ¼é–¢æ•°ï¼ˆMapã‚¯ãƒ©ã‚¹ã®ãƒ—ãƒ©ã‚¤ãƒ™ãƒ¼ãƒˆãƒ¡ã‚½ãƒƒãƒ‰ã¨ã—ã¦å®šç¾©ï¼‰
+// Map.cppã®ã©ã“ã‹ã«å®Ÿè£…ã—ã¦ãã ã•ã„
 void Map::UpdateAccessiblePoints() {
-	// ‚Ü‚¸‘S‚Ä‚Ì’n“_‚ÌƒAƒNƒZƒX‰Â”\«‚ğfalse‚É‚·‚é
+	// ã¾ãšå…¨ã¦ã®åœ°ç‚¹ã®ã‚¢ã‚¯ã‚»ã‚¹å¯èƒ½æ€§ã‚’falseã«ã™ã‚‹
 	for (auto& layer : m_allMapPoints) {
 		for (auto& point : layer) {
 			point.isAccessible = false;
 		}
 	}
 
-	// Œ»İƒvƒŒƒCƒ„[‚ª‚¢‚é’n“_‚Íí‚ÉƒAƒNƒZƒX‰Â”\
+	// ç¾åœ¨ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ãŒã„ã‚‹åœ°ç‚¹ã¯å¸¸ã«ã‚¢ã‚¯ã‚»ã‚¹å¯èƒ½
 	m_allMapPoints[m_playerCurrentLayer][m_playerCurrentPoint].isAccessible = true;
 
-	// Œ»İ‚Ì‘w‚©‚çŸ‚Ì‘w‚Ö‚ÌÚ‘±‚ğ‚½‚Ç‚èAƒAƒNƒZƒX‰Â”\‚É‚·‚é
-	if (m_playerCurrentLayer < 29) { // ÅI‘w(29)‚Å‚È‚¯‚ê‚Î
+	// ç¾åœ¨ã®å±¤ã‹ã‚‰æ¬¡ã®å±¤ã¸ã®æ¥ç¶šã‚’ãŸã©ã‚Šã€ã‚¢ã‚¯ã‚»ã‚¹å¯èƒ½ã«ã™ã‚‹
+	if (m_playerCurrentLayer < 29) { // æœ€çµ‚å±¤(29)ã§ãªã‘ã‚Œã°
 		int currentBlockNum = m_playerCurrentLayer / 10;
 		int relativeLayerIdx = m_playerCurrentLayer % 10;
 
-		// Ÿ‚Ì‘w‚Ì’n“_‚ğƒAƒNƒZƒX‰Â”\‚É‚·‚éƒƒWƒbƒN
-		if (relativeLayerIdx == 0) { // 1‘w,11‘w,21‘w‚©‚ç‚ÌˆÚ“®i’Pˆê“_j
-			// í‚É0”Ô–Ú‚Ì’n“_‚©‚çŸ‚Ì‘w‚Ì0”Ô–Ú‚Ì’n“_‚ÉŒq‚ª‚é
+		// æ¬¡ã®å±¤ã®åœ°ç‚¹ã‚’ã‚¢ã‚¯ã‚»ã‚¹å¯èƒ½ã«ã™ã‚‹ãƒ­ã‚¸ãƒƒã‚¯
+		if (relativeLayerIdx == 0) { // 1å±¤,11å±¤,21å±¤ã‹ã‚‰ã®ç§»å‹•ï¼ˆå˜ä¸€ç‚¹ï¼‰
+			// å¸¸ã«0ç•ªç›®ã®åœ°ç‚¹ã‹ã‚‰æ¬¡ã®å±¤ã®0ç•ªç›®ã®åœ°ç‚¹ã«ç¹‹ãŒã‚‹
 			m_allMapPoints[m_playerCurrentLayer + 1][0].isAccessible = true;
 		}
-		else if (relativeLayerIdx == 9) { // 10‘w,20‘w,30‘w‚©‚ç‚ÌˆÚ“®‚Í‚È‚¢
-			// ‚±‚±‚©‚ç‚ÍˆÚ“®‚Å‚«‚È‚¢‚Ì‚ÅA‰½‚àƒAƒNƒZƒX‰Â”\‚É‚µ‚È‚¢
+		else if (relativeLayerIdx == 9) { // 10å±¤,20å±¤,30å±¤ã‹ã‚‰ã®ç§»å‹•ã¯ãªã„
+			// ã“ã“ã‹ã‚‰ã¯ç§»å‹•ã§ããªã„ã®ã§ã€ä½•ã‚‚ã‚¢ã‚¯ã‚»ã‚¹å¯èƒ½ã«ã—ãªã„
 		}
-		else { // 2`9‘wA12`19‘wA22`29‘w‚©‚ç‚ÌˆÚ“®
+		else { // 2ï½9å±¤ã€12ï½19å±¤ã€22ï½29å±¤ã‹ã‚‰ã®ç§»å‹•
 			const MapPattern& currentPattern = m_stages[m_currentMapPattern[currentBlockNum]];
-			// layerConnections‚Í0-8‘w‚Ì’è‹`‚È‚Ì‚ÅArelativeLayerIdx-1‚ÅƒAƒNƒZƒX
+			// layerConnectionsã¯0-8å±¤ã®å®šç¾©ãªã®ã§ã€relativeLayerIdx-1ã§ã‚¢ã‚¯ã‚»ã‚¹
 			for (const auto& conn : currentPattern.layerConnections[relativeLayerIdx - 1]) {
 				if (conn.isConnected && conn.sourceIndex == m_playerCurrentPoint && conn.targetIndex < m_allMapPoints[m_playerCurrentLayer + 1].size()) {
 					m_allMapPoints[m_playerCurrentLayer + 1][conn.targetIndex].isAccessible = true;
@@ -472,7 +472,7 @@ void Map::UpdateAccessiblePoints() {
 		}
 	}
 }
-// Map.cpp “à‚Ì BuildMapFromPatterns() ŠÖ”
+// Map.cpp å†…ã® BuildMapFromPatterns() é–¢æ•°
 
 void Map::BuildMapFromPatterns() {
 	m_allMapPoints.resize(30);
@@ -495,7 +495,7 @@ void Map::BuildMapFromPatterns() {
 
 		const MapPattern& currentPattern = m_stages[m_currentMapPattern[blockNum]];
 
-		// === ’n“_ƒ^ƒCƒv‚ÌŠ„‚è“–‚Ä === (‚±‚±‚Í•ÏX‚È‚µ)
+		// === åœ°ç‚¹ã‚¿ã‚¤ãƒ—ã®å‰²ã‚Šå½“ã¦ === (ã“ã“ã¯å¤‰æ›´ãªã—)
 		if (relativeLayerIdx == 0) {
 			m_allMapPoints[layerIdx][0].type = Enemy;
 			m_allMapPoints[layerIdx][1].type = None;
@@ -512,13 +512,13 @@ void Map::BuildMapFromPatterns() {
 			}
 		}
 
-		// === Še’n“_‚Ì•`‰æÀ•W‚Ìİ’è === (•ÏX‚È‚µ)
+		// === å„åœ°ç‚¹ã®æç”»åº§æ¨™ã®è¨­å®š === (å¤‰æ›´ãªã—)
 		double currentLayerX = baseMapX + layerIdx * layerSpacingX;
 		m_allMapPoints[layerIdx][0].drawPos = { currentLayerX, baseMapY + pointSpacingY * 0 };
 		m_allMapPoints[layerIdx][1].drawPos = { currentLayerX, baseMapY + pointSpacingY * 1 };
 		m_allMapPoints[layerIdx][2].drawPos = { currentLayerX, baseMapY + pointSpacingY * 2 };
 
-		// ‰Šúó‘Ô‚ğİ’è (•ÏX‚È‚µ)
+		// åˆæœŸçŠ¶æ…‹ã‚’è¨­å®š (å¤‰æ›´ãªã—)
 		for (int pointIdx = 0; pointIdx < 3; ++pointIdx) {
 			m_allMapPoints[layerIdx][pointIdx].isVisited = false;
 			m_allMapPoints[layerIdx][pointIdx].isAccessible = false;
@@ -526,20 +526,20 @@ void Map::BuildMapFromPatterns() {
 	}
 }
 
-// Œ»İ‘I‘ğ‚µ‚Ä‚¢‚é’n“_‚É‰‚¶‚½s“®‚ğˆ—‚·‚éŠÖ”
-// i‚±‚ê‚ÍAƒNƒŠƒbƒN‚³‚ê‚½’n“_‚ªŒ»İ‚ÌƒXƒe[ƒW‚Ì’n“_‚¾‚Á‚½ê‡j
+// ç¾åœ¨é¸æŠã—ã¦ã„ã‚‹åœ°ç‚¹ã«å¿œã˜ãŸè¡Œå‹•ã‚’å‡¦ç†ã™ã‚‹é–¢æ•°
+// ï¼ˆã“ã‚Œã¯ã€ã‚¯ãƒªãƒƒã‚¯ã•ã‚ŒãŸåœ°ç‚¹ãŒç¾åœ¨ã®ã‚¹ãƒ†ãƒ¼ã‚¸ã®åœ°ç‚¹ã ã£ãŸå ´åˆï¼‰
 void Map::HandleCurrentPointAction(MapPointType type) {
 	if (type == Shop) {
 
-		// changeScene(GameState::Shop, 0.5s); // •K—v‚È‚çê—pƒV[ƒ“‚Ö
+		// changeScene(GameState::Shop, 0.5s); // å¿…è¦ãªã‚‰å°‚ç”¨ã‚·ãƒ¼ãƒ³ã¸
 	}
 	else if (type == Treasure) {
 
-		// •ó” ‚Íˆê“xŠJ‚¯‚½‚ç‚à‚¤•ñV‚È‚µ‚É‚·‚é‚È‚Ç‚Ìˆ—‚à’Ç‰Á‰Â”\
+		// å®ç®±ã¯ä¸€åº¦é–‹ã‘ãŸã‚‰ã‚‚ã†å ±é…¬ãªã—ã«ã™ã‚‹ãªã©ã®å‡¦ç†ã‚‚è¿½åŠ å¯èƒ½
 		// m_allMapPoints[m_playerCurrentLayer][m_playerCurrentPoint].isVisited = true;
 	}
 	else if (type == Event) {
 
-		// changeScene(GameState::Event, 0.5s); // Ä“xƒCƒxƒ“ƒgƒV[ƒ“‚Ö‘JˆÚ‚È‚Ç
+		// changeScene(GameState::Event, 0.5s); // å†åº¦ã‚¤ãƒ™ãƒ³ãƒˆã‚·ãƒ¼ãƒ³ã¸é·ç§»ãªã©
 	}
 }

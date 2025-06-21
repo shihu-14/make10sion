@@ -6,7 +6,6 @@ using std::tie; // std::tieを使用するために名前空間を指定
 // Constructor
 Battle::Battle(const InitData& init)
 	: IScene(init), 
-    m_board(init._s->board), // GameDataからBoardを取得
     board_locked(false), // 盤面の操作を初期状態ではロックしない
     num_turn(0), // ターン数を初期化
     table_size(getTableSize()), // 手札のサイズを取得
@@ -319,6 +318,11 @@ void Battle::draw() const
 void drawTableDeck()
 {
     // 
+}
+
+void drawDefalut()
+{
+    
 }
 
 // 戦闘演出の描画

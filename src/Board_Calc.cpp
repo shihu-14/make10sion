@@ -148,8 +148,7 @@ void Board::UpdateBoardNum(Point putAt){
 			char content = block.GetPiece(j, i).content;
 			if (content == '$')continue; // $は無視
 			board_usage[putAt.y + i][putAt.x + j] = blockNum;
-			
-			GetPieceNum(content, putAt.y + i, putAt.x + j); // 数字の取得
+			GetPieceNum(content, putAt.y + i, putAt.x + j); // 数字の取得&マスの変更
 		}
 	}
 }
@@ -158,19 +157,58 @@ void Board::UpdateBoardNum(Point putAt){
 
 void Board::GetPieceNum(char content, int y, int x) {
 	if (content == '+') {
-		board_number[y][x] = 257; return; // 足し算のビットを立てる
+		board_number[y][x] = 257; return; // 足し算
 	}else if (content == '-') {
-		board_number[y][x] = 258; return; // 引き算のビットを立てる
+		board_number[y][x] = 258; return; // 引き算
 	}else if (content == '*') {
-		board_number[y][x] = 260; return; // 掛け算のビットを立てる
+		board_number[y][x] = 260; return; // 掛け算
 	}else if (content == '/') {
-		board_number[y][x] = 264; return; // 割り算のビットを立てる
+		board_number[y][x] = 264; return; // 割り算
 	}else if (content == 'a') {
-		
+		return;
+	}else if (content == 'b') {
+		return;
+	}else if (content == 'c') {
+		return;
+	}else if (content == 'd') {
+		return;
+	}else if (content == 'e') {
+		board_number[y][x] = 65540; return;//ave
+	}else if (content == 'f') {
+		board_number[y][x] = 16777218; return;//守
+	}else if (content == 'g') {
+		board_number[y][x] = 65537; return;//max
+	}else if (content == 'h') {
+		board_number[y][x] = 65538; return;//min
+	}else if (content == 'i') {
+		board_number[y][x] = 16777217; return;//攻
+	}else if (content == 'j') {
+		board_number[y][x] = 1;
+		board_effect[y][x] = 2;
+		return;
+	}else if (content == 'k') {
+		board_number[y][x] = 2;
+		board_effect[y][x] = 2;
+		return;
+	}else if (content == 'l') {
+		board_number[y][x] = 2;
+		board_effect[y][x] = 4;
+		return;
+	}else if (content == 'm') {//数字の12
+		board_number[y][x] = 12;
+		return;
+	}else if (content == 'n') {
+		//何もしない
+	}else if (content == 'o') {
+		board_number[y][x] = 2;
+		board_effect[y][x] = 1;
+		return;
+	}else if (content == 'p') {
+		board_number[y][x] = 3;
+		board_effect[y][x] = 1;
+		return;
 	}
-	else if (content == 'b') {
-
-	}
+	else board_number[y][x] = content - '0';
 }
 
 

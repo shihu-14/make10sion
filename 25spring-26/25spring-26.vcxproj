@@ -118,7 +118,10 @@
     <ClCompile Include="..\src\Battle.cpp" />
     <ClCompile Include="..\src\Block.cpp" />
     <ClCompile Include="..\src\Board.cpp" />
+    <ClCompile Include="..\src\Deck.cpp" />
     <ClCompile Include="..\src\Main.cpp" />
+    <ClCompile Include="..\src\Map.cpp" />
+    <ClCompile Include="..\src\Result.cpp" />
     <ClCompile Include="..\src\Title.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -127,6 +130,23 @@
     <ClCompile Include="Calc.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\image\card_sukima_bottom.png" />
+    <Image Include="..\image\card_sukima_left.png" />
+    <Image Include="..\image\card_sukima_right.png" />
+    <Image Include="..\image\card_sukima_top.png" />
+    <Image Include="..\image\card_tile.png" />
+    <Image Include="..\image\kakeru.png" />
+    <Image Include="..\image\minus.png" />
+    <Image Include="..\image\number_0.png" />
+    <Image Include="..\image\number_1.png" />
+    <Image Include="..\image\number_2.png" />
+    <Image Include="..\image\number_3.png" />
+    <Image Include="..\image\number_4.png" />
+    <Image Include="..\image\number_5.png" />
+    <Image Include="..\image\number_6.png" />
+    <Image Include="..\image\number_7.png" />
+    <Image Include="..\image\plus.png" />
+    <Image Include="..\image\waru.png" />
     <Image Include="App\engine\texture\box-shadow\128.png" />
     <Image Include="App\engine\texture\box-shadow\16.png" />
     <Image Include="App\engine\texture\box-shadow\256.png" />
@@ -333,6 +353,9 @@
     <ClInclude Include="..\src\Battle.hpp" />
     <ClInclude Include="..\src\Block.hpp" />
     <ClInclude Include="..\src\Board.hpp" />
+    <ClInclude Include="..\src\Deck.hpp" />
+    <ClInclude Include="..\src\Map.hpp" />
+    <ClInclude Include="..\src\Result.hpp" />
     <ClInclude Include="..\src\Title.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

@@ -3,6 +3,7 @@
 
 #include <utility>
 #include <Siv3D.hpp>
+#include "Block.hpp"
 
 class Board{
 private://Write private functions or varables here.
@@ -11,9 +12,10 @@ private://Write private functions or varables here.
 	Grid<int32> grid_usage(Size{ 7,6 },-1);
 	Grid<char> grid_number(Size{7,6}, 0);
 	Grid<int32> grid_effect(Size{7,6}, 0);
-	Grid<std::pair<int32, int32>> grid_corrdinate(Size{7,6},pair<int32>);
+	Grid<Point> grid_corrdinate(Size{7,6},Point);
 	std::array<int, 6> grid_multiply;
 	std::array<int, 42> num_on_grid;
+	Block& block;
 
 	//function
 	void PutBlock();
@@ -33,7 +35,7 @@ public://Write public functions here.
 	void Update(int idx);
 	void SetStat();
 	std::pair<int32, int32> Confirm();
-	void PassBlock();
+	void PassBlock(const Block& selectedBlock);
 	void DrawBoard();
 };
 

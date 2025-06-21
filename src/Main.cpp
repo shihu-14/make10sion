@@ -1,12 +1,15 @@
 ﻿# include <Siv3D.hpp> // Siv3D v0.6.16
 # include "Block.hpp"
-//TODO:ここにBoard.hppを追加!!
+# include "Board.hpp"
 
 // シーンの名前
 enum class State
 {
 	Title,
-	Battle
+	Battle,
+	Map,
+	Result,
+	Deck
 };
 
 // 共有するデータ
@@ -25,7 +28,10 @@ using App = SceneManager<State, GameData>;
 
 
 # include "Title.hpp"
+# include "Map.hpp"
 # include "Battle.hpp"
+# include "Result.hpp"
+# include "Deck.hpp"
 
 using namespace std;
 
@@ -44,7 +50,10 @@ void Main()
 
 	App manager;
 	manager.add<Title>(State::Title);
+	manager.add<Map>(State::Map);
 	manager.add<Battle>(State::Battle);
+	manager.add<Result>(State::Result);
+	manager.add<Deck>(State::Deck);
 	
 
 	//XXX:debug用

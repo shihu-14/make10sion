@@ -15,12 +15,11 @@ private:
 	const Texture background_img{ U"../../image/deck_background.png" };
 	const Texture back_button_img{ U"../../image/back_button_deck0.png" };
 	int deck_size = 0; //デッキのサイズ
-	vector<Block> deck_data; //デッキのカード
+	std::vector<Block> deck_data; //デッキのカード
 	bool first_call = false;
 	bool fade_mode = true; //フェードインモード
 	int timer = 0; //フェードインのタイマー
 	void updateFadeIn(double t);
-	void drawFadeIn(double t) const;
 public:
 	void init(std::vector<Block>& deck);
 	bool update();

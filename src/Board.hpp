@@ -2,6 +2,7 @@
 #define Board_HPP
 
 #include <utility>
+#include <vector>
 #include <Siv3D.hpp>
 #include "Block.hpp"
 
@@ -44,7 +45,7 @@ public://Write public functions here.
 	void Update(int32 idx);
 	void SetStat();
 	std::pair<int32, int32> Confirm();
-	void PassBlock(const Block& selectedBlock, const vector<Block> deck);
+	void PassBlock(const Block& selectedBlock, const std::vector<Block> deck);
 	void DrawBoard();
 };
 

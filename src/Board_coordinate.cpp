@@ -10,7 +10,7 @@ using namespace std;
 //private functions
 Point Board::PutBlockAt(){//blockの置ける場所を確認
     double rSquared = 25.0;
-    //Blockの左上のピースの中心の絶対座標
+    //Blockの左上のピースの絶対座標
     int32 px = block.GetPiece(0,0).x+Cursor::Pos().x;
     int32 py = block.GetPiece(0,0).y+Cursor::Pos().y;
     //マスの中心同士を結んだ マス座標 に変換

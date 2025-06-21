@@ -25,8 +25,18 @@ void Board::DrawBoard(){
     }
 
     if(is_block_selected){
-        //Blockの左上の絶対座標
-        int32 px = block.GetPiece(0,0).x+Cursor::Pos().x+cell_size/2;
-        int32 py = block.GetPiece(0,0).y+Cursor::Pos().y+cell_size/2;
+        //Blockの左上のピースの絶対座標
+        int32 px = block.GetPiece(0,0).x+Cursor::Pos().x;
+        int32 py = block.GetPiece(0,0).y+Cursor::Pos().y;
+
+        for(int i=0;i<block.Size().second;i++){
+            for(int j=0;j<block.Size().first;j++){
+                char content = block.GetPiece(j,i).content;
+                if(content != '$'){
+                    //ピースを描画
+                    //ブロック辺も?
+                }
+            }
+        }
     }
 }

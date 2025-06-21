@@ -19,6 +19,7 @@ private:
 	int stat;
 	//画像読み込み
 	std::vector<Texture> number_imgs;
+	std::vector<Texture> special_imgs;
 	const Texture background_img{ U"../../image/card_tile.png" };
 	const Texture minus_img{ U"../../image/minus.png" };
 	const Texture plus_img{ U"../../image/plus.png" };
@@ -31,6 +32,7 @@ private:
 	const Texture bottom_img{ U"../../image/card_sukima_bottom.png" };
 public:
 	Block();
+	Block(const std::string& value);
 	std::pair<int, int> Size() const { return { sizeX, sizeY }; }
 	std::pair<int, int> GetPos() const { return { posX, posY }; }
 	void SetPos(int x, int y) { posX = x; posY = y; }
@@ -40,7 +42,7 @@ public:
 	void SetStat(int newStat) { stat = newStat; }
 	bool IsDragging();
 	bool IsHovered();
-	void Draw(int x, int y, double size = 1.0, double angle = 0.0, double alpha = 1.0) const;
+	void Draw(std::pair<int,int> pos, double size = 1.0, double angle = 0.0, double alpha = 1.0) const;
 
 	Block& operator=(const Block& other);
 	Block& operator=(const std::string& value);

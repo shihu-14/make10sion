@@ -117,6 +117,7 @@
   <ItemGroup>
     <ClCompile Include="..\src\Block.cpp" />
     <ClCompile Include="..\src\Main.cpp" />
+    <ClCompile Include="..\src\Result.cpp" />
     <ClCompile Include="..\src\Title.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -346,6 +347,7 @@
   <ItemGroup>
     <ClInclude Include="..\src\Block.hpp" />
     <ClInclude Include="..\src\common.hpp" />
+    <ClInclude Include="..\src\Result.hpp" />
     <ClInclude Include="..\src\Title.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

@@ -350,6 +350,7 @@
   <ItemGroup>
     <ClInclude Include="..\src\Banner.hpp" />
     <ClInclude Include="..\src\Block.hpp" />
+    <ClInclude Include="..\src\Board.hpp" />
     <ClInclude Include="..\src\common.hpp" />
     <ClInclude Include="..\src\Deck.hpp" />
     <ClInclude Include="..\src\Result.hpp" />

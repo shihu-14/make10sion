@@ -7,6 +7,17 @@ Block::Block() : sizeX(0), sizeY(0), stat(0), number_imgs(8) {
 		number_imgs.at(i) = Texture{ Unicode::Widen("../image/number_" + to_string(i) + ".png") };
 }
 
+Block& Block::operator=(const Block& other) {
+	if (this == &other) return *this; // 自分自身への代入を防ぐ
+	sizeX = other.sizeX;
+	sizeY = other.sizeY;
+	posX = other.posX;
+	posY = other.posY;
+	stat = other.stat;
+	contents = other.contents;
+	return *this;
+}
+
 Block& Block::operator=(const string& value) {
 	sizeY = count(value.begin(), value.end(), '\n') + 1;
 	auto firstNewline = value.find('\n');

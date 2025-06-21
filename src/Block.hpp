@@ -16,8 +16,8 @@ class Block {
 	int sizeX, sizeY;
 	int posX, posY;
 	int stat;
-	std::vector<Texture> number_imgs;
 	//画像読み込み
+	std::vector<Texture> number_imgs;
 	const Texture background_img{ U"../image/card_tile.png" };
 	const Texture minus_img{ U"../image/minus.png" };
 	const Texture plus_img{ U"../image/plus.png" };
@@ -40,6 +40,7 @@ public:
 	bool IsHovered();
 	void Draw(int x, int y, double size = 1.0, double angle = 0.0, double alpha = 1.0) const;
 
+	Block& operator=(const Block& other);
 	Block& operator=(const std::string& value);
 };
 

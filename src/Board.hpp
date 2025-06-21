@@ -21,8 +21,9 @@ private://Write private functions or varables here.
 	int32 blockNum;
 	Block block;
 	Array<int32> board_off_def = { 1,1,1,0,0,0 };//攻1守0
-
 	const Texture board_img{U"../image/banmen_kuuhaku.png"};
+	Point offset = {0,0};//Boardの左上の絶対座標
+	int32 cell_size = 50;
 
 	//function
 	Point PutBlockAt();
@@ -32,6 +33,7 @@ private://Write private functions or varables here.
 	void ResetBoard();
 	void CalcRow();
 	void UpdateBoardNum();
+	void InitBoardCoordinate();
 
 
 	

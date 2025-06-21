@@ -1,232 +1,407 @@
-#include "Map.hpp" // Map.hpp をインクルード
+#include "Map.hpp"
+using namespace std;
 
 // MapPointTypeのメンバーを直接使えるようにする
 using enum MapPointType;
 
 // Mapクラスのコンストラクタの実装
 Map::Map(const InitData& init) :
-	App::Scene<GameState>(init), // 親クラスApp::Sceneのコンストラクタを呼び出す
-
-	// 背景画像の読み込み
-	m_background(GameConstants::BackgroundAssetPath),
-
-	// 地点画像の読み込み
-	m_pointEnemyImage(GameConstants::PointEnemyImagePath),
-	m_pointTreasureImage(GameConstants::PointTreasureImagePath),
-	m_pointEliteImage(GameConstants::PointEliteImagePath),
-	m_pointBossImage(GameConstants::PointBossImagePath),
-	m_pointShopImage(GameConstants::PointShopImagePath),
-	m_pointEventImage(GameConstants::PointEventImagePath),
-
-	// フォントの作成
-	m_playerInfoFont(GameConstants::PlayerInfoFontSize),
-	m_buttonFont(GameConstants::ButtonFontSize, Typeface::Bold),
-
-	// BGMの読み込み
-	m_mapBGM(GameConstants::MapBGMPath, Loop::Yes),
-
-	// 画面下部ボタンの領域定義
-	m_battleButtonRect(Arg::center(Window::Center().x - 200, Window::Height() - 150), 180, 60),
-	m_restButtonRect(Arg::center(Window::Center().x, Window::Height() - 150), 180, 60),
-	m_shopButtonRect(Arg::center(Window::Center().x + 200, Window::Height() - 150), 180, 60)
+	App::Scene(init),
+	background_imgs(3),
+	map_nodes(30, vector<Node>(3)), // 30層、各層に3地点のノードを初期化
+	map_nodes_source(6, vector<vector<Node>>(10, vector<Node>(3))) // 6つのパターン、10層、各層に3地点のノードを初期化
 {
-	// BGMの再生開始
-	if (m_mapBGM.isValid() && !m_mapBGM.isPlaying()) {
-		m_mapBGM.play();
-	}
+	//背景画像の読み込み
+	for (int i = 0; i < 3; i++)
+		background_imgs.at(i) = Texture{ Unicode::Widen("../../image/map_haikei_" + to_string(i + 1) + "sou.png") };
 
-	// プレイヤーの初期ステータス
-	m_playerScore = 0;
-	m_playerFloor = 1; // 階層は1から数える
-
-	// === 6つのマップ配置パターン (1～10層ブロック) の定義 ===
-	// Arrayに直接MapPatternオブジェクトを初期化リストで格納します
-	m_stages = {
-		// --- パターン1 --- (
-		MapPattern{
-			// layerPointTypes (10層分の地点タイプ)
-			{
-				{ None, Enemy, None },     // Layer 0 (1層目): 固定されるが、ここにはパターン定義として入れておく
-				{ Enemy, Event, Enemy },     // Layer 1 (2層目)
-				{ Elite, Enemy, Enemy }, // Layer 2 (3層目)
-				{ Enemy, Treasure, Event },    // Layer 3 (4層目)
-				{ Elite, Enemy, None },    // Layer 4 (5層目)
-				{ Enemy, Shop, Enemy },     // Layer 5 (6層目)
-				{ Elite, Treasure, Enemy },     // Layer 6 (7層目)
-				{ Shop, Enemy, Enemy },    // Layer 7 (8層目)
-				{ Enemy, Elite, Event }, // Layer 8 (9層目)
-				{ None, Boss, None }       // Layer 9 (10層目): 固定されるが、ここにはパターン定義として入れておく
-			},
-		// layerConnections (9層間分の接続情報)
+	// マップパターン生成(手動)
+	map_nodes_source = {
+		// 1
 		{
-			// Layer 0->1 (1層->2層)
-			{ {0,0}, {0,1}, {0,2} }, // 1層の0から2層の0, 1へ
-			// Layer 1->2 (2層->3層)
-			{ {0,1},{2,1} }, // 2層の0から3層の0へ, 2層の1から3層の2へ
-			// Layer 2->3 (3層->4層)
-			{ {1,0},{1,2} }, // 3層の0から4層の0へ
-			// Layer 3->4 (4層->5層)
-			{  {0,1},{2,1}}, // 4層の0から5層の0へ, 4層の1から5層の0,1へ
-			// Layer 4->5 (5層->6層)
-			{ {1,0},{1,2} },
-			// Layer 5->6 (6層->7層)
-			{ {0,1},{2,1} },
-			// Layer 6->7 (7層->8層)
-			{ {1,0},{1,2} },
-			// Layer 7->8 (8層->9層)
-			{  },
-			// Layer 8->9 (9層->10層)
-			{ {0,1},{2,1} }
+			// 1層
+			{
+				Node{None, false, 0}, // なし
+				Node{Enemy, false, 7}, // 1層目の敵
+				Node{None, false, 0} // なし
+			},
+		// 2層
+		{
+			Node{Enemy, false, 3}, // 敵
+			Node{Event, false, 2}, // イベント
+			Node{Enemy, false, 6} // 敵
+		},
+		// 3層
+		{
+			Node{Elite, false, 1}, // エリート
+			Node{Enemy, false, 7}, // 敵
+			Node{Enemy, false, 4} // 敵
+		},
+		// 4層
+		{
+			Node{Enemy, false, 3}, // 敵
+			Node{Treasure, false, 2}, // 宝箱
+			Node{Event, false, 6} // イベント
+		},
+		// 5層
+		{
+			Node{Elite, false, 1}, // エリート
+			Node{Shop, false, 7}, // ショップ
+			Node{Enemy, false, 4} // 敵
+		},
+		// 6層
+		{
+			Node{Enemy, false, 3}, // 敵
+			Node{Event, false, 2}, // イベント
+			Node{Enemy, false, 6} // 敵
+		},
+		// 7層
+		{
+			Node{Elite, false,3 }, // エリート
+			Node{Treasure, false,6 }, // 宝箱
+			Node{Enemy, false,4 } // 敵
+		},
+		// 8層
+		{
+			Node{Shop , false,1 }, // ショップ
+			Node{Enemy, false,2 }, // 敵
+			Node{Enemy, false,4 } // 敵
+		},
+		// 9層
+		{
+			Node{Enemy, false, 2}, // 敵
+			Node{Elite, false, 2}, // エリート
+			Node{Event, false, 2} // イベント
+		},
+		// 10層
+		{
+			Node{None, false, 0}, // なし
+			Node{Boss, false, 0}, // ボス
+			Node{None, false, 0} // なし
 		}
-	}, // --- パターン1 終わり ---
-
-		// --- パターン2 --- 
-		MapPattern{
-			{
-				{ None,Enemy , None },
-				{ Enemy, Elite, Event },
-				{ Event, Enemy, Elite },
-				{ Enemy, Elite, Shop },
-				{ Elite, Shop, Enemy },
-				{ Enemy, Elite, Event },
-				{ Treasure, Elite, Enemy },
-				{ Shop, Elite, Enemy },
-				{ Enemy, Elite, Event },
-				{ None, Boss, None }
-			},
-			{
-			{ {0,0}, {0,1}, {0,2} },
-			{ {0,1},{2,1} },
-			{ {1,0},{1,2} },
-			{  {0,1},{2,1}},
-			{ {1,0},{1,2} },
-			{ {0,1},{2,1} },
-			{ {1,0},{1,2} },
-			{  {0,1},{2,1}},
-			{ {0,1},{2,1} }
-			}
-		}, // --- パターン2 終わり ---
-
-		// --- パターン3 --- 
-		MapPattern{
-			{
-				{ None,Enemy , None },
-				{ Shop, Enemy, Event },
-				{ Treasure, Enemy, Event },
-				{ Event, Shop, Enemy },
-				{ Treasure, Enemy, Elite },
-				{ Enemy, Event, Shop },
-				{ Elite, Treasure, Enemy },
-				{ Shop, Enemy, Event },
-				{ Enemy, Event, Treasure },
-				{ None, Boss, None }
-			},
-			{
-				{ {0,0}, {0,1}, {0,2} },
-				{ {1,0},{1,2} },
-			{ {0,1},{2,1} },
-			{ {1,0},{1,2} },
-			{  {0,1},{2,1}},
-			{ {1,0},{1,2} },
-			{ {0,1},{2,1} },
-			{ {1,0},{1,2} },
-			{ {0,1},{2,1} }
-			}
-		}, // --- パターン3 終わり ---
-
-		// --- パターン4 --- まだできてないです
-		MapPattern{
-			{
-				{ None,Enemy , None },
-				{ Shop, Enemy, Event },
-				{ Treasure, Enemy, Event },
-				{ Event, Shop, Enemy },
-				{ Treasure, Enemy, Elite },
-				{ Enemy, Event, Shop },
-				{ Elite, Treasure, Enemy },
-				{ Shop, Enemy, Event },
-				{ Enemy, Event, Treasure },
-				{ None, Boss, None }
-			},
-			{
-				{ {0,0}, {0,1}, {0,2} },
-				{ {1,0},{1,2} },
-			{ {0,1},{2,1} },
-			{ {1,0},{1,2} },
-			{  {0,1},{2,1}},
-			{ {1,0},{1,2} },
-			{ {0,1},{2,1} },
-			{ {1,0},{1,2} },
-			{ {0,1},{2,1} }
-			}
-		}, // --- パターン4 終わり ---
-
-		// --- パターン5 --- (
-		MapPattern{
-			{
-				{None,Enemy , None },
-				{ Event, Enemy,Elite },
-				{ Treasure, Elite, Enemy },
-				{ Shop, Enemy, Elite },
-				{ Event, Shop, Enemy },
-				{ Treasure, Enemy, Elite },
-				{ Shop, Elite, Enemy },
-				{ Event, Enemy, Elite },
-				{ Treasure, Elite, Enemy },
-				{ None, Boss, None }
-			},
-			{
-				{ {0,0}, {0,1}, {0,2} },
-				{ {1,0},{1,2} },
-			{ {0,1},{2,1} },
-			{ {1,0},{1,2} },
-			{  {0,1},{2,1}},
-			{ {1,0},{1,2} },
-			{ {0,1},{2,1} },
-			{ {1,0},{1,2} },
-			{ {0,1},{2,1} }
-			}
-		}, // --- パターン5 終わり ---
-
-		// --- パターン6 --- 
-		MapPattern{
-			{
-				{ None,Enemy , None  },
-				{ Enemy, Event, Enemy },
-				{ Shop, Enemy, Enemy },
-				{ Enemy, Event, Treasure },
-				{ Shop, Elite, Enemy},
-				{ Event, Enemy, Treasure },
-				{ Elite, Enemy, Elite },
-				{ Shop, Elite, Enemy},
-				{ Elite, Event, Elite },
-				{None, Boss, None }
-			},
-			{
-				{ {0,0}, {0,1}, {0,2} },
-				{ {1,0},{1,2} },
-			{ {0,1},{2,1} },
-			{ {1,0},{1,2} },
-			{  {0,1},{2,1}},
-			{ {1,0},{1,2} },
-			{ {0,1},{2,1} },
-			{ {1,0},{1,2} },
-			{ {0,1},{2,1} }
-			}
-		} // --- パターン6 終わり ---
+	},
+		// Map 2
+{
+	// 1層
+	{
+		Node{None, false, 0},
+		Node{Enemy, false, 7},
+		Node{None, false, 0}
+	},
+		// 2層
+		{
+			Node{Enemy, false, 3},
+			Node{Elite, false, 2},
+			Node{Enemy, false, 6}
+		},
+		// 3層
+		{
+			Node{Event, false, 3},
+			Node{Enemy, false, 2},
+			Node{Elite, false, 6}
+		},
+		// 4層
+		{
+			Node{Enemy, false, 3},
+			Node{Elite, false, 2},
+			Node{Treasure, false, 6}
+		},
+		// 5層
+		{
+			Node{Elite, false, 3},
+			Node{Shop, false, 2},
+			Node{Enemy, false, 6}
+		},
+		// 6層
+		{
+			Node{Enemy, false, 1},
+			Node{Elite, false, 7},
+			Node{Event, false, 4}
+		},
+		// 7層
+		{
+			Node{Treasure, false, 3},
+			Node{Elite, false, 2},
+			Node{Enemy, false, 6}
+		},
+		// 8層
+		{
+			Node{Shop, false, 3},
+			Node{Elite, false, 2},
+			Node{Enemy, false, 6}
+		},
+		// 9層
+		{
+			Node{Enemy, false, 2},
+			Node{Elite, false, 2},
+			Node{Event, false, 2}
+		},
+		// 10層
+		{
+			Node{None, false, 0},
+			Node{Boss, false, 0},
+			Node{None, false, 0}
+		}
+	},// Map 3
+	{
+		// 1層
+		{
+			Node{None, false, 0},
+			Node{Enemy, false, 7},
+			Node{None, false, 0}
+		},
+		// 2層
+		{
+			Node{Shop, false, 3},
+			Node{Enemy, false, 2},
+			Node{Event, false, 6}
+		},
+		// 3層
+		{
+			Node{Treasure, false, 3},
+			Node{Enemy, false, 2},
+			Node{Event, false, 6}
+		},
+		// 4層
+		{
+			Node{Event, false, 3},
+			Node{Shop, false, 2},
+			Node{Enemy, false, 6}
+		},
+		// 5層
+		{
+			Node{Treasure, false, 3},
+			Node{Enemy, false, 2},
+			Node{Elite, false, 6}
+		},
+		// 6層
+		{
+			Node{Enemy, false, 3},
+			Node{Event, false, 2},
+			Node{Shop, false, 6}
+		},
+		// 7層
+		{
+			Node{Elite, false, 3},
+			Node{Treasure, false, 2},
+			Node{Enemy, false, 6}
+		},
+		// 8層
+		{
+			Node{Shop, false, 3},
+			Node{Enemy, false, 2},
+			Node{Event, false, 6}
+		},
+		// 9層
+		{
+			Node{Enemy, false, 2},
+			Node{Event, false, 2},
+			Node{Treasure, false, 2}
+		},
+		// 10層
+		{
+			Node{None, false, 0},
+			Node{Boss, false, 0},
+			Node{None, false, 0}
+		}
+	},// Map 4
+{
+	// 1層
+	{
+		Node{None, false, 0},
+		Node{Enemy, false, 7},
+		Node{None, false, 0}
+	},
+		// 2層
+		{
+			Node{Enemy, false, 3},
+			Node{Enemy, false, 2},
+			Node{Event, false, 6}
+		},
+		// 3層
+		{
+			Node{Elite, false, 3},
+			Node{Enemy, false, 2},
+			Node{Shop, false, 6}
+		},
+		// 4層
+		{
+			Node{Enemy, false, 1},
+			Node{Event, false, 5},
+			Node{Treasure, false, 4}
+		},
+		// 5層
+		{
+			Node{Elite, false, 2},
+			Node{None, false, 0},
+			Node{Event, false, 2}
+		},
+		// 6層
+		{
+			Node{None, false, 0},
+			Node{Shop, false, 7},
+			Node{None, false, 0}
+		},
+		// 7層
+		{
+			Node{Enemy, false, 1},
+			Node{Treasure, false, 2},
+			Node{Enemy, false, 4}
+		},
+		// 8層
+		{
+			Node{Elite, false, 3},
+			Node{Enemy, false, 2},
+			Node{Shop, false, 6}
+		},
+		// 9層
+		{
+			Node{Enemy, false, 2},
+			Node{Elite, false, 2},
+			Node{Event, false, 2}
+		},
+		// 10層
+		{
+			Node{None, false, 0},
+			Node{Boss, false, 0},
+			Node{None, false, 0}
+		}
+	},
+		// Map 5
+	{
+		// 1層
+		{
+			Node{None, false, 0},
+			Node{Enemy, false, 7},
+			Node{None, false, 0}
+		},
+		// 2層
+		{
+			Node{Event, false, 3},
+			Node{Enemy, false, 2},
+			Node{Elite, false, 6}
+		},
+		// 3層
+		{
+			Node{Treasure, false, 3},
+			Node{Elite, false, 2},
+			Node{Enemy, false, 6}
+		},
+		// 4層
+		{
+			Node{Shop, false, 3},
+			Node{Enemy, false, 2},
+			Node{Elite, false, 6}
+		},
+		// 5層
+		{
+			Node{Event, false, 3},
+			Node{Shop, false, 2},
+			Node{Enemy, false, 6}
+		},
+		// 6層
+		{
+			Node{Treasure, false, 3},
+			Node{Enemy, false, 2},
+			Node{Elite, false, 6}
+		},
+		// 7層
+		{
+			Node{Shop, false, 3},
+			Node{Elite, false, 2},
+			Node{Enemy, false, 6}
+		},
+		// 8層
+		{
+			Node{Event, false, 3},
+			Node{Enemy, false, 2},
+			Node{Elite, false, 6}
+		},
+		// 9層
+		{
+			Node{Treasure, false, 2},
+			Node{Elite, false, 2},
+			Node{Enemy, false, 2}
+		},
+		// 10層
+		{
+			Node{None, false, 0},
+			Node{Boss, false, 0},
+			Node{None, false, 0}
+		}
+	},// Map 6
+{
+	// 1層
+	{
+		Node{None, false, 0},
+		Node{Enemy, false, 7},
+		Node{None, false, 0}
+	},
+		// 2層
+		{
+			Node{Enemy, false, 3},
+			Node{Event, false, 2},
+			Node{Enemy, false, 6}
+		},
+		// 3層
+		{
+			Node{Shop, false, 3},
+			Node{Enemy, false, 2},
+			Node{Enemy, false, 6}
+		},
+		// 4層
+		{
+			Node{Enemy, false, 3},
+			Node{Event, false, 2},
+			Node{Treasure, false, 6}
+		},
+		// 5層
+		{
+			Node{Shop, false, 3},
+			Node{Elite, false, 2},
+			Node{Enemy, false, 6}
+		},
+		// 6層
+		{
+			Node{Event, false, 3},
+			Node{Enemy, false, 2},
+			Node{Treasure, false, 6}
+		},
+		// 7層
+		{
+			Node{Elite, false, 3},
+			Node{Enemy, false, 2},
+			Node{Elite, false, 6}
+		},
+		// 8層
+		{
+			Node{Shop, false, 1},
+			Node{Elite, false, 5},
+			Node{Enemy, false, 4}
+		},
+		// 9層
+		{
+			Node{Elite, false, 2},
+			Node{Event, false, 2},
+			Node{Elite, false, 2}
+		},
+		// 10層
+		{
+			Node{None, false, 0},
+			Node{Boss, false, 0},
+			Node{None, false, 0}
+		}
+	}
 	};
 
-	// 選ばれたパターンから実際の30層マップを構築する
-	BuildMapFromPatterns();
+	//抽選スタート！
+	for (int i = 0;i < 3;i++){
+		std::vector<std::vector<Node>> selected_nodes(10, std::vector<Node>(3)); // 10層、各層に3地点のノードを初期化
+		selected_nodes = map_nodes_source[Random(0, 5)]; // 0から5の範囲でランダムに選択
+		map_nodes.insert(map_nodes.begin() + i * 10, selected_nodes.begin(), selected_nodes.end());
+	}
+	//Map生成完了！！
 
-	// プレイヤーの初期位置と状態
-	m_playerCurrentLayer = 0;
-	m_playerCurrentPoint = 0;
-	m_allMapPoints[m_playerCurrentLayer][m_playerCurrentPoint].isVisited = true;
-	m_allMapPoints[m_playerCurrentLayer][m_playerCurrentPoint].isAccessible = true;
-
-	// 初期アクセス可能地点を更新
-	UpdateAccessiblePoints();
 }
 
 // update() メソッドの実装
@@ -278,11 +453,9 @@ void Map::update() {
 						if (relativeLayerIdx == 0) { // 1層,11層,21層からの移動（単一点）
 							// 常に0番目の地点から次の層の0番目の地点に繋がる
 							canMoveToNextLayer = (m_playerCurrentPoint == 0 && pointIdx == 0);
-						}
-						else if (relativeLayerIdx == 9) { // 10層,20層,30層からは移動できない
+						} else if (relativeLayerIdx == 9) { // 10層,20層,30層からは移動できない
 							canMoveToNextLayer = false;
-						}
-						else { // 2～9層、12～19層、22～29層からの移動
+						} else { // 2～9層、12～19層、22～29層からの移動
 							const MapPattern& currentPattern = m_stages[m_currentMapPattern[currentBlockNum]];
 							// layerConnectionsは0-8層の定義なので、relativeLayerIdx-1でアクセス
 							for (const auto& conn : currentPattern.layerConnections[relativeLayerIdx - 1]) {
@@ -306,40 +479,32 @@ void Map::update() {
 
 							if (point.type == Enemy || point.type == Elite || point.type == Boss) {
 								changeScene(GameState::Battle, 0.5s);
-							}
-							else if (point.type == Shop) {
+							} else if (point.type == Shop) {
 								changeScene(GameState::Shop, 0.5s);
-							}
-							else if (point.type == Event) {
+							} else if (point.type == Event) {
 								System::Print(U"イベントマスに止まりました！抽選を開始します。");
 								int diceRoll = Random(0, 99); // 0から99までの乱数を生成 (合計100)
 
 								if (diceRoll < 10) { // 0-9 (10%)
 									System::Print(U"→ エネミーが出現！");
 									changeScene(GameState::Battle, 0.5s); // エネミーは戦闘シーンへ
-								}
-								else if (diceRoll < 20) { // 10-19 (10%)
+								} else if (diceRoll < 20) { // 10-19 (10%)
 									System::Print(U"→ エリートが出現！");
 									changeScene(GameState::Battle, 0.5s); // エリートも戦闘シーンへ
-								}
-								else if (diceRoll < 30) { // 20-29 (10%)
+								} else if (diceRoll < 30) { // 20-29 (10%)
 									System::Print(U"→ ショップが出現！");
 									changeScene(GameState::Shop, 0.5s); // ショップシーンへ
-								}
-								else if (diceRoll < 40) { // 30-39 (10%)
+								} else if (diceRoll < 40) { // 30-39 (10%)
 									System::Print(U"→ 宝箱を発見！");
 									HandleCurrentPointAction(MapPointType::Treasure); // 宝箱はここで処理（スコア加算など）
-								}
-								else { // 40-99 (60%)
+								} else { // 40-99 (60%)
 									System::Print(U"→ 特殊イベントが発生！");
 									changeScene(GameState::Event, 0.5s); // 「何かをもらう」イベントシーンへ
 								}
-							}
-							else if (point.type == Treasure) {
+							} else if (point.type == Treasure) {
 								HandleCurrentPointAction(point.type); // 宝箱はマップ上で直接処理
 							}
-						}
-						else {
+						} else {
 							System::Print(U"その道はつながっていません！");
 						}
 					}
@@ -357,12 +522,7 @@ void Map::update() {
 
 // draw() メソッドの実装
 void Map::draw() const {
-	m_background.draw();
-
-	// プレイヤー情報描画
-	m_playerInfoFont(U"スコア: {}", m_playerScore).draw(20, 20, Palette::White);
-	m_playerInfoFont(U"階層: {}F", m_playerCurrentLayer + 1).draw(20, 70, Palette::White);
-	m_playerInfoFont(U"現在の地点: {}".format(m_playerCurrentPoint)).draw(20, 120, Palette::Cyan);
+	background_imgs.at(getData().Layer / 10).draw(); // 現在の層に応じた背景画像を描画
 
 	// 描画範囲の計算
 	int startLayerForDrawing = Max(0, m_playerCurrentLayer - 1);
@@ -384,8 +544,7 @@ void Map::draw() const {
 						Vec2 startPos = m_allMapPoints[layerIdx][conn.sourceIndex].drawPos;
 						Vec2 endPos = m_allMapPoints[layerIdx + 1][conn.targetIndex].drawPos;
 						Line(startPos, endPos).draw(3, Palette::Green.withAlpha(m_currentAlpha));
-					}
-					else {
+					} else {
 						Vec2 startPos = m_allMapPoints[layerIdx][conn.sourceIndex].drawPos;
 						Vec2 endPos = m_allMapPoints[layerIdx + 1][conn.targetIndex].drawPos;
 						Line(startPos, endPos).draw(1, Palette::Gray.withAlpha(m_currentAlpha * 0.5));
@@ -404,12 +563,7 @@ void Map::draw() const {
 
 			// 描画する画像を選択（6種類に対応）
 			const Texture* pointImage = nullptr;
-			if (point.type == Enemy) { pointImage = &m_pointEnemyImage; }
-			else if (point.type == Treasure) { pointImage = &m_pointTreasureImage; }
-			else if (point.type == Elite) { pointImage = &m_pointEliteImage; }
-			else if (point.type == Boss) { pointImage = &m_pointBossImage; }
-			else if (point.type == Shop) { pointImage = &m_pointShopImage; }
-			else if (point.type == Event) { pointImage = &m_pointEventImage; }
+			if (point.type == Enemy) { pointImage = &m_pointEnemyImage; } else if (point.type == Treasure) { pointImage = &m_pointTreasureImage; } else if (point.type == Elite) { pointImage = &m_pointEliteImage; } else if (point.type == Boss) { pointImage = &m_pointBossImage; } else if (point.type == Shop) { pointImage = &m_pointShopImage; } else if (point.type == Event) { pointImage = &m_pointEventImage; }
 
 			if (pointImage && pointImage->isValid()) {
 				pointImage->drawAt(point.drawPos, ColorF(1.0, m_currentAlpha)); // 透明度を適用
@@ -457,11 +611,9 @@ void Map::UpdateAccessiblePoints() {
 		if (relativeLayerIdx == 0) { // 1層,11層,21層からの移動（単一点）
 			// 常に0番目の地点から次の層の0番目の地点に繋がる
 			m_allMapPoints[m_playerCurrentLayer + 1][0].isAccessible = true;
-		}
-		else if (relativeLayerIdx == 9) { // 10層,20層,30層からの移動はない
+		} else if (relativeLayerIdx == 9) { // 10層,20層,30層からの移動はない
 			// ここからは移動できないので、何もアクセス可能にしない
-		}
-		else { // 2～9層、12～19層、22～29層からの移動
+		} else { // 2～9層、12～19層、22～29層からの移動
 			const MapPattern& currentPattern = m_stages[m_currentMapPattern[currentBlockNum]];
 			// layerConnectionsは0-8層の定義なので、relativeLayerIdx-1でアクセス
 			for (const auto& conn : currentPattern.layerConnections[relativeLayerIdx - 1]) {
@@ -500,13 +652,11 @@ void Map::BuildMapFromPatterns() {
 			m_allMapPoints[layerIdx][0].type = Enemy;
 			m_allMapPoints[layerIdx][1].type = None;
 			m_allMapPoints[layerIdx][2].type = None;
-		}
-		else if (relativeLayerIdx == 9) {
+		} else if (relativeLayerIdx == 9) {
 			m_allMapPoints[layerIdx][0].type = Boss;
 			m_allMapPoints[layerIdx][1].type = None;
 			m_allMapPoints[layerIdx][2].type = None;
-		}
-		else {
+		} else {
 			for (int pointIdx = 0; pointIdx < 3; ++pointIdx) {
 				m_allMapPoints[layerIdx][pointIdx].type = currentPattern.layerPointTypes[relativeLayerIdx][pointIdx];
 			}
@@ -532,13 +682,11 @@ void Map::HandleCurrentPointAction(MapPointType type) {
 	if (type == Shop) {
 
 		// changeScene(GameState::Shop, 0.5s); // 必要なら専用シーンへ
-	}
-	else if (type == Treasure) {
+	} else if (type == Treasure) {
 
 		// 宝箱は一度開けたらもう報酬なしにするなどの処理も追加可能
 		// m_allMapPoints[m_playerCurrentLayer][m_playerCurrentPoint].isVisited = true;
-	}
-	else if (type == Event) {
+	} else if (type == Event) {
 
 		// changeScene(GameState::Event, 0.5s); // 再度イベントシーンへ遷移など
 	}

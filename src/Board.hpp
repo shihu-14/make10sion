@@ -27,8 +27,8 @@ private://Write private functions or varables here.
 												Texture{U"../image/card_sukima_bottom.png"},
 												Texture{U"../image/card_sukima_right.png"},
 												Texture{U"../image/card_sukima_left.png"}};
-	Point offset = {0,0};//Boardの左上の絶対座標
-	int32 cell_size = 50;
+	const Point offset = {0,0};//Boardの左上の絶対座標
+	const int32 cell_size = 50;
 
 	//function
 	Point PutBlockAt();

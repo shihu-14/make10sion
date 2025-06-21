@@ -1,5 +1,6 @@
 #include <Siv3D.hpp>
 
+
 // 1ターンごとの敵の行動パターン
 struct EnemyAction
 {
@@ -27,5 +28,5 @@ private:
 public:
 	Enemy();
     void markAsDefeated(const String& enemyName); // 指定された敵を「倒した」状態にす
-	const EnemyData& getOneEnemy() const; // データベースからランダムな敵データを1体返す
+	const EnemyData& getOneEnemy(bool is_boss) const; // データベースからランダムな敵データを1体返す
 };

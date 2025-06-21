@@ -20,6 +20,7 @@ void Shop::update() {
     /////////////////////////////////////////////////////////////////////
     if (!void_normal_1) {
         bool isHovered_normal_1 = RoundRect{ 350, 500, 300, 100,20 }.mouseOver();
+        if (isHovered_normal_1)Cursor::RequestStyle(CursorStyle::Hand);
         //カードの購入処理
         if (isHovered_normal_1 && MouseL.down()) {
             if (getData().money >= 50) {
@@ -45,6 +46,7 @@ void Shop::update() {
     ////////////////////////////////////////////////////////////////////
     if (!void_normal_2) {
         bool isHovered_normal_2 = RoundRect{ 650, 500, 300, 100,20 }.mouseOver();
+        if (isHovered_normal_2)Cursor::RequestStyle(CursorStyle::Hand);
         //カードの購入処理
         if (isHovered_normal_2 && MouseL.down()) {
             if (getData().money >= 50) {
@@ -69,6 +71,7 @@ void Shop::update() {
     ////////////////////////////////////////////////////////////////////
     if (!void_uncommon) {
         bool isHovered_uncommon = RoundRect{ 950, 500, 300, 100,20 }.mouseOver();
+        if (isHovered_uncommon)Cursor::RequestStyle(CursorStyle::Hand);
         //カードの購入処理
         if (isHovered_uncommon && MouseL.down()) {
             if (getData().money >= 100) {
@@ -93,7 +96,7 @@ void Shop::update() {
     ////////////////////////////////////////////////////////////////////
     if (!void_rare) {
         bool isHovered_rare = RoundRect{ 1250, 500, 300, 100,20 }.mouseOver();
-        //カードの購入処理
+        if (isHovered_rare)Cursor::RequestStyle(CursorStyle::Hand);
         if (isHovered_rare && MouseL.down()) {
             if (getData().money >= 150) {
                 getData().Deck.push_back(rare);
@@ -118,14 +121,16 @@ void Shop::update() {
 
 
     //戻るボタンの更新
-    if (MouseL.down() && RectF { 1600, 800, 225, 225 }.mouseOver()) {
-        //TODO: 戻るボタンが押された場合の処理
+    bool isHovered_return = RectF{ 1600, 800, 225, 225 }.mouseOver();
+    if (isHovered_return)Cursor::RequestStyle(CursorStyle::Hand);
+    if (MouseL.down() && isHovered_return) {
+        changeScene(State::Map, 0.5s);
         return;
     }
-    if (return_alpha < 0.4 && RectF{ 1600, 800, 225, 225 }.mouseOver()) {
+    if (return_alpha < 0.4 && isHovered_return) {
         return_alpha += 0.1;
         if (return_alpha > 0.4) return_alpha = 0.4;
-    } else if (return_alpha > 0.0 && !RectF{ 1600, 800, 225, 225 }.mouseOver()) {
+    } else if (return_alpha > 0.0 && !isHovered_return) {
         return_alpha -= 0.1;
         if (return_alpha < 0.0) return_alpha = 0.0;
     }

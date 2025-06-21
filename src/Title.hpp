@@ -6,16 +6,16 @@
 class Title : public App::Scene {
 private:
 	//Write private functions or varables here.
-	Texture m_background;  // ”wŒi‰æ‘œ—p‚ÌTextureƒIƒuƒWƒFƒNƒg
+	Texture m_background;  // èƒŒæ™¯ç”»åƒç”¨ã®Textureã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆ
 	Font m_font;
-	RoundRect m_startButtonRect; // ƒ{ƒ^ƒ“‚Ì‹éŒ`
+	RoundRect m_startButtonRect; // ãƒœã‚¿ãƒ³ã®çŸ©å½¢
 	RoundRect m_endButtonRect;
 	Audio m_titleBGM;
-	Texture m_titlelogo; // ƒ^ƒCƒgƒ‹ƒƒS‚ÌƒeƒNƒXƒ`ƒƒ
+	Texture m_titlelogo; // ã‚¿ã‚¤ãƒˆãƒ«ãƒ­ã‚´ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£
 	Texture m_startButtonTexture;
-	Texture m_startButtonTexture2;// ƒXƒ^[ƒgƒ{ƒ^ƒ“‚ÌƒeƒNƒXƒ`ƒƒ
+	Texture m_startButtonTexture2;// ã‚¹ã‚¿ãƒ¼ãƒˆãƒœã‚¿ãƒ³ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£
 	Texture m_endButtonTexture;
-	Texture m_endButtonTexture2; // I—¹ƒ{ƒ^ƒ“‚ÌƒeƒNƒXƒ`ƒƒ
+	Texture m_endButtonTexture2; // çµ‚äº†ãƒœã‚¿ãƒ³ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£
 public:
 	Title(const InitData& init);
 	//Write public functions here.

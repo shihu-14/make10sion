@@ -393,61 +393,125 @@ Map::Map(const InitData& init) :
 		}
 	}
 	};
-
 	//抽選スタート！
-	for (int i = 0;i < 3;i++){
-		std::vector<std::vector<Node>> selected_nodes(10, std::vector<Node>(3)); // 10層、各層に3地点のノードを初期化
-		selected_nodes = map_nodes_source[Random(0, 5)]; // 0から5の範囲でランダムに選択
-		map_nodes.insert(map_nodes.begin() + i * 10, selected_nodes.begin(), selected_nodes.end());
+	if (getData().Layer%10 == 0){
+		map_nodes = map_nodes_source[Random(0, 5)]; // 0から5の範囲でランダムに選択
+		getData().selected_nodes = map_nodes; // 選択されたノードを保存
+	}else{
+		map_nodes = getData().selected_nodes;
 	}
 	//Map生成完了！！
 
+	banner.init(getData().money, getData().Layer); // バナーの初期化
 }
 
 // update() メソッドの実装
 void Map::update() {
-	
+	deck_mode = banner.update(getData().Deck); // バナーの更新
+	if (deck_mode)return;
+
+	move_x = -Clamp(getData().Layer - 2, 0, 4) * 300; // マップの移動量を計算
+	vector<tuple<Node, Circle, int>> next_node; // 次のノードとその位置
+	if (map_nodes[getData().Layer % 10][getData().Index].NextLayerIndex & 1) {
+		next_node.push_back(make_tuple(map_nodes[getData().Layer + 1][0], Circle{ move_x + 200 + (getData().Layer + 1) * 300, 420 + 0 * 265, 100.0 }, 0)); // 上層
+	}
+	if (map_nodes[getData().Layer % 10][getData().Index].NextLayerIndex & 2) {
+		next_node.push_back(make_tuple(map_nodes[getData().Layer + 1][1], Circle{ move_x + 200 + (getData().Layer + 1) * 300, 420 + 1 * 265, 100.0 }, 1)); // 中層
+	}
+	if (map_nodes[getData().Layer % 10][getData().Index].NextLayerIndex & 4) {
+		next_node.push_back(make_tuple(map_nodes[getData().Layer + 1][2], Circle{ move_x + 200 + (getData().Layer + 1) * 300, 420 + 2 * 265, 100.0 }, 2)); // 下層
+	}
+	hovered_index = -1;
+	for (const auto& [node, circle, index] : next_node) {
+		bool is_hovered = circle.mouseOver(); // ノードがホバーされているかどうかをチェック
+		if (is_hovered) {
+			Cursor::RequestStyle(CursorStyle::Hand); // カーソルスタイルを更新
+			hovered_index = index; // ホバーされているノードのインデックスを保存
+		}
+		//クリック！！
+		if (is_hovered && MouseL.down()) {
+			getData().Layer++; // 次の層に移動
+			getData().Index = index; // インデックスをセット
+			if (node.type == MapPointType::Shop) {
+				changeScene(State::Shop, 2s); // ショップに移動
+			} else if (node.type == MapPointType::Boss) {
+				changeScene(State::Battle, 2s); // ボス戦に移動
+			} else if (node.type == MapPointType::Event) {
+				//changeScene(State::Event, 2s); // イベントに移動
+			} else if (node.type == MapPointType::Elite) {
+				changeScene(State::Battle, 2s); // エリート戦に移動
+			} else if (node.type == MapPointType::Enemy) {
+				changeScene(State::Battle, 2s); // 通常戦闘に移動
+			} else if (node.type == MapPointType::Treasure) {
+				//changeScene(State::Battle, 2s); // 宝箱を開けるための戦闘に移動
+			}
+		}
+	}
 
 }
 
 // draw() メソッドの実装
 void Map::draw() const {
+	if (deck_mode) {
+		banner.draw(); // デッキモードのバナーを描画
+		return;
+	}
 	// 現在の層に応じた背景画像を描画
-	background_imgs.at(getData().Layer / 10).draw();
+	background_imgs.at((getData().Layer) / 10).draw();
 
 	// 現在の層のノードを描画
 	for (int i = 0; i < 10; i++) {
 		for (int j = 0; j < 3; j++) {
 			const Node& node = map_nodes[i][j];
+			bool NextVisit = (getData().Layer % 10 + 1 == i) && map_nodes[getData().Layer % 10][getData().Index].NextLayerIndex & (1 << j); // 次の層のインデックスを取得
+			bool hovered = NextVisit && (hovered_index == j); // ホバーされているかどうかをチェック
 			Texture icon;
-
 			switch (node.type) {
 			case Boss:
-				icon = boss_icon;
+				icon = hovered ? boss_icon_1 : boss_icon; // ホバーされている場合は特別なアイコンを使用
 				break;
 			case Elite:
-				icon = elite_icon;
+				icon = hovered ? elite_icon_1 : elite_icon; // ホバーされている場合は特別なアイコンを使用
 				break;
 			case Event:
-				icon = event_icon;
+				icon = hovered ? event_icon_1 : event_icon; // ホバーされている場合は特別なアイコンを使用
 				break;
 			case Shop:
-				icon = shop_icon;
+				icon = hovered ? shop_icon_1 : shop_icon; // ホバーされている場合は特別なアイコンを使用
 				break;
 			case Enemy:
-				icon = enemy_icon_0;
+				icon = hovered ? enemy_icon_1 : enemy_icon; // ホバーされている場合は特別なアイコンを使用
 				break;
 			case Treasure:
-				icon = treasure_icon;
+				icon = hovered ? treasure_icon_1 : treasure_icon; // ホバーされている場合は特別なアイコンを使用
 				break;
 			default:
 				continue; // Noneの場合は何もしない
 			}
-
-			// アイコンを描画
-			icon.drawAt(100 + j * 50, 100 + i * 50); // 適当な位置に描画
+			{
+				double node_alpha = (getData().Layer%10 < i) ? 0.0 : 0.6; // 現在の層より上の層は半透明
+				if ((node_alpha == 0.6) && (getData().Layer%10 == i) && (getData().Index == j)) {
+					node_alpha = 0.0;
+				}
+				const ScopedColorMul2D colorMul{ ColorF{ 1.0 - node_alpha, 1.0 - node_alpha, 1.0 - node_alpha } };
+				double size = 1.0 + (NextVisit ? Periodic::Sine1_1(1.5s) * 0.14 + 0.05 : 0.0); // 次の訪問地点はサイズが変化
+				if (hovered) size = 1.2;
+				// アイコンを描画
+				icon.scaled(size).drawAt(move_x + 200 + i * 300, 420 + j * 265); // 適当な位置に描画
+				// 矢印を描画
+				for (int k = 0; k < 3; k++) {
+					if (map_nodes[i][j].NextLayerIndex & (1 << k)) {
+						double angle = atan2(100 * (k - j), 75.0);
+						double distance = sqrt(170 * 170 * (j - k) * (j - k) + 90.0 * 90.0) / 100;
+						arrow_icon.scaled(0.25 * distance, 0.25).rotated(angle).drawAt(move_x + 350.0 + i * 300, 440.0 + 132.5 * (j + k));
+					}
+				}
+			}
 		}
 	}
+	//TODO:主人公ちゃんの描画
 
+	// バナーの描画
+	banner.draw();
 }
 

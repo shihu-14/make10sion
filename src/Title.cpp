@@ -8,8 +8,8 @@ m_startButtonTexture(U"../../image/title_start_0.png"),
 m_startButtonTexture2(U"../../image/title_start_1.png"),
 m_endButtonTexture(U"../../image/title_end_0.png"),
 m_endButtonTexture2(U"../../image/title_end_1.png"),
-m_startButtonRect(Arg::center = Vec2(Scene::Center().x+20 , Scene::Height() - 450), 420, 100, 20), // C³: RoundRect ‚Ì³‚µ‚¢ƒRƒ“ƒXƒgƒ‰ƒNƒ^‚ğg—p
-m_endButtonRect(Arg::center = Vec2(Scene::Center().x +20, Scene::Height()-250 ), 420, 100, 20), // C³: RoundRect ‚Ì³‚µ‚¢ƒRƒ“ƒXƒgƒ‰ƒNƒ^‚ğg—p
+m_startButtonRect(Arg::center = Vec2(Scene::Center().x+20 , Scene::Height() - 450), 420, 100, 20), // ä¿®æ­£: RoundRect ã®æ­£ã—ã„ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã‚’ä½¿ç”¨
+m_endButtonRect(Arg::center = Vec2(Scene::Center().x +20, Scene::Height()-250 ), 420, 100, 20), // ä¿®æ­£: RoundRect ã®æ­£ã—ã„ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã‚’ä½¿ç”¨
 m_font(30, Typeface::Bold),
 m_titleBGM(U"example/audio/game_bgm.mp3", Loop::Yes)
 {
@@ -20,15 +20,15 @@ void Title::update() {
     if (m_startButtonRect.mouseOver())
     {   
         Cursor::RequestStyle(CursorStyle::Hand);
-        if (m_startButtonRect.leftClicked()) { // ƒ}ƒEƒX¶ƒ{ƒ^ƒ“‚ªƒNƒŠƒbƒN‚³‚ê‚½uŠÔ
-            // ƒ}ƒbƒvƒV[ƒ“‚Ö‘JˆÚ
+        if (m_startButtonRect.leftClicked()) { // ãƒã‚¦ã‚¹å·¦ãƒœã‚¿ãƒ³ãŒã‚¯ãƒªãƒƒã‚¯ã•ã‚ŒãŸç¬é–“
+            // ãƒãƒƒãƒ—ã‚·ãƒ¼ãƒ³ã¸é·ç§»
             changeScene(State::Map, 0.5s);
         }
     }
     if (m_endButtonRect.mouseOver())
     {
         Cursor::RequestStyle(CursorStyle::Hand);
-        if (m_endButtonRect.leftClicked()) { // ƒ}ƒEƒX¶ƒ{ƒ^ƒ“‚ªƒNƒŠƒbƒN‚³‚ê‚½uŠÔ
+        if (m_endButtonRect.leftClicked()) { // ãƒã‚¦ã‚¹å·¦ãƒœã‚¿ãƒ³ãŒã‚¯ãƒªãƒƒã‚¯ã•ã‚ŒãŸç¬é–“
          
             System::Exit();
         }
@@ -38,22 +38,22 @@ void Title::update() {
 void Title::draw() const {
     m_background.draw(0, 0);
 
-	m_titlelogo.drawAt(Scene::Center().x, Scene::Center().y - 100); // ƒ^ƒCƒgƒ‹ƒƒS‚ğ‰æ–Ê’†‰›‚É”z’u
+	m_titlelogo.drawAt(Scene::Center().x, Scene::Center().y - 100); // ã‚¿ã‚¤ãƒˆãƒ«ãƒ­ã‚´ã‚’ç”»é¢ä¸­å¤®ã«é…ç½®
     if (m_startButtonRect.mouseOver()) {
-        // ƒ}ƒEƒX‚ªƒ{ƒ^ƒ“‚Ìã‚É‚¢‚éê‡Aƒzƒo[‚Ì‰æ‘œ‚ğ•`‰æ
-        m_startButtonTexture2.drawAt(Scene::Center().x, Scene::Center().y); // m_startButtonRect‚Ì—Ìˆæ‚É‡‚í‚¹‚Ä‰æ‘œ‚ğˆø‚«L‚Î‚µ
+        // ãƒã‚¦ã‚¹ãŒãƒœã‚¿ãƒ³ã®ä¸Šã«ã„ã‚‹å ´åˆã€ãƒ›ãƒãƒ¼æ™‚ã®ç”»åƒã‚’æç”»
+        m_startButtonTexture2.drawAt(Scene::Center().x, Scene::Center().y); // m_startButtonRectã®é ˜åŸŸã«åˆã‚ã›ã¦ç”»åƒã‚’å¼•ãä¼¸ã°ã—
     }
     else {
-        // ƒ}ƒEƒX‚ªƒ{ƒ^ƒ“‚Ìã‚É‚¢‚È‚¢ê‡A’Êí‚Ì‰æ‘œ‚ğ•`‰æ
-        m_startButtonTexture.drawAt(Scene::Center().x, Scene::Center().y); // m_startButtonRect‚Ì—Ìˆæ‚É‡‚í‚¹‚Ä‰æ‘œ‚ğˆø‚«L‚Î‚µ
+        // ãƒã‚¦ã‚¹ãŒãƒœã‚¿ãƒ³ã®ä¸Šã«ã„ãªã„å ´åˆã€é€šå¸¸æ™‚ã®ç”»åƒã‚’æç”»
+        m_startButtonTexture.drawAt(Scene::Center().x, Scene::Center().y); // m_startButtonRectã®é ˜åŸŸã«åˆã‚ã›ã¦ç”»åƒã‚’å¼•ãä¼¸ã°ã—
     }
     if(m_endButtonRect.mouseOver()) {
-        // ƒ}ƒEƒX‚ªƒ{ƒ^ƒ“‚Ìã‚É‚¢‚éê‡Aƒzƒo[‚Ì‰æ‘œ‚ğ•`‰æ
-        m_endButtonTexture2.drawAt(Scene::Center().x, Scene::Center().y); // m_endButtonRect‚Ì—Ìˆæ‚É‡‚í‚¹‚Ä‰æ‘œ‚ğˆø‚«L‚Î‚µ
+        // ãƒã‚¦ã‚¹ãŒãƒœã‚¿ãƒ³ã®ä¸Šã«ã„ã‚‹å ´åˆã€ãƒ›ãƒãƒ¼æ™‚ã®ç”»åƒã‚’æç”»
+        m_endButtonTexture2.drawAt(Scene::Center().x, Scene::Center().y); // m_endButtonRectã®é ˜åŸŸã«åˆã‚ã›ã¦ç”»åƒã‚’å¼•ãä¼¸ã°ã—
     }
     else {
-        // ƒ}ƒEƒX‚ªƒ{ƒ^ƒ“‚Ìã‚É‚¢‚È‚¢ê‡A’Êí‚Ì‰æ‘œ‚ğ•`‰æ
-        m_endButtonTexture.drawAt(Scene::Center().x, Scene::Center().y); // m_endButtonRect‚Ì—Ìˆæ‚É‡‚í‚¹‚Ä‰æ‘œ‚ğˆø‚«L‚Î‚µ
+        // ãƒã‚¦ã‚¹ãŒãƒœã‚¿ãƒ³ã®ä¸Šã«ã„ãªã„å ´åˆã€é€šå¸¸æ™‚ã®ç”»åƒã‚’æç”»
+        m_endButtonTexture.drawAt(Scene::Center().x, Scene::Center().y); // m_endButtonRectã®é ˜åŸŸã«åˆã‚ã›ã¦ç”»åƒã‚’å¼•ãä¼¸ã°ã—
 	}
 
 }

@@ -22,6 +22,7 @@ bool Banner::update(vector<Block>& deck_data) {
         return true; // デッキモードに入っている場合はtrueを返す
     }
     isHovered_deck = RectF{ 1520, 0, 150, 150 }.mouseOver();
+    Cursor::RequestStyle(isHovered_deck ? CursorStyle::Hand : CursorStyle::Default);
     if (isHovered_deck && MouseL.up()) {
         deck.init(deck_data); // デッキの初期化
         deck_mode = true; // デッキモードに入る
@@ -44,7 +45,7 @@ void Banner::draw() const {
     money_img.draw(500, 20);
     if (!deck_mode) {
         {
-            const const ScopedColorMul2D colorMul{ ColorF{ 1.0 - deck_alpha, 1.0 - deck_alpha, 1.0 - deck_alpha } };
+            const ScopedColorMul2D colorMul{ ColorF{ 1.0 - deck_alpha, 1.0 - deck_alpha, 1.0 - deck_alpha } };
             double scale = 1.0 - ((deck_alpha <= 0.4) ? (deck_alpha * 0.05) : 0.0); // アルファ値に応じて拡大
             deck_img.scaled(0.5 * scale).draw(1520, 0);
         }

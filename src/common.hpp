@@ -14,6 +14,23 @@ enum class State
 	Shop
 };
 
+// マップのポイントタイプ
+enum class MapPointType {
+	Boss,
+	Elite,
+	Event,
+	Shop,
+	Enemy,
+	Treasure,
+	None,
+};
+// マップのノードデータ
+struct Node {
+	MapPointType type = MapPointType::None;
+	bool isVisited = false;
+	int NextLayerIndex = 0; // 次の層のインデックス (1:上層, 2:中層, 4:下層)
+};
+
 // 共有するデータ
 struct GameData
 {
@@ -31,11 +48,15 @@ struct GameData
 		Block("+\n*")
 	};
 	int Layer = 0;
+	int Index = 1; // 現在のマップのインデックス
 	int HP = 80;
 	int MaxHP = 80;
 	int money = 100;
 	//Board board;
 	long long status = 0; // 状態
+
+	// Map Data
+	std::vector<std::vector<Node>> selected_nodes;
 
 	//Shop のカードデータ
 	// 通常カード

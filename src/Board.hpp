@@ -13,7 +13,8 @@ private:
 	//variables
 	Grid<int32> board_usage;
 	Grid<int32> board_number;
-	Grid<int32> board_effect;
+	Grid<int32> board_effect_back;
+	Grid<int32> board_effect_front;
 	Grid<Point> board_coordinate;
 	Array<int32> num_on_board;
 	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };

@@ -12,7 +12,7 @@ void Board::CalcRow() {
 			if (board_usage[i][j] != 1) continue; // 使用されていないブロックはスキップ
 			if (board_number[i][j] == 0)continue;
 			if ((board_number[i][j] & (1 << 8)) == 0 && (board_number[i][j] & (1 << 16)) == 0 && (board_number[i][j] & (1 << 24)) == 0) {//数字であるか
-				board_number[i][j] += board_effect[i][j]; // 効果を加える
+				board_number[i][j] += board_effect_front[i][j]; // 効果を加える
 				num_on_board.push_back(board_number[i][j]); // 数字部分を取り出す
 			}
 
@@ -130,7 +130,7 @@ void Board::SetStat() {//ボードの操作状態を設定する
 
 void Board::ResetBoard() {
 	board_number.fill(0);
-	board_effect.fill(0);
+	
 	num_on_board.clear();
 	result_of_calc.fill(0);
 	board_off_def = { 1,1,1,0,0,0 }; // 初期化: 攻撃側の行を1に設定
@@ -140,6 +140,8 @@ void Board::ResetBoard() {
 	used_blocks.clear();
 	block_hand_pos.clear();
 	do_block_anim.clear();
+	board_effect_front = board_effect_back;
+	board_effect_back.fill(0);
 }
 
 
@@ -231,15 +233,15 @@ void Board::GetPieceNum(char content, int y, int x) {
 		board_number[y][x] = 16777217; return;//攻
 	}else if (content == 'j') {
 		board_number[y][x] = 1;
-		board_effect[y][x] = 2;
+		board_effect_back[y][x] = 2;
 		return;
 	}else if (content == 'k') {
 		board_number[y][x] = 2;
-		board_effect[y][x] = 2;
+		board_effect_back[y][x] = 2;
 		return;
 	}else if (content == 'l') {
 		board_number[y][x] = 2;
-		board_effect[y][x] = 4;
+		board_effect_back[y][x] = 4;
 		return;
 	}else if (content == 'm') {//数字の12
 		board_number[y][x] = 12;
@@ -248,11 +250,11 @@ void Board::GetPieceNum(char content, int y, int x) {
 		//何もしない
 	}else if (content == 'o') {
 		board_number[y][x] = 2;
-		board_effect[y][x] = 1;
+		board_effect_back[y][x] = 1;
 		return;
 	}else if (content == 'p') {
 		board_number[y][x] = 3;
-		board_effect[y][x] = 1;
+		board_effect_back[y][x] = 1;
 		return;
 	}
 	else board_number[y][x] = content - '0';

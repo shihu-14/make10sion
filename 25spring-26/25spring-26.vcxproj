@@ -115,21 +115,13 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\Battle.cpp" />
     <ClCompile Include="..\src\Block.cpp" />
-    <ClCompile Include="..\src\Board.cpp" />
-    <ClCompile Include="..\src\Board_Calc.cpp" />
-    <ClCompile Include="..\src\Board_coordinate.cpp" />
-    <ClCompile Include="..\src\Deck.cpp" />
     <ClCompile Include="..\src\Main.cpp" />
-    <ClCompile Include="..\src\Map.cpp" />
-    <ClCompile Include="..\src\Result.cpp" />
     <ClCompile Include="..\src\Title.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Board_Calc.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\image\card_sukima_bottom.png" />
@@ -352,12 +344,8 @@
     <Xml Include="App\example\xml\test.xml" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\Battle.hpp" />
     <ClInclude Include="..\src\Block.hpp" />
-    <ClInclude Include="..\src\Board.hpp" />
-    <ClInclude Include="..\src\Deck.hpp" />
-    <ClInclude Include="..\src\Map.hpp" />
-    <ClInclude Include="..\src\Result.hpp" />
+    <ClInclude Include="..\src\common.hpp" />
     <ClInclude Include="..\src\Title.hpp" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>

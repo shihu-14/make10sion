@@ -1,5 +1,6 @@
 #pragma once
 #include <Siv3D.hpp>
+#include "common.hpp"
 
 enum class MapPointType {
 	Boss,
@@ -38,13 +39,7 @@ struct MapPattern {
 	Array<Array<ConnectionInfo>> layerConnections; // [層インデックス][接続情報リスト]
 
 	// コンストラクタでサイズを初期化
-	MapPattern() {
-		layerPointTypes.resize(10); // 10層
-		layerConnections.resize(9); // 0層-1層から8層-9層への接続
-		for (int i = 0; i < 10; ++i) {
-			layerPointTypes[i].resize(3); // 各層に最大3地点
-		}
-	}
+	
 };
 
 // Mapシーンを表すクラス
@@ -66,6 +61,7 @@ private:
 	// マップ全体の情報
 	// 10層ごとのマップパターンを格納する配列 (30層はこれらパターンを組み合わせる)
 	Array<MapPattern> m_stageLayouts; // ここに6つのパターンを定義する
+
 
 	// 現在の30層マップで、どのパターンが選ばれたかを保持
 	Array<int> m_currentMapPattern; // サイズ3 (0-9層, 10-19層, 20-29層の各ブロックのパターンインデックス)
@@ -92,6 +88,7 @@ public:
 	void draw() const override;
 };
 namespace GameConstants {
+	const FilePath MapBackgroundFilePath = U"example/texture/map_background.png";
 	const FilePath BossImageFilePath = U"example/texture/boss.png";
 	const FilePath EliteImageFilePath = U"example/texture/elite.png";
 	const FilePath EventImageFilePath = U"example/texture/event.png";

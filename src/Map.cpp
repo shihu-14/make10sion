@@ -5,43 +5,33 @@ using enum MapPointType;
 
 // Mapクラスのコンストラクタの実装
 Map::Map(const InitData& init) :
-	App::Scene<GameState>(init), // 親クラスApp::Sceneのコンストラクタを呼び出す
+	App::Scene(init), // 親クラスApp::Sceneのコンストラクタを呼び出す
 
 	// 背景画像の読み込み
-	m_background(GameConstants::BackgroundAssetPath),
+	m_background(GameConstants::MapBackgroundFilePath),
 
 	// 地点画像の読み込み
-	m_pointEnemyImage(GameConstants::PointEnemyImagePath),
-	m_pointTreasureImage(GameConstants::PointTreasureImagePath),
-	m_pointEliteImage(GameConstants::PointEliteImagePath),
-	m_pointBossImage(GameConstants::PointBossImagePath),
-	m_pointShopImage(GameConstants::PointShopImagePath),
-	m_pointEventImage(GameConstants::PointEventImagePath),
-
-	// フォントの作成
-	m_playerInfoFont(GameConstants::PlayerInfoFontSize),
-	m_buttonFont(GameConstants::ButtonFontSize, Typeface::Bold),
+	m_boss(GameConstants::BossImageFilePath),
+	m_elite(GameConstants::EliteImageFilePath),
+	m_event(GameConstants::EventImageFilePath),
+	m_shop(GameConstants::ShopImageFilePath),
+	m_enemy(GameConstants::EnemyImageFilePath),
+	m_treasure(GameConstants::TreasureImageFilePath),
 
 	// BGMの読み込み
 	m_mapBGM(GameConstants::MapBGMPath, Loop::Yes),
 
-	// 画面下部ボタンの領域定義
-	m_battleButtonRect(Arg::center(Window::Center().x - 200, Window::Height() - 150), 180, 60),
-	m_restButtonRect(Arg::center(Window::Center().x, Window::Height() - 150), 180, 60),
-	m_shopButtonRect(Arg::center(Window::Center().x + 200, Window::Height() - 150), 180, 60)
-{
 	// BGMの再生開始
 	if (m_mapBGM.isValid() && !m_mapBGM.isPlaying()) {
 		m_mapBGM.play();
 	}
 
-	// プレイヤーの初期ステータス
-	m_playerScore = 0;
-	m_playerFloor = 1; // 階層は1から数える
+
+	int m_playerFloor = 1; // 階層は1から数える
 
 	// === 6つのマップ配置パターン (1～10層ブロック) の定義 ===
 	// Arrayに直接MapPatternオブジェクトを初期化リストで格納します
-	m_stages = {
+	Array m_stages = {
 		// --- パターン1 --- (
 		MapPattern{
 			// layerPointTypes (10層分の地点タイプ)
@@ -217,7 +207,7 @@ Map::Map(const InitData& init) :
 	};
 
 	// 選ばれたパターンから実際の30層マップを構築する
-	BuildMapFromPatterns();
+ BuildMapFromPatterns();
 
 	// プレイヤーの初期位置と状態
 	m_playerCurrentLayer = 0;

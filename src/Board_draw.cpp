@@ -8,8 +8,8 @@ void Board::DrawBoard(){
 
     for(int i=0;i<6;i++){
         for(int j=0;j<7;j++){
-            if(board_usage[i][j] < 0){
-                //
+            if(board_usage[i][j] > 0){
+                board_img.drawAt(offset.x+cell*j, offset.y+cell*i);
             }
         }
     }

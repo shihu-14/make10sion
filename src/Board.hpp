@@ -9,17 +9,18 @@ class Board{
 private://Write private functions or varables here.
 
 	//variables
-	Grid<int32> grid_usage(Size{ 7,6 },-1);
-	Grid<char> grid_number(Size{7,6}, 0);
-	Grid<int32> grid_effect(Size{7,6}, 0);
-	Grid<Point> grid_corrdinate(Size{7,6},Point);
-	std::array<int, 6> grid_multiply;
-	std::array<int, 42> num_on_grid;
-	Block& block;
+	Grid<int32> board_usage;
+	Grid<char> board_number;
+	Grid<int32> board_effect;
+	Grid<Point> board_coordinate;
+	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };
+	Array<int> num_on_board;
+	Block block;
+	Array<int> board_off_def = { 1,1,1,0,0,0 };//çU1éÁ0
 
 	//function
 	void PutBlock();
-	void TakeOutBlock();
+	Array<std::pair<int,int>> TakeOutBlock();
 	void AddUsablePlace();
 	void ResetBoard();
 
@@ -28,6 +29,7 @@ private://Write private functions or varables here.
 	
 public://Write public functions here.
 
+	Board();
 	//variables
 	bool is_board_active = false;
 

@@ -1,5 +1,7 @@
 ﻿#include "../src/Board.hpp"  
 #include "Block.hpp"
+#include "Board.hpp"
+#include "Battle.hpp"
 #include <Siv3D.hpp>
 
 void Board::CalcRow() {
@@ -132,12 +134,52 @@ void Board::ResetBoard() {
 	num_on_board.clear();
 	result_of_calc.fill(0);
 	board_off_def = { 1,1,1,0,0,0 }; // 初期化: 攻撃側の行を1に設定
+	for (Block b : Deck_board) {
+		do_block_anim[b] = 2;
+	}
 }
 
 
 
 void Board::AddUsablePlace(){
+	if (! MouseL.down())return;
 	
+	int32 px = Cursor::Pos().x;
+	int32 py = Cursor::Pos().y;
+	//マスの中心同士を結んだ マス座標 に変換
+	int32 bx = (px - offset.x + cell_size / 2) / cell_size;
+	int32 by = (py - offset.y + cell_size / 2) / cell_size;
+
+	if (board_usage[by][bx] != -2)return;
+
+	board_usage[by][bx] = 0;
+	for (int i = 0; i < 6; i++) {//使用不可の所の初期化
+		for (int j = 0; j < 7; j++) {
+			if (board_usage[i][j] != 0)board_usage[i][j] = -1;
+		}
+	}
+	//ここ以降で使用可能に隣接する使用不可の所の計算を行う
+	for (int i = 0; i < 2; i++) {
+		for (int j = 0; j < 7; j++) {
+			if (board_usage[i][j] != -1)continue;
+			if (board_usage[i + 1][j] == 0)board_usage[i][j] = -2;
+		}
+	}
+	for (int i = 2; i < 4; i++) {
+		for (int j = 0; j < 7; j++) {
+			if (board_usage[i][j] != -1)continue;
+			if (board_usage[i][j+1] == 0)board_usage[i][j] = -2;
+			if (board_usage[i][j-1] == 0)board_usage[i][j] = -2;
+		}
+	}
+	for (int i = 4; i < 6; i++) {
+		for (int j = 0; j < 7; j++) {
+		if (board_usage[i][j] != -1)continue;
+		if (board_usage[i - 1][j] == 0)board_usage[i][j] = -2;
+		}		
+	}
+	//ココまで
+
 }
 
 
@@ -165,13 +207,13 @@ void Board::GetPieceNum(char content, int y, int x) {
 	}else if (content == '/') {
 		board_number[y][x] = 264; return; // 割り算
 	}else if (content == 'a') {
-		return;
+		return;//未定
 	}else if (content == 'b') {
-		return;
+		return;//未定
 	}else if (content == 'c') {
-		return;
+		return;//未定
 	}else if (content == 'd') {
-		return;
+		return;//未定
 	}else if (content == 'e') {
 		board_number[y][x] = 65540; return;//ave
 	}else if (content == 'f') {
@@ -209,6 +251,7 @@ void Board::GetPieceNum(char content, int y, int x) {
 		return;
 	}
 	else board_number[y][x] = content - '0';
+	return;
 }
 
 

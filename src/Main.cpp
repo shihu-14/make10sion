@@ -26,12 +26,11 @@ void Main()
 	//manager.add<Map>(State::Map);
 	//manager.add<Battle>(State::Battle);
 	//manager.add<Result>(State::Result);
-	manager.add<Deck>(State::Deck);
 
 
 	//XXX:debug用
 	//開始シーンを指定する
-	manager.init(State::Deck);
+	manager.init(State::Title);
 
 	while (System::Update() && manager.update()) {};
 }

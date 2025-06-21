@@ -10,8 +10,7 @@ enum class State
 	Title,
 	Battle,
 	Map,
-	Result,
-	Deck
+	Result
 };
 
 // 共有するデータ

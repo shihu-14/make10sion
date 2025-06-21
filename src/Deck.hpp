@@ -4,7 +4,7 @@
 #include "common.hpp"
 #include <vector>
 
-class Deck : public App::Scene{
+class Deck{
 private:
 	std::vector<std::pair<int,int>> card_pos; //カードの位置
 	std::vector<double> card_fade; //カードのsize,alpha
@@ -14,13 +14,17 @@ private:
 	double fade_alpha = 0.0; //フェードの透明度
 	const Texture background_img{ U"../../image/deck_background.png" };
 	const Texture back_button_img{ U"../../image/back_button_deck0.png" };
+	int deck_size = 0; //デッキのサイズ
+	vector<Block> deck_data; //デッキのカード
+	bool first_call = false;
+	bool fade_mode = true; //フェードインモード
+	int timer = 0; //フェードインのタイマー
+	void updateFadeIn(double t);
+	void drawFadeIn(double t) const;
 public:
-	Deck(const InitData& init);
-	
-	void update() override;
-	void draw() const override;
-	void updateFadeIn(double t) override ;
-	void drawFadeIn(double t) const override;
+	void init(std::vector<Block>& deck);
+	void update();
+	void draw() const;
 };
 
 #endif

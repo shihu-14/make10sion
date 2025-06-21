@@ -12,14 +12,18 @@ double Board::CalcDist(Point a, Point b){//2点間の距離(の2乗)の計算
     return pow((a.x-b.x), 2)+pow((a.y-b.y), 2);
 }
 
-Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)のピースのマス座標を返す
-    double rSquared = 25.0;
+Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)のピースのボード座標を返す
+
+    double rSquared = 25.0;//吸い込み半径(の2乗)
+    
     //Blockの左上のピースの絶対座標
-    int32 px = block.GetPiece(0, 0).x+Cursor::Pos().x;
-    int32 py = block.GetPiece(0, 0).y+Cursor::Pos().y;
-    //マスの中心同士を結んだ マス座標 に変換
-    int32 bx = (px - offset.x + cell_size/2)/cell_size;
-    int32 by = (py - offset.y + cell_size/2)/cell_size;
+    Point piece_pos;
+    piece_pos.x = block.GetPiece(0, 0).x+Cursor::Pos().x;
+    piece_pos.y = block.GetPiece(0, 0).y+Cursor::Pos().y;
+
+    //マスの中心同士を結んだ ボード座標' に変換
+    int32 bx = (piece_pos.x - offset.x + cell_size/2) / cell_size;
+    int32 by = (piece_pos.y - offset.y + cell_size/2) / cell_size;
 
     Point putAt = {-1, -1};
     double minDist = rSquared;
@@ -29,14 +33,15 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)の�
     array<int32, 4> dy = {-1, -1, 0, 0};
     for(int k=0;k<4;k++){
         if((0 <= by+dy[k] < 6) && (0 <= bx+dx[k] < 7)){
-            double distSquared = CalcDist(board_coordinate[by+dy[k]][bx+dy[k]], Point{px, py});
+            double distSquared = CalcDist(board_coordinate[by+dy[k]][bx+dy[k]], piece_pos);
             if(distSquared < minDist){
                 minDist = distSquared;
                 putAt = Point{bx+dx[k], by+dy[k]};
             }
         }
     }
-    if(putAt == Point{-1, -1}){
+
+    if(putAt == Point{-1, -1}){//まだ近くにマスが無い場合
         return putAt;
     }
 
@@ -56,12 +61,13 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)の�
         }
     }
     if(!finish){//吸い込まれる
-        int32 newx = offset.x + putAt.x*cell_size + cell_size/2;
-        int32 newy = offset.y + putAt.y*cell_size + cell_size/2;
-        block.SetPos(newx, newy);
+        int32 new_x = offset.x + putAt.x*cell_size + cell_size/2;
+        int32 new_y = offset.y + putAt.y*cell_size + cell_size/2;
+        block.SetPos(new_x, new_y);
     }
 
     return putAt;
+
 }
 
 void Board::PutBlock(){//blockがドロップされたら、配置/手札に戻す
@@ -79,7 +85,7 @@ void Board::PutBlock(){//blockがドロップされたら、配置/手札に戻�
     is_block_selected = false;
 }
 
-Array<pair<int32,int32>> Board::TakeOutBlock(Point pos){//現在触っているBlockの座標を返す もう少し詰めたい
+Array<pair<int32,int32>> Board::TakeOutBlock(Point pos){//クリックしたBlockのすべてのピースのボード座標を返す
     int32 num = board_usage[pos.y][pos.x];
     Array<pair<int32,int32>> blockCoords;
 
@@ -87,7 +93,7 @@ Array<pair<int32,int32>> Board::TakeOutBlock(Point pos){//現在触っているB
         for (int y=0;y<6;y++){
             for(int x=0;x<7;x++){
                 if(board_usage[y][x] == blockNum){
-                    blockCoords.push_back({x,y});
+                    blockCoords.push_back({x, y});
                 }
             }
         }
@@ -97,19 +103,21 @@ Array<pair<int32,int32>> Board::TakeOutBlock(Point pos){//現在触っているB
     }
 
     return blockCoords;
+
 }
 
 void Board::InitBoardCoordinate(){//board_coordinateの初期化
     for(int i=0;i<6;i++){
         for(int j=0;j<7;j++){
             Point cord;
-            cord.x = offset.x + cell_size/2 + cell_size*j;
-            cord.y = offset.y + cell_size/2 + cell_size*i;
+            cord.x = offset.x + cell_size*j + cell_size/2;
+            cord.y = offset.y + cell_size*i + cell_size/2;
             board_coordinate[i][j] = cord;
         }
     }
 }
 
+//public variables
 
 //public　functions
 void Board::PassBlock(const Block& selectedBlock, const Point hand_pos) {//選択されているBlockとその手札座標が渡される
@@ -129,6 +137,13 @@ void Board::PassBlock(const Block& selectedBlock, const Point hand_pos) {//選�
     is_block_selected = true;
 }
 
-//toアリスくん : ResetBoard()でused_blocksを初期化
-//toアリスくん : ResetBoard()でdo_usedを初期化
-//toアリスくん : ResetBoard()でblock_count = 1;に
+/*
+toアリスくん{ResetBoard()でused_blocksを{}に初期化,
+           ResetBoard()でblock_hand_posを{}に初期化,
+           ResetBoard()でdo_block_animを{}に初期化}
+
+void Board::TurnBegin(){//ターン開始時に諸々を初期化する関数(要らないかな)
+    //
+}
+
+*/

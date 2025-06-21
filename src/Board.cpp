@@ -13,8 +13,9 @@ Board::Board() :
 
 //InitBoardCoordinate()は別で、ターン開始時に呼び出してもらう
 
+
+//ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
 void Board::Update(int32 idx){//idx : 0:バトル中, 1:リザルト(マス解放時)
-	//ここでBoardのメソッドを呼び出す
 	if(idx == 0){
 		if(is_block_selected){//Blockをドラッグしているとき
 			//この時点で、PassBlock()が実行されている
@@ -43,16 +44,18 @@ void Board::Update(int32 idx){//idx : 0:バトル中, 1:リザルト(マス解�
 		Array<Block> Deck_board;//Deck_boardがprivateになっているので、publicにしてもらうまで暫定的に
 
 		for(int i=0;i<used_blocks.size();i++){//盤面上のブロックの描画
-			if(do_block_anim[i] == 1){
-				BlockAnimation(used_blocks[i], block_hand_pos[i]);
-		    }
-    		else if(do_block_anim[i] == 2){
-        		BlockAnimation(used_blocks[i], Point{100, 100});//捨て札の座標を指定
-    		}
-
-			DrawBlock(used_blocks[i]);//(わざわざ関数にすることないかも)
+			if(do_block_anim[i] >= 0){
+				if(do_block_anim[i] == 1){
+					BlockAnimation(used_blocks[i], block_hand_pos[i]);
+			    }
+				else if(do_block_anim[i] == 2){
+        			BlockAnimation(used_blocks[i], Point{100, 100});//捨て札の座標を指定
+    			}
+			}
+			used_blocks[i].Draw(used_blocks[i].GetPos(), 1.0, 0.0, 1.0);
 		}
 	}
+
 	else if(idx == 1){
 		//リザルト(マス解放)
 	}

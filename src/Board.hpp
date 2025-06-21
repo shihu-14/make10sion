@@ -21,15 +21,13 @@ private:
 	Array<int32> result_of_calc= { 0,0,0,0,0,0 };
 	bool is_block_selected = false;
 	int32 blockNum;
-	//int32 block_count = 1;
 	Block block;
 	const Point offset = {0,0};//Boardの左上の絶対座標
 	const int32 cell_size = 50;
 	const Texture board_img{U"../image/banmen_kuuhaku.png"};
-	//std::map<Block, int32> used_blocks;//盤面に出てきたブロックの配列. blockNumは「このインデックス+1」とする
 	Array<Block> used_blocks;//盤面に出てきたブロックの配列. blockNumは「このインデックス+1」とする
 	Array<Point> block_hand_pos;//各ブロックの手札上の位置を保存
-	Array<int32> do_block_anim;//0:アニメーション無し, 1:手札へ, 2:捨札へ, -1:無効
+	Array<int32> do_block_anim;//0:アニメーション無し, 1:手札へ, 2:捨札へ, -1:盤面に無い
 
 
 	//function

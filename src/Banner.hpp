@@ -22,8 +22,9 @@ private:
 	const Texture money_img{ U"../../image/UI_money.png" };
 	const Texture setting_img{ U"../../image/bottun_option.png" };
 	const Texture deck_img{ U"../../image/bottun_deck.png" };
+	const Texture banner_img{ U"../../image/UI_barner.png" };
 	const Font fontBitMap{ 48 };
-	const Font fontBitMap2{ 96,Typeface::Bold };
+	const Font fontBitMap2{ 72,Typeface::Bold };
 public:
 	void init(int global_money, int global_floor);
 	bool update(std::vector<Block>& deck_data);

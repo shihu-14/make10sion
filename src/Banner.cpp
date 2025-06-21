@@ -39,7 +39,7 @@ bool Banner::update(vector<Block>& deck_data) {
 void Banner::draw() const {
     if (deck_mode)
         deck.draw(); // デッキの描画
-    RectF{ 0, 0, 1920, 150 }.draw(ColorF{ 0.1, 0.1, 0.1 });
+    banner_img.draw(0, 0);
     floor_img.scaled(0.5).draw(0, 0);
     money_img.draw(500, 20);
     if (!deck_mode) {
@@ -49,6 +49,6 @@ void Banner::draw() const {
     setting_img.scaled(0.5).draw(1720, 0, ColorF{ 1.0, 1.0 });
     RectF{ 1720, 0, 150, 150 }.draw(ColorF{ 0.0, 0.0, 0.0, setting_alpha });
     fontBitMap(money).draw(610, 35, ColorF{ 1.0, 1.0, 1.0 });
-    fontBitMap2(floor).draw(40, 0, ColorF{ 0.0, 0.0, 0.0 });
+    fontBitMap2(floor).drawAt(65, 65, ColorF{ 0.0, 0.0, 0.0 });
 }
 

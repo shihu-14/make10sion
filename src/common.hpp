@@ -33,7 +33,7 @@ struct GameData
 	int Layer = 0;
 	int HP = 80;
 	int MaxHP = 80;
-	int money = 0;
+	int money = 100;
 	//Board board;
 	long long status = 0; // 状態
 

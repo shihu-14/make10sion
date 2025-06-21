@@ -12,6 +12,7 @@ private:
 	Texture retry{ U"" };
 	Rect retry_rect;
 	Rect title_rect;
+	int score;
 public:
 	Result(const InitData& init);
 	//Write public functions here.

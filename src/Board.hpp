@@ -19,6 +19,8 @@ private://Write private functions or varables here.
 	Array<int32> board_off_def = { 1,1,1,0,0,0 };//çU1éÁ0
 
 	//function
+	
+	void attack();
 	void PutBlock();
 	Array<std::pair<int32,int32>> TakeOutBlock();
 	void AddUsablePlace();
@@ -32,8 +34,9 @@ public://Write public functions here.
 	Board();
 	//variables
 	bool is_board_active = false;
-
+	Array<Block> placedBlocks; // ??????
 	//functions
+
 	void Update(int32 idx);
 	void SetStat();
 	std::pair<int32, int32> Confirm();

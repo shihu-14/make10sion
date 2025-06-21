@@ -20,6 +20,7 @@ private://Write private functions or varables here.
 	Array<int32> board_off_def = { 1,1,1,0,0,0 };//攻1守0
 
 	//function
+	bool CanPutBlock();
 	void PutBlock();
 	Array<std::pair<int32,int32>> TakeOutBlock();//{x, y}で返す
 	void AddUsablePlace();

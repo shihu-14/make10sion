@@ -85,25 +85,27 @@ void Board::PutBlock(){//blockがドロップされたら、配置/手札に戻�
     is_block_selected = false;
 }
 
-Array<pair<int32,int32>> Board::TakeOutBlock(Point pos){//クリックしたBlockのすべてのピースのボード座標を返す
+void Board::TakeOutBlock(Point pos){//クリックしたBlockをボードから外す
     int32 num = board_usage[pos.y][pos.x];
-    Array<pair<int32,int32>> blockCoords;
 
     if(num > 0){
         for (int y=0;y<6;y++){
             for(int x=0;x<7;x++){
                 if(board_usage[y][x] == blockNum){
-                    blockCoords.push_back({x, y});
+                    board_usage[y][x] = 0;
+                    if(board_number[y][x] < 100){//数字マスなら
+                        auto itr = find(num_on_board.begin(), num_on_board.end(), board_number[y][x]);
+                        num_on_board.erase(itr);
+                    }
+                    board_number[y][x] = 0;
+                    board_effect_back[y][x] = 0;
                 }
             }
         }
-        block = used_blocks[num - 1];
+
         blockNum = num;
-        is_block_selected = true;
+        block = used_blocks[blockNum - 1];
     }
-
-    return blockCoords;
-
 }
 
 void Board::InitBoardCoordinate(){//board_coordinateの初期化
@@ -136,14 +138,3 @@ void Board::PassBlock(const Block& selectedBlock, const Point hand_pos) {//選�
     }
     is_block_selected = true;
 }
-
-/*
-toアリスくん{ResetBoard()でused_blocksを{}に初期化,
-           ResetBoard()でblock_hand_posを{}に初期化,
-           ResetBoard()でdo_block_animを{}に初期化}
-
-void Board::TurnBegin(){//ターン開始時に諸々を初期化する関数(要らないかな)
-    //
-}
-
-*/

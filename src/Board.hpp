@@ -28,7 +28,7 @@ private:
 	const Texture board_img{U"../image/banmen_kuuhaku.png"};
 	Array<Block> used_blocks;//盤面に出てきたブロックの配列. blockNumは「このインデックス+1」とする
 	Array<Point> block_hand_pos;//各ブロックの手札上の位置を保存
-	Array<int32> do_block_anim;//0:アニメーション無し, 1:手札へ, 2:捨札へ, -1:盤面に無い
+	Array<int32> do_block_anim;//0:アニメーション無し, 1:手札へ, 2:捨札へ, 3:ボード上, -1:盤面に無い
 
 
 	//function
@@ -37,7 +37,7 @@ private:
 	void UpdateBoardNum(Point putAt);
 	void GetPieceNum(char content, int y, int x);
 	void InitBoardCoordinate();
-	Array<std::pair<int32,int32>> TakeOutBlock(Point pos);//{x, y}で返す
+	void TakeOutBlock(Point pos);
 	void AddUsablePlace();
 	void ResetBoard();
 	void CalcRow();

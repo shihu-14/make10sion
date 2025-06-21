@@ -5,7 +5,8 @@ using namespace std;
 Board::Board() : 
 	board_usage(Size{ 7,6 }, -1), 
 	board_number(Size{ 7,6 }, 0),
-	board_effect(Size{ 7,6 }, 0),
+	board_effect_back(Size{ 7,6 }, 0),
+	board_effect_front(Size{ 7,6 }, 0),
 	board_coordinate(Size{ 7,6 },Point{ 0,0 })
 {
 	
@@ -35,7 +36,7 @@ void Board::Update(int32 idx){//idx : 0:バトル中, 1:リザルト(マス解�
 				if (0 <= pos.x - offset.x <= cell_size * 7 && 0 <= pos.y - offset.y <= cell_size * 7 && MouseL.down()) {//Board内でクリックされたとき
 					int32 bx = (pos.x - offset.x) / cell_size;
 					int32 by = (pos.y - offset.y) / cell_size;
-					//TakeOutBlock(Point{bx, by})を呼び出したい
+					TakeOutBlock(Point{bx, by});
 				}
 			}
 		}
@@ -46,6 +47,21 @@ void Board::Update(int32 idx){//idx : 0:バトル中, 1:リザルト(マス解�
 		Array<Block> Deck_board;//Deck_boardがprivateになっているので、publicにしてもらうまで暫定的に
 
 		for(int i=0;i<used_blocks.size();i++){//盤面上のブロックの描画
+			if(do_block_anim[i] == 3){//ボード上
+				//
+			}
+			else if(do_block_anim[i] == 0){
+				//
+			}
+			else if(do_block_anim[i] == 1){
+				BlockAnimation(used_blocks[i], block_hand_pos[i]);
+			}
+			else if(do_block_anim[i] == 2){
+				BlockAnimation(used_blocks[i], Point{100, 100});//捨て札の座標を指定
+			}
+			else{//-1
+				//
+			}
 			if(do_block_anim[i] >= 0){
 				if(do_block_anim[i] == 1){
 					BlockAnimation(used_blocks[i], block_hand_pos[i]);

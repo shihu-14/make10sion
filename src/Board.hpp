@@ -12,7 +12,7 @@ private://Write private functions or varables here.
 
 	//variables
 	Grid<int32> board_usage;
-	Grid<char> board_number;
+	Grid<int32> board_number;
 	Grid<int32> board_effect;
 	Grid<Point> board_coordinate;
 	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };
@@ -39,7 +39,7 @@ private://Write private functions or varables here.
 	void CalcRow();
 	void UpdateBoardNum(Point putAt);
 	void InitBoardCoordinate();
-
+	void GetPieceNum(char content, int y, int x);
 
 	
 	

@@ -53,6 +53,7 @@ public:
 	//variables
 	bool is_board_active = false;
 	int32 unlocked_num = 6;
+	int32 num_of_used_card;
 
 	//functions
 	void Update(int32 idx);

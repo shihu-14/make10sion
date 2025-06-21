@@ -9,9 +9,9 @@ using namespace std;
 //private functions
 Point Board::PutBlockAt(){
     double rSquared = 25.0;
-    //Blockの左上の絶対座標
-    int32 px = block.GetPiece(0,0).x+Cursor::Pos().x+cell_size/2;
-    int32 py = block.GetPiece(0,0).y+Cursor::Pos().y+cell_size/2;
+    //Blockの左上のピースの中心の絶対座標
+    int32 px = block.GetPiece(0,0).x+Cursor::Pos().x;
+    int32 py = block.GetPiece(0,0).y+Cursor::Pos().y;
     //マス座標に変換
     int32 bx = (px-offset.x)/cell_size;
     int32 by = (py-offset.y)/cell_size;

@@ -10,15 +10,25 @@
 // Data Manager の Deck を模倣したグローバル変数
 // 実際には Data Manager クラス (DataManager.hpp) で定義し、ここからインクルードするのが望ましい
 
+struct EnemyState
+{
+	String name;
+	Texture texture;
+	int32 hp = 0;
+	int32 maxHp = 0;
+	Array<EnemyAction> actionPattern; // 現在のターンで敵が何をするか
+};
+
 class Battle : public App::Scene
 {
 private:
 
-
 	Board m_board; // 盤面の状態を管理する Board クラスのインスタンス
 	bool board_locked = false; // 盤面の操作がロックされているかどうか
 	int32 num_turn = 0; // ターン数
+	int32 table_size; // 手札のサイズ
 	Enemy m_enemyDB;
+	
 
 	enum class BattleAnimationState
 	{

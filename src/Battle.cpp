@@ -1,8 +1,30 @@
 #include "Battle.hpp"
 #include "Board.hpp" // BoardクラスのConfirm()などを使うためにインクルード
 
-// ... (Constructorなど)
+// Constructor
+Battle::Battle(const InitData& init)
+	: IScene(init), 
+    m_board(init._s->board), // GameDataからBoardを取得
+    board_locked(false), // 盤面の操作を初期状態ではロックしない
+    num_turn(0), // ターン数を初期化
+    table_size(getTableSize()), // 手札のサイズを取得
+    m_currentAnimState(BattleAnimationState::Idle), // アニメーション状態を初期化
+{
+	// --- 戦う敵のセットアップ ---
+	setupEnemy();
+	// --- デッキの初期化 ---
+	// GameDataからマスターデッキを取得し、バトル用の山札にコピー
+	Deck_yama = Array<Block>(getData().Deck.begin(), getData().Deck.end());
+	Deck_yama.shuffle();
 
+	// 最初の手札をセットアップ
+	for (int i = 0; i < table_size; ++i)
+	{
+		if (Deck_yama.isEmpty()) break;
+		Deck_table.push_back(Deck_yama.back());
+		Deck_yama.pop_back();
+	}
+}
 
 // 山札の枚数を盤面の情報から求める関数
 int Battle::getTableSize() const
@@ -124,7 +146,7 @@ void Battle::updateDiscardEffect()
 void Battle::updateCardDrawEffect()
 {
     // 手札を補充する枚数だけ、山札からアニメーションリストへ移す
-    for (int i = 0; i < getTableSize(); ++i)
+    for (int i = 0; i < table_size; ++i)
     {
         // 山札が空なら、捨て札をシャッフルして戻す (reshuffle関数があるとより良い)
         if (Deck_yama.empty()) break;

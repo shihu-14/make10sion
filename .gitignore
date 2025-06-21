@@ -395,6 +395,8 @@ gmon.out
 .vscode/
 *.PVS-Studio.stacktrace.txt
 *.code-workspace
+*.vcxproj
+*.vcxproj.filters
 
 
 # Siv3D

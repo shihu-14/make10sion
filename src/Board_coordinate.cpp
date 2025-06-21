@@ -51,6 +51,11 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)の�
             break;
         }
     }
+    if(!finish){//吸い込まれる
+        int32 newx = offset.x + putAt.x*cell_size + cell_size/2;
+        int32 newy = offset.y + putAt.y*cell_size + cell_size/2;
+        block.SetPos(newx, newy);
+    }
 
     return putAt;
 }
@@ -64,11 +69,13 @@ void Board::PutBlock(){//blockを配置/手札に戻す
     Point putAt = PutBlockAt();
     if(putAt != Point{-1, -1}){
         UpdateBoardNum(putAt);
-        block.SetPos(putAt.x + block.GetPiece(0,0).x, putAt.y + block.GetPiece(0,0).y);
+        int32 newx = offset.x + putAt.x*cell_size + cell_size/2 + block.GetPiece(0,0).x;
+        int32 newy = offset.y + putAt.y*cell_size + cell_size/2 + block.GetPiece(0,0).y;
+        block.SetPos(newx, newy);
     }
     else{
         block.SetStat(1);
-        //手札に戻す
+        BlockAnimation(block, block_hand_pos[block]);
     }
     is_block_selected = false;
 }
@@ -98,13 +105,14 @@ void Board::InitBoardCoordinate(){//board_coordinateの初期化
 
 
 //public　functions
-void Board::PassBlock(const Block& selectedBlock, const vector<Block> deck) {//選択されているBlockが渡される
+void Board::PassBlock(const Block& selectedBlock, const Point hand_pos, const vector<Block> deck) {//選択されているBlockが渡される
     block = selectedBlock;
-
     auto itr = find(deck.begin(), deck.end(), block);
     blockNum = distance(deck.begin(), itr) + 1;//1-indexedに変更
     is_block_selected = true;
+    block_hand_pos[block] = hand_pos;//手札の位置を記録
 }
 
 //Update()後でちゃんとかく
 //block.statを触る。
+//回転の実装

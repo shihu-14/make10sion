@@ -39,6 +39,7 @@ private:
 	void ResetBoard();
 	void CalcRow();
 	void DrawBlockOnBoard(Block block_on_board);
+	void BlockAnimation(Block moving_block, Point end_pos);
 
 	
 	
@@ -54,7 +55,7 @@ public:
 	void Update(int32 idx);
 	void SetStat();
 	std::pair<int32, int32> Confirm();
-	void PassBlock(const Block& selectedBlock, const std::vector<Block> deck);
+	void PassBlock(const Block& selectedBlock, const Point hand_pos, const std::vector<Block> deck);
 	void DrawBoard();
 };
 

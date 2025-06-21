@@ -18,3 +18,11 @@ void Board::DrawBoard(){
 void Board::DrawBlockOnBoard(Block block_on_board){//vector<Block> Deck_boardから.
     block_on_board.Draw(block_on_board.GetPos().first, block_on_board.GetPos().second, 1.0, 0.0, 1.0);
 }
+
+void Board::BlockAnimation(Block moving_block, Point end_pos){
+    for(int y=0;y<100;y++){
+        for(int x=0;x<100;x++){
+            //while(System::Update())内で、1フレーム毎に描画するしかなくない?
+        }
+    }
+}

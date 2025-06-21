@@ -9,3 +9,8 @@ Board::Board() :
 {
 	
 }
+
+void Board::Update(int32 idx){//idx : 0:バトル中, 1:リザルト(マス解放時)
+	//ここでBoardのメソッドを呼び出すので、
+	//Battle.cppではこの関数を毎フレーム呼び出してください.
+}

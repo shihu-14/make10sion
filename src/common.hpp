@@ -11,7 +11,8 @@ enum class State
 	Battle,
 	Map,
 	Result,
-	Shop
+	Shop,
+	Event
 };
 
 // 共有するデータ

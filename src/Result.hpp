@@ -10,13 +10,14 @@ private:
 	const Font font{ FontMethod::MSDF, 80,Typeface::Bold };
 	Texture title_back{ U"" };
 	Texture retry{ U"" };
-	Rect retry_rect;
-	Rect title_rect;
+	RoundRect retry_rect;
+	RoundRect title_rect;
 	int score;
 public:
 	Result(const InitData& init);
 	//Write public functions here.
-	
+	~Result() = default;
+
 	void update() override;
 	void draw() const override;
 };

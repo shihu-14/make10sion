@@ -8,7 +8,7 @@ class Board{
 private://Write private functions or varables here.
 
 	//variables
-	Grid<int32> grid_usage(Size{7,6}, -1);
+	Grid<int32> grid_usage(Size{ 7,6 },-1);
 	Grid<char> grid_number(Size{7,6}, 0);
 	Grid<int32> grid_effect(Size{7,6}, 0);
 	Grid<std::pair<int32, int32>> grid_corrdinate(Size{7,6},pair<int32>);

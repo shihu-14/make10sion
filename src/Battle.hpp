@@ -27,11 +27,6 @@ private:
 	bool flag_exit = false; // 敵が逃走するか
 	bool is_boss3 = false;
 	int32 num_turn = 0; // ターン数
-<<<<<<< HEAD
-	int32 table_size; // 手札のサイズ
-	Enemy m_enemyDB;
-	
-=======
 	int32 num_turn_start = -1; // 攻撃/防御のパターンの変化を管理(基本的には0のまま)
 	int32 table_size; // 手札のサイズ
 	Enemy m_enemyDB;
@@ -41,7 +36,6 @@ private:
 	int32 my_defense = 0;
 	int32 ene_attack = 0; 
 	int32 ene_defense = 0;
->>>>>>> ba2ff3eb74955e9b4d2b06fa0e1543a76341b8f7
 
 	enum class BattleAnimationState
 	{

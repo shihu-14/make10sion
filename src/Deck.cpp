@@ -58,8 +58,11 @@ void Deck::draw() const {
 		}
 	}
 	//戻るボタン
-	back_button_img.scaled(0.75).draw(1600, 800, ColorF{ 1.0, 1.0, 1.0 });
-	RectF{ 1600, 800, 225, 225 }.draw(ColorF{ 0.0, 0.0, 0.0, fade_alpha });
+	{
+		const ScopedColorMul2D colorMul{ ColorF{ 1.0 - fade_alpha, 1.0 - fade_alpha, 1.0 - fade_alpha } };
+		double scale = 1.0 - ((fade_alpha <= 0.4) ? (fade_alpha * 0.05) : 0.0); // アルファ値に応じて拡大
+		back_button_img.scaled(0.75 * scale).draw(1600, 800, ColorF{ 1.0, 1.0, 1.0 });
+	}
 }
 
 void Deck::updateFadeIn(double t) {

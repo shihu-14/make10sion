@@ -43,8 +43,11 @@ void Banner::draw() const {
     floor_img.scaled(0.5).draw(0, 0);
     money_img.draw(500, 20);
     if (!deck_mode) {
-        deck_img.scaled(0.5).draw(1520, 0);
-        RectF{ 1520, 0, 150, 150 }.draw(ColorF{ 0.0, 0.0, 0.0, deck_alpha });
+        {
+            const const ScopedColorMul2D colorMul{ ColorF{ 1.0 - deck_alpha, 1.0 - deck_alpha, 1.0 - deck_alpha } };
+            double scale = 1.0 - ((deck_alpha <= 0.4) ? (deck_alpha * 0.05) : 0.0); // アルファ値に応じて拡大
+            deck_img.scaled(0.5 * scale).draw(1520, 0);
+        }
     }
     setting_img.scaled(0.5).draw(1720, 0, ColorF{ 1.0, 1.0 });
     RectF{ 1720, 0, 150, 150 }.draw(ColorF{ 0.0, 0.0, 0.0, setting_alpha });

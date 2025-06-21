@@ -138,29 +138,46 @@ void Shop::draw() const {
         // 背景の描画
         background_img.draw(0, 0);
         //商品(カード)の描画
+
         normal_1.Draw({ 500, 300 }, 1.5, 0.0, 1.0);
-        price_img.drawAt(500, 650);
-        fontBitMap(U"50G").drawAt(520, 550, money_check(50));
-        RoundRect{ 350, 500, 300, 100,20 }.draw(ColorF{ 0.0, 0.0, 0.0, normal_1_alpha });
+        {
+            const ScopedColorMul2D colorMul{ ColorF{ 1.0 - normal_1_alpha, 1.0 - normal_1_alpha, 1.0 - normal_1_alpha } };
+            double scale = 1.0 - ((normal_1_alpha <= 0.4) ? (normal_1_alpha * 0.05) : 0.0); // アルファ値に応じて拡大
+            price_img.scaled(scale).drawAt(500, 650);
+            fontBitMap(U"50G").drawAt(520, 550, money_check(50));
+        }
 
         normal_2.Draw({ 800, 300 }, 1.5, 0.0, 1.0);
-        price_img.drawAt(800, 650);
-        fontBitMap(U"50G").drawAt(820, 550, money_check(50));
-        RoundRect{ 650, 500, 300, 100,20 }.draw(ColorF{ 0.0, 0.0, 0.0, normal_2_alpha });
+        {
+            const ScopedColorMul2D colorMul{ ColorF{ 1.0 - normal_2_alpha, 1.0 - normal_2_alpha, 1.0 - normal_2_alpha } };
+            double scale = 1.0 - ((normal_2_alpha <= 0.4) ? (normal_2_alpha * 0.05) : 0.0); // アルファ値に応じて拡大
+            price_img.scaled(scale).drawAt(800, 650);
+            fontBitMap(U"50G").drawAt(820, 550, money_check(50));
+        }
+
 
         uncommon.Draw({ 1100, 300 }, 1.5, 0.0, 1.0);
-        price_img.drawAt(1100, 650);
-        fontBitMap(U"100G").drawAt(1120, 550, money_check(100));
-        RoundRect{ 950, 500, 300, 100,20 }.draw(ColorF{ 0.0, 0.0, 0.0, uncommon_alpha });
+        {
+            const ScopedColorMul2D colorMul{ ColorF{ 1.0 - uncommon_alpha, 1.0 - uncommon_alpha, 1.0 - uncommon_alpha } };
+            double scale = 1.0 - ((uncommon_alpha <= 0.4) ? (uncommon_alpha * 0.05) : 0.0); // アルファ値に応じて拡大
+            price_img.scaled(scale).drawAt(1100, 650);
+            fontBitMap(U"100G").drawAt(1120, 550, money_check(100));
+        }
 
         rare.Draw({ 1400, 300 }, 1.5, 0.0, 1.0);
-        price_img.drawAt(1400, 650);
-        fontBitMap(U"150G").drawAt(1420, 550, money_check(150));
-        RoundRect{ 1250, 500, 300, 100,20 }.draw(ColorF{ 0.0, 0.0, 0.0, rare_alpha });
+        {
+            const ScopedColorMul2D colorMul{ ColorF{ 1.0 - rare_alpha, 1.0 - rare_alpha, 1.0 - rare_alpha } };
+            double scale = 1.0 - ((rare_alpha <= 0.4) ? (rare_alpha * 0.05) : 0.0); // アルファ値に応じて拡大
+            price_img.scaled(scale).drawAt(1400, 650);
+            fontBitMap(U"150G").drawAt(1420, 550, money_check(150));
+        }
 
         //戻るボタン
-        back_button_img.scaled(0.75).draw(1600, 800, ColorF{ 1.0, 1.0, 1.0 });
-        RectF{ 1600, 800, 225, 225 }.draw(ColorF{ 0.0, 0.0, 0.0, return_alpha });
+        {
+            const ScopedColorMul2D colorMul{ ColorF{ 1.0 - return_alpha, 1.0 - return_alpha, 1.0 - return_alpha } };
+            double scale = 1.0 - ((return_alpha <= 0.4) ? (return_alpha * 0.05) : 0.0); // アルファ値に応じて拡大
+            back_button_img.scaled(0.75 * scale).draw(1600, 800, ColorF{ 1.0, 1.0, 1.0 });
+        }
     }
     // バナーの描画
     banner.draw();

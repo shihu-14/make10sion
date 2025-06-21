@@ -64,7 +64,7 @@ private:
 	// Board Classは、盤面の状態を管理し、ブロックの配置、回転、削除、盤面の描画などを行う 。
 	// ここでは RectF の配列で仮定。
 	int32 getTableSize() const;
-	void Battle::setupEnemy();
+	void setupEnemy();
 	void updateTableDeck();
 	void attack();
 	// 各演出の更新関数 (private)

@@ -97,6 +97,8 @@ void Board::CalcRow() {
 	}
 }
 
+
+
 std::pair<int, int> Board::Confirm() {  
     SetStat();
 	CalcRow();
@@ -111,6 +113,8 @@ std::pair<int, int> Board::Confirm() {
 	return { attack, defense };
 }  
 
+
+
 void Board::SetStat() {//ボードの操作状態を設定する
 	if (is_board_active == true) {
 		is_board_active = false;
@@ -120,6 +124,8 @@ void Board::SetStat() {//ボードの操作状態を設定する
 	}
 }
 
+
+
 void Board::ResetBoard() {
 	board_number.fill(0);
 	board_effect.fill(0);
@@ -128,9 +134,13 @@ void Board::ResetBoard() {
 	board_off_def = { 1,1,1,0,0,0 }; // 初期化: 攻撃側の行を1に設定
 }
 
+
+
 void Board::AddUsablePlace(){
 	
 }
+
+
 
 void Board::UpdateBoardNum(Point putAt){
 	for (int i = 0; i < block.Size().second; i++) {
@@ -144,6 +154,8 @@ void Board::UpdateBoardNum(Point putAt){
 	}
 }
 
+
+
 void Board::GetPieceNum(char content, int y, int x) {
 	if (content == '+') {
 		board_number[y][x] = 257; return; // 足し算のビットを立てる
@@ -154,6 +166,10 @@ void Board::GetPieceNum(char content, int y, int x) {
 	}else if (content == '/') {
 		board_number[y][x] = 264; return; // 割り算のビットを立てる
 	}else if (content == 'a') {
+		
+	}
+	else if (content == 'b') {
+
 	}
 }
 

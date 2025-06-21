@@ -22,20 +22,25 @@ void Board::Update(int32 idx){//idx : 0:バトル中, 1:リザルト(マス解�
 			PutBlock();
 		}
 		else{}
-		
-		//アニメーション処理
-		
 
 		//以下、描画処理
 		DrawBoard();//Boardの描画
 
 		Array<Block> Deck_board;//Deck_boardがprivateになっているので、publicにしてもらうまで暫定的に
 
-		for(Block b: Deck_board){//盤面上のブロックの描画(わざわざ関数にすることないかも)
-			DrawBlock(b);
+		for(Block b: Deck_board){//盤面上のブロックの描画
+			if(do_block_anim[b] == 1){
+				BlockAnimation(b, block_hand_pos[b]);
+		    }
+    		else if(do_block_anim[b] == 2){
+        		BlockAnimation(b, Point{0, 0});//捨て札の座標を指定
+    		}
+
+			DrawBlock(b);//(わざわざ関数にすることないかも)
 		}
 	}
 	else if(idx == 1){
-		//
+		//リザルト(マス解放)
 	}
 }
+//toアリス君 : ResetBoard()内で、do_block_animの値をすべて 2 (捨札へのアニメーション)に変更してほしい m(_ _)m

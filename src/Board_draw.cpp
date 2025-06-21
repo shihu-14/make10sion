@@ -13,17 +13,24 @@ void Board::DrawBoard(){//Boardの描画のみ
     }
 }
 
-void Board::DrawBlock(Block block_on_board){//盤面上(手札以外)のブロックの描画
+void Board::DrawBlock(Block block_on_board){//盤面上(手札以外)のブロックの描画(これ関数にする必要ある?)
     block_on_board.Draw(block_on_board.GetPos(), 1.0, 0.0, 1.0);
 }
 
-void Board::BlockAnimation(Block moving_block, Point end_pos){//悩み中
-    for(int y=0;y<100;y++){
-        for(int x=0;x<100;x++){
-            //while(System::Update())内で、1フレーム毎に描画するしかなくない?
-        }
-    }
+double CalcDist(Point a, Point b){//後で移す
+    return pow((a.x-b.x), 2)+pow((a.y-b.y), 2);
 }
 
-//ブロックが手札に戻るアニメーション
-//捨札に行くアニメーション
+void Board::BlockAnimation(Block moving_block, Point end_pos){//アニメーション. 移動速度が時間に反比例します(log的な)
+    Point curr_pos = {moving_block.GetPos().first, moving_block.GetPos().second};
+    if(CalcDist(end_pos, curr_pos) > 5.0){
+        int32 new_x = (curr_pos.x*4 + end_pos.x)/5;
+        int32 new_y = (curr_pos.y*4 + end_pos.y)/5;
+        moving_block.SetPos(new_x, new_y);
+    }
+    else{
+        moving_block.SetPos(end_pos.x, end_pos.y);
+        block_hand_pos.erase(moving_block);
+        do_block_anim.erase(moving_block);
+    }
+}

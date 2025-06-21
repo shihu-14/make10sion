@@ -8,7 +8,7 @@ using namespace std;
 //private variables
 
 //private functions
-double CalcDist(Point a, Point b){//2点間の距離の計算
+double CalcDist(Point a, Point b){//2点間の距離(の2乗)の計算
     return pow((a.x-b.x), 2)+pow((a.y-b.y), 2);
 }
 
@@ -75,7 +75,7 @@ void Board::PutBlock(){//blockを配置/手札に戻す
     }
     else{
         block.SetStat(1);
-        BlockAnimation(block, block_hand_pos[block]);
+        do_block_anim[block] = 1;
     }
     is_block_selected = false;
 }
@@ -111,8 +111,8 @@ void Board::PassBlock(const Block& selectedBlock, const Point hand_pos, const ve
     blockNum = distance(deck.begin(), itr) + 1;//1-indexedに変更
     is_block_selected = true;
     block_hand_pos[block] = hand_pos;//手札の位置を記録
+    do_block_anim[block] = 0;
 }
 
-//Update()後でちゃんとかく
-//block.statを触る。
+//block.statを触る.
 //回転の実装

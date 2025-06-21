@@ -26,6 +26,7 @@ private:
 	const int32 cell_size = 50;
 	const Texture board_img{U"../image/banmen_kuuhaku.png"};
 	std::map<Block, Point> block_hand_pos;
+	std::map<Block, int32> do_block_anim;
 
 
 	//function

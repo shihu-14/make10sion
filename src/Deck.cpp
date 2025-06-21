@@ -4,24 +4,9 @@
 using namespace std;
 
 Deck::Deck(const InitData& init) : IScene(init) {
-	//test
-	Block block;
-	block = "2\n3";
-	getData().Deck.push_back(block);
-	block = "$42\n3+$";
-	getData().Deck.push_back(block);
-	block = "$42\n3+$";
-	getData().Deck.push_back(block);
-	block = "2*2\n3+$";
-	getData().Deck.push_back(block);
-	block = "-42\n3$5";
-	getData().Deck.push_back(block);
-	block = "$42\n3+$\n2*2\nmn$";
-	getData().Deck.push_back(block);
-	for (int i = 0;i < 100;i++) {
-		block = "abc\ndef\nghi\njkl";
-		getData().Deck.push_back(block);
-	}
+	//XXX:debug用
+	getData().Deck.resize(getData().rare_cards.size()); //デッキのサイズを通常カードの数に合わせる
+	getData().Deck = getData().rare_cards; //デッキに通常カードをセット
 
 	card_pos.clear(); //カードの位置を初期化
 	for (int i = 0;i < getData().Deck.size();i++)
@@ -29,7 +14,7 @@ Deck::Deck(const InitData& init) : IScene(init) {
 	card_fade.clear(); //カードのフェードを初期化
 	card_fade.resize(getData().Deck.size(), 0.0); //カードのフェードを1.0に設定
 	int tmp = max(0ull, ((getData().Deck.size() - 1) / 6) - 3);
-	max_y = (tmp == 0) ? 0 : 100 + 250 * tmp; //最大のy座標を設定
+	max_y = max(0, (tmp == 0) ? 0 : 100 + 250 * tmp); //最大のy座標を設定
 }
 
 
@@ -58,8 +43,8 @@ void Deck::draw() const {
 
 void Deck::updateFadeIn(double t) {
 	for (int i = 0;i < getData().Deck.size();i++) {
-		const double progree = EaseInOutExpo(Clamp(0.05 * (i+6) - t, 0.0, 0.8));
-		card_fade.at(i) = 1.0-Math::Lerp(0.0, 1.0, progree);
+		const double progree = EaseInOutExpo(Clamp(0.05 * (i + 6) - t, 0.0, 0.8));
+		card_fade.at(i) = 1.0 - Math::Lerp(0.0, 1.0, progree);
 	}
 
 }

@@ -2,13 +2,23 @@
 #include "Block.hpp"  
 using namespace std;
 
-Block::Block() : sizeX(0), sizeY(0), stat(0), number_imgs(8),special_imgs(14) {
+Block::Block() : sizeX(0), sizeY(0), stat(0), number_imgs(8), special_imgs(16), posX(0), posY(0) {
 	for (int i = 0; i < 8; i++)
 		number_imgs.at(i) = Texture{ Unicode::Widen("../../image/number_" + to_string(i) + ".png") };
-	for (int i = 0; i < 14; i++) {
+	for (int i = 0; i < 16; i++) {
 		string alphabet(1, 'a' + i);
 		special_imgs.at(i) = Texture{ Unicode::Widen("../../image/special_" + alphabet + ".png") };
 	}
+}
+
+Block::Block(const string& value) : sizeX(0), sizeY(0), posX(0), posY(0), stat(0), number_imgs(8), special_imgs(16) {
+	for (int i = 0; i < 8; i++)
+		number_imgs.at(i) = Texture{ Unicode::Widen("../../image/number_" + to_string(i) + ".png") };
+	for (int i = 0; i < 16; i++) {
+		string alphabet(1, 'a' + i);
+		special_imgs.at(i) = Texture{ Unicode::Widen("../../image/special_" + alphabet + ".png") };
+	}
+	*this = value; // コンストラクタで文字列をセット
 }
 
 Block& Block::operator=(const Block& other) {
@@ -94,16 +104,20 @@ void Block::Draw(pair<int, int> pos, double size, double angle, double alpha) co
 			const Piece& p = contents[x][y];
 			if (p.content == '$') continue;
 			Texture img;
+			bool mode_alpha = false;
 			if (p.content == '+') img = plus_img;
 			else if (p.content == '-') img = minus_img;
 			else if (p.content == '*') img = kakeru_img;
 			else if (p.content == '/') img = waru_img;
 			else if (isdigit(p.content)) img = number_imgs[p.content - '0'];
-			else if ('a' <= p.content && p.content <= 'n') img = special_imgs[p.content - 'a'];
-			else continue; // 不明な文字はスキップ
+			else if ('a' <= p.content && p.content <= 'p') img = special_imgs[p.content - 'a'];
+			else if ('A' <= p.content && p.content <= 'H') {
+				mode_alpha = true;
+				img = number_imgs[p.content - 'A'];
+			} else continue; // 不明な文字はスキップ
 
-			card_tile_img.scaled(size).drawAt(p.x + pos.first, p.y + pos.second, ColorF{ 1.0, 1.0, 1.0, alpha });
-			img.scaled(size).rotated(angle).drawAt(p.x + pos.first, p.y + pos.second, ColorF{ 1.0, 1.0, 1.0, alpha });
+			card_tile_img.scaled(size).drawAt(p.x + pos.first, p.y + pos.second, ColorF{ 1.0, 1.0, 1.0, alpha * (mode_alpha ? 0.3 : 1.0) });
+			img.scaled(size).rotated(angle).drawAt(p.x + pos.first, p.y + pos.second, ColorF{ 1.0, 1.0, 1.0, alpha * (mode_alpha ? 0.3 : 1.0) });
 			// 境界を描画
 			if ((x == 0) || (x > 0 && contents[x - 1][y].content == '$')) {
 				left_img.scaled(size).drawAt(p.x + pos.first, p.y + pos.second, ColorF{ 1.0, 1.0, 1.0, alpha });

@@ -4,7 +4,7 @@ using namespace std;
 
 Block::Block() : sizeX(0), sizeY(0), stat(0), number_imgs(8) {
 	for (int i = 0; i < 8; i++)
-		number_imgs.at(i) = Texture{ Unicode::Widen("../image/number_" + to_string(i) + ".png") };
+		number_imgs.at(i) = Texture{ Unicode::Widen("../../image/number_" + to_string(i) + ".png") };
 }
 
 Block& Block::operator=(const Block& other) {
@@ -19,21 +19,36 @@ Block& Block::operator=(const Block& other) {
 }
 
 Block& Block::operator=(const string& value) {
-	sizeY = count(value.begin(), value.end(), '\n') + 1;
-	auto firstNewline = value.find('\n');
-	sizeX = firstNewline != string::npos ? firstNewline : value.size();
+	contents.clear();
+	// stringstream を使って文字列を行ごとに安全に処理します
+	std::stringstream ss(value);
+	std::string line;
+	std::vector<std::string> lines;
+	sizeX = 0;
+	sizeY = 0;
+	// 全ての行を読み込み、最大の行の長さと行数を取得します
+	while (std::getline(ss, line)) {
+		sizeY++;
+		if (sizeX == 0)sizeX = (int)(line.length());
+		lines.push_back(line);
+	}
+
+	if (sizeY == 0)
+		return *this; // 空の文字列の場合は何もしない
 	int centerX = (sizeX / 2) * 50;
 	int centerY = (sizeY / 2) * 50;
+	contents.resize(sizeX,vector<Piece>(sizeY));
 	for (int y = 0; y < sizeY; y++) {
 		for (int x = 0; x < sizeX; x++) {
 			Piece p;
-			p.content = value.at(x);
+			p.content = lines.at(y)[x];
 			p.x = centerX + (x - sizeX / 2) * 50;
 			p.y = centerY + (y - sizeY / 2) * 50;
 			p.stat = 0;
-			contents.at(y).push_back(p);
+			contents.at(x).at(y) = p;
 		}
 	}
+	return *this;
 }
 
 void Block::Rotate() {
@@ -50,7 +65,6 @@ void Block::Rotate() {
 }
 
 bool Block::IsDragging() {
-	bool retval;
 	for (int y = 0; y < sizeY; y++) {
 		for (int x = 0; x < sizeX; x++) {
 			RectF rect{ Arg::center(contents[x][y].x + posX, contents[x][y].y + posY), 50, 50 };
@@ -60,8 +74,7 @@ bool Block::IsDragging() {
 	return false;
 }
 
-bool Block::IsDragging() {
-	bool retval = false;
+bool Block::IsHovered() {
 	for (int y = 0; y < sizeY; y++) {
 		for (int x = 0; x < sizeX; x++) {
 			RectF rect{ Arg::center(contents[x][y].x + posX, contents[x][y].y + posY), 50, 50 };
@@ -71,7 +84,7 @@ bool Block::IsDragging() {
 	return false;
 }
 
-void Block::Draw(int x, int y, double size = 1.0, double angle = 0.0, double alpha = 1.0) const {
+void Block::Draw(int pos_x, int pos_y, double size, double angle, double alpha) const {
 	for (int y = 0; y < sizeY; y++) {
 		for (int x = 0; x < sizeX; x++) {
 			const Piece& p = contents[x][y];
@@ -96,7 +109,7 @@ void Block::Draw(int x, int y, double size = 1.0, double angle = 0.0, double alp
 			if ((y == 0) || (y > 0 && contents[x][y - 1].content == '$')) {
 				top_img.scaled(size).drawAt(p.x + posX, p.y + posY, ColorF{ 1.0, 1.0, 1.0, alpha });
 			}
-			if ((y == sizeY - 1) || (y < sizeY - 1 && contents[x][y + 1].content == '$')) {
+			if ((y == sizeY - 1) || ((y < sizeY - 1) && contents[x][y + 1].content == '$')) {
 				bottom_img.scaled(size).drawAt(p.x + posX, p.y + posY, ColorF{ 1.0, 1.0, 1.0, alpha });
 			}
 		}

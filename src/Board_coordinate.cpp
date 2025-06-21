@@ -1,6 +1,7 @@
 #include <Siv3D.hpp>
 #include "common.hpp"
 #include "Board.hpp"
+#include <vector>
 using namespace std;
 
 //private

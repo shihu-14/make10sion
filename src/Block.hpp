@@ -23,6 +23,7 @@ class Block {
 	const Texture plus_img{ U"../image/plus.png" };
 	const Texture kakeru_img{ U"../image/kakeru.png" };
 	const Texture waru_img{ U"../image/waru.png" };
+	const Texture card_tile_img{ U"../image/card_tile.png" };
 	const Texture left_img{ U"../image/card_sukima_left.png" };
 	const Texture right_img{ U"../image/card_sukima_right.png" };
 	const Texture top_img{ U"../image/card_sukima_top.png" };

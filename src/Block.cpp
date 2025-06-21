@@ -73,7 +73,7 @@ void Block::Draw(int x, int y, double size = 1.0, double angle = 0.0, double alp
 	for (int y = 0; y < sizeY; y++) {
 		for (int x = 0; x < sizeX; x++) {
 			const Piece& p = contents[x][y];
-			if (p.content == ' ') continue;
+			if (p.content == '$') continue;
 			Texture img;
 			if (p.content == '+') img = plus_img;
 			else if (p.content == '-') img = minus_img;
@@ -82,7 +82,21 @@ void Block::Draw(int x, int y, double size = 1.0, double angle = 0.0, double alp
 			else if (isdigit(p.content)) img = number_imgs[p.content - '0'];
 			else continue;
 
+			card_tile_img.scaled(size).drawAt(p.x + posX, p.y + posY, ColorF{ 1.0, 1.0, 1.0, alpha });
 			img.scaled(size).rotated(angle).drawAt(p.x + posX, p.y + posY, ColorF{ 1.0, 1.0, 1.0, alpha });
+			// 境界を描画
+			if ((x == 0) || (x > 0 && contents[x - 1][y].content == '$')) {
+				left_img.scaled(size).drawAt(p.x + posX, p.y + posY, ColorF{ 1.0, 1.0, 1.0, alpha });
+			}
+			if ((x == sizeX - 1) || (x < sizeX - 1 && contents[x + 1][y].content == '$')) {
+				right_img.scaled(size).drawAt(p.x + posX, p.y + posY, ColorF{ 1.0, 1.0, 1.0, alpha });
+			}
+			if ((y == 0) || (y > 0 && contents[x][y - 1].content == '$')) {
+				top_img.scaled(size).drawAt(p.x + posX, p.y + posY, ColorF{ 1.0, 1.0, 1.0, alpha });
+			}
+			if ((y == sizeY - 1) || (y < sizeY - 1 && contents[x][y + 1].content == '$')) {
+				bottom_img.scaled(size).drawAt(p.x + posX, p.y + posY, ColorF{ 1.0, 1.0, 1.0, alpha });
+			}
 		}
 	}
 }

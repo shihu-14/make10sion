@@ -31,6 +31,7 @@ private://Write private functions or varables here.
 	void AddUsablePlace();
 	void ResetBoard();
 	void CalcRow();
+	void UpdateBoardNum();
 
 
 	

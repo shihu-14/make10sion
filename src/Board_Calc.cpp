@@ -111,12 +111,31 @@ std::pair<int, int> Board::Confirm() {
 	return { attack, defense };
 }  
 
-void Board::SetStat() {  
-    if (is_board_active == true) {  
-        is_board_active = false;  
-    } else {  
-        is_board_active = true;  
-    }  
+void Board::SetStat() {
+	if (is_board_active == true) {
+		is_board_active = false;
+	}
+	else {
+		is_board_active = true;
+	}
 }
+
+void Board::ResetBoard() {
+	board_number.fill(0);
+	board_effect.fill(0);
+	num_on_board.clear();
+	result_of_calc.fill(0);
+	board_off_def = { 1,1,1,0,0,0 }; // 初期化: 攻撃側の行を1に設定
+}
+
+void Board::AddUsablePlace(){
+	
+}
+
+void Board::UpdateBoardNum(){
+
+}
+
+
 
 

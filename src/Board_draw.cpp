@@ -16,7 +16,7 @@ void Board::DrawBoard(){
 }
 
 void Board::DrawBlockOnBoard(Block block_on_board){//vector<Block> Deck_boardから.
-    block_on_board.Draw(block_on_board.GetPos().first, block_on_board.GetPos().second, 1.0, 0.0, 1.0);
+    block_on_board.Draw(block_on_board.GetPos(), 1.0, 0.0, 1.0);
 }
 
 void Board::BlockAnimation(Block moving_block, Point end_pos){

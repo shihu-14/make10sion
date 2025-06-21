@@ -15,16 +15,21 @@ private://Write private functions or varables here.
 	Grid<Point> board_coordinate;
 	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };
 	Array<int32> num_on_board;
+	Array<int32> result_of_calc= { 0,0,0,0,0,0 };
+	bool is_block_selected = false;
+	int32 blockNum;
 	Block block;
-	Array<int32> board_off_def = { 1,1,1,0,0,0 };//çU1éÁ0
+	Array<int32> board_off_def = { 1,1,1,0,0,0 };//?1?0
+
+	//const Texture board_img{U"../image/{??}.png"};
 
 	//function
-	
-	void attack();
+	Point PutBlockAt();
 	void PutBlock();
-	Array<std::pair<int32,int32>> TakeOutBlock();
+	Array<std::pair<int32,int32>> TakeOutBlock();//{x, y}???
 	void AddUsablePlace();
 	void ResetBoard();
+	void CalcRow();
 
 
 	
@@ -34,12 +39,12 @@ public://Write public functions here.
 	Board();
 	//variables
 	bool is_board_active = false;
-	//functions
 
+	//functions
 	void Update(int32 idx);
 	void SetStat();
 	std::pair<int32, int32> Confirm();
-	void PassBlock(const Block& selectedBlock);
+	void PassBlock(const Block& selectedBlock, const vector<Block> deck);
 	void DrawBoard();
 };
 

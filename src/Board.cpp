@@ -19,28 +19,41 @@ void Board::Update(int32 idx){//idx : 0:バトル中, 1:リザルト(マス解�
 		if(is_block_selected){//Blockをドラッグしているとき
 			//この時点で、PassBlock()が実行されている
 			block.SetPos(Cursor::Pos().x, Cursor::Pos().y);
-			PutBlock();
+
+			if(!block.IsDragging()){
+				PutBlock();
+			}
+
+			if(MouseR.down()){//blockの回転
+				block.Rotate();
+			}
 		}
-		else{}
+		else{
+			Point pos = Cursor::Pos();
+			if(0<= pos.x-offset.x <= cell_size*7 && 0 <= pos.y-offset.y <= cell_size*7 && MouseL.down()){//Board内でクリックされたとき
+				int32 bx = (pos.x - offset.x) / cell_size;
+				int32 by = (pos.y - offset.y) / cell_size;
+				//TakeOutBlock(Point{bx, by})を呼び出したい
+			}
+		}
 
 		//以下、描画処理
 		DrawBoard();//Boardの描画
 
 		Array<Block> Deck_board;//Deck_boardがprivateになっているので、publicにしてもらうまで暫定的に
 
-		for(Block b: Deck_board){//盤面上のブロックの描画
-			if(do_block_anim[b] == 1){
-				BlockAnimation(b, block_hand_pos[b]);
+		for(int i=0;i<used_blocks.size();i++){//盤面上のブロックの描画
+			if(do_block_anim[i] == 1){
+				BlockAnimation(used_blocks[i], block_hand_pos[i]);
 		    }
-    		else if(do_block_anim[b] == 2){
-        		BlockAnimation(b, Point{0, 0});//捨て札の座標を指定
+    		else if(do_block_anim[i] == 2){
+        		BlockAnimation(used_blocks[i], Point{100, 100});//捨て札の座標を指定
     		}
 
-			DrawBlock(b);//(わざわざ関数にすることないかも)
+			DrawBlock(used_blocks[i]);//(わざわざ関数にすることないかも)
 		}
 	}
 	else if(idx == 1){
 		//リザルト(マス解放)
 	}
 }
-//toアリス君 : ResetBoard()内で、do_block_animの値をすべて 2 (捨札へのアニメーション)に変更してほしい m(_ _)m

@@ -8,7 +8,7 @@ using namespace std;
 //private variables
 
 //private functions
-double CalcDist(Point a, Point b){//2点間の距離(の2乗)の計算
+double Board::CalcDist(Point a, Point b){//2点間の距離(の2乗)の計算
     return pow((a.x-b.x), 2)+pow((a.y-b.y), 2);
 }
 
@@ -64,8 +64,7 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)の�
     return putAt;
 }
 
-void Board::PutBlock(){//blockを配置/手札に戻す
-    //blockが離されたら、という前提
+void Board::PutBlock(){//blockがドロップされたら、配置/手札に戻す
     Point putAt = PutBlockAt();
     if(putAt != Point{-1, -1}){
         UpdateBoardNum(putAt);
@@ -75,20 +74,28 @@ void Board::PutBlock(){//blockを配置/手札に戻す
     }
     else{
         block.SetStat(1);
-        do_block_anim[block] = 1;
+        do_block_anim[blockNum] = 1;
     }
     is_block_selected = false;
 }
 
-Array<pair<int32,int32>> Board::TakeOutBlock(){//現在触っているBlockの座標を返す
+Array<pair<int32,int32>> Board::TakeOutBlock(Point pos){//現在触っているBlockの座標を返す もう少し詰めたい
+    int32 num = board_usage[pos.y][pos.x];
     Array<pair<int32,int32>> blockCoords;
-    for (int y=0;y<6;y++){
-        for(int x=0;x<7;x++){
-            if(board_usage[y][x] == blockNum){
-                blockCoords.push_back({x,y});
+
+    if(num > 0){
+        for (int y=0;y<6;y++){
+            for(int x=0;x<7;x++){
+                if(board_usage[y][x] == blockNum){
+                    blockCoords.push_back({x,y});
+                }
             }
         }
+        block = used_blocks[num - 1];
+        blockNum = num;
+        is_block_selected = true;
     }
+
     return blockCoords;
 }
 
@@ -105,14 +112,23 @@ void Board::InitBoardCoordinate(){//board_coordinateの初期化
 
 
 //public　functions
-void Board::PassBlock(const Block& selectedBlock, const Point hand_pos, const vector<Block> deck) {//選択されているBlockが渡される
+void Board::PassBlock(const Block& selectedBlock, const Point hand_pos) {//選択されているBlockとその手札座標が渡される
     block = selectedBlock;
-    auto itr = find(deck.begin(), deck.end(), block);
-    blockNum = distance(deck.begin(), itr) + 1;//1-indexedに変更
+
+    auto itr = find(used_blocks.begin(), used_blocks.end(), block);
+    if(itr != used_blocks.end()){
+        used_blocks.push_back(block);
+        blockNum = used_blocks.size();//1-indexed
+        block_hand_pos.push_back(hand_pos);//手札の位置を記録
+        do_block_anim.push_back(0); 
+    }
+    else{
+        blockNum = distance(used_blocks.begin(), itr) + 1;//1-indexed
+        do_block_anim[blockNum - 1] = 0;
+    }
     is_block_selected = true;
-    block_hand_pos[block] = hand_pos;//手札の位置を記録
-    do_block_anim[block] = 0;
 }
 
-//block.statを触る.
-//回転の実装
+//toアリスくん : ResetBoard()でused_blocksを初期化
+//toアリスくん : ResetBoard()でdo_usedを初期化
+//toアリスくん : ResetBoard()でblock_count = 1;に

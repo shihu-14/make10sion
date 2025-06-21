@@ -17,10 +17,6 @@ void Board::DrawBlock(Block block_on_board){//盤面上(手札以外)のブロ�
     block_on_board.Draw(block_on_board.GetPos(), 1.0, 0.0, 1.0);
 }
 
-double CalcDist(Point a, Point b){//後で移す
-    return pow((a.x-b.x), 2)+pow((a.y-b.y), 2);
-}
-
 void Board::BlockAnimation(Block moving_block, Point end_pos){//アニメーション. 移動速度が時間に反比例します(log的な)
     Point curr_pos = {moving_block.GetPos().first, moving_block.GetPos().second};
     if(CalcDist(end_pos, curr_pos) > 5.0){
@@ -30,7 +26,8 @@ void Board::BlockAnimation(Block moving_block, Point end_pos){//アニメーシ�
     }
     else{
         moving_block.SetPos(end_pos.x, end_pos.y);
-        block_hand_pos.erase(moving_block);
-        do_block_anim.erase(moving_block);
+        auto itr = find(used_blocks.begin(), used_blocks.end(), moving_block);
+        int32 idx = distance(used_blocks.begin(), itr);
+        do_block_anim[idx] = -1;
     }
 }

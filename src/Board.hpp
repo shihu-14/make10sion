@@ -21,12 +21,15 @@ private:
 	Array<int32> result_of_calc= { 0,0,0,0,0,0 };
 	bool is_block_selected = false;
 	int32 blockNum;
+	//int32 block_count = 1;
 	Block block;
 	const Point offset = {0,0};//Boardの左上の絶対座標
 	const int32 cell_size = 50;
 	const Texture board_img{U"../image/banmen_kuuhaku.png"};
-	std::map<Block, Point> block_hand_pos;
-	std::map<Block, int32> do_block_anim;
+	//std::map<Block, int32> used_blocks;//盤面に出てきたブロックの配列. blockNumは「このインデックス+1」とする
+	Array<Block> used_blocks;//盤面に出てきたブロックの配列. blockNumは「このインデックス+1」とする
+	Array<Point> block_hand_pos;//各ブロックの手札上の位置を保存
+	Array<int32> do_block_anim;//0:アニメーション無し, 1:手札へ, 2:捨札へ, -1:無効
 
 
 	//function
@@ -35,13 +38,14 @@ private:
 	void UpdateBoardNum(Point putAt);
 	void GetPieceNum(char content, int y, int x);
 	void InitBoardCoordinate();
-	Array<std::pair<int32,int32>> TakeOutBlock();//{x, y}で返す
+	Array<std::pair<int32,int32>> TakeOutBlock(Point pos);//{x, y}で返す
 	void AddUsablePlace();
 	void ResetBoard();
 	void CalcRow();
 	void DrawBlock(Block block_on_board);
 	void BlockAnimation(Block moving_block, Point end_pos);
 
+	double CalcDist(Point a, Point b);
 	
 	
 public:
@@ -56,7 +60,7 @@ public:
 	void Update(int32 idx);
 	void SetStat();
 	std::pair<int32, int32> Confirm();
-	void PassBlock(const Block& selectedBlock, const Point hand_pos, const std::vector<Block> deck);
+	void PassBlock(const Block& selectedBlock, const Point hand_pos);
 	void DrawBoard();
 };
 

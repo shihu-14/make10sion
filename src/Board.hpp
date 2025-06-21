@@ -27,7 +27,7 @@ private://Write private functions or varables here.
 public://Write public functions here.
 
 	//variables
-	is_board_active = false;
+	bool is_board_active = false;
 
 	//functions
 	void Update(int idx);

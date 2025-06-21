@@ -6,7 +6,7 @@ using namespace std;
 
 //private
 Point Board::PutBlockAt(){
-    Point offset = {0,0};
+    Point offset = {0,0};//暫定
     int32 cell = 32;
     double rSquared = 25.0;
     //Blockの左上の絶対座標

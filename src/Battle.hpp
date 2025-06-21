@@ -25,7 +25,9 @@ private:
 	Board m_board; // 盤面の状態を管理する Board クラスのインスタンス
 	bool board_locked = false; // 盤面の操作がロックされているかどうか
 	bool flag_exit = false; // 敵が逃走するか
+	bool is_boss3 = false;
 	int32 num_turn = 0; // ターン数
+	int32 num_turn_start = -1; // 攻撃/防御のパターンの変化を管理(基本的には0のまま)
 	int32 table_size; // 手札のサイズ
 	Enemy m_enemyDB;
 	EnemyState m_enemy; // 現在の敵の状態を保持する

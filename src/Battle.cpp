@@ -80,7 +80,6 @@ void Battle::attack()
 	{
         // 盤面の操作をロックする
         board_locked = true; // 盤面の操作をロック
-        num_turn++; // ターン数を増やす
 
         // 攻撃・防御の処理を行う
         // 盤面から攻撃力と防御力を取得
@@ -112,7 +111,8 @@ void Battle::updateCombatEffect()
         else if (ene_attack == -11)
         {
             ene_attack = 20;
-            // 保留
+            num_turn++;
+            num_turn_start = num_turn;
         }
         else if (ene_attack == -12)
         {
@@ -139,29 +139,30 @@ void Battle::updateCombatEffect()
         }
         else if (ene_attack == -17)
         {
-            ene_attack = 50-6*(table_size-Deck_table.size());
+            ene_attack = 80;    
+            is_boss3 = true; // ボス3の敵
         }
         else if (ene_attack == -18)
         {
-            ene_attack = 40;
-            getData().money -= 10;
+            ene_attack = 2+3*(table_size-Deck_table.size());
         }
         else if (ene_attack == -19)
         {
-            ene_attack = 60-8*(table_size-Deck_table.size());
+            ene_attack = 3+5*(table_size-Deck_table.size());
         }
 
-
-
-
-        // プレイヤー->敵の攻撃力を計算
-        int32 ene_real_attack = Min(0, ene_attack - my_defense); // 敵の攻撃力から防御力を引く
-        getData().HP -= ene_real_attack; // 敵のHPを減らす
 
         // 敵->プレイヤーの攻撃力を計算
         int32 my_real_attack = Min(0, my_attack - ene_defense); // プレイヤーの攻撃力から敵の防御力を引く
         m_enemy.hp -= my_real_attack; // プレイヤーのHPを減らす
-        
+
+        // プレイヤー->敵の攻撃力を計算
+        int32 ene_real_attack = Min(0, ene_attack - my_defense); // 敵の攻撃力から防御力を引く
+        getData().HP -= ene_real_attack; // 敵のHPを減らす
+        if (is_boss3)
+        {
+            m_enemy.hp += my_real_attack;
+        }
         m_currentAnimState = BattleAnimationState::DiscardEffect;
         m_animStopwatch.reset();
     }

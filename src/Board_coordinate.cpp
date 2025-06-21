@@ -8,7 +8,7 @@ using namespace std;
 //private variables
 
 //private functions
-Point Board::PutBlockAt(){//blockの置ける場所を確認
+Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)のピースのマス座標を返す
     double rSquared = 25.0;
     //Blockの左上のピースの絶対座標
     int32 px = block.GetPiece(0,0).x+Cursor::Pos().x;
@@ -31,6 +31,9 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認
                 putAt = Point{bx+dx[k], by+dy[k]};
             }
         }
+    }
+    if(putAt == Point{-1, -1}){
+        return putAt;
     }
 
     //置けるかどうかの確認
@@ -61,8 +64,10 @@ void Board::PutBlock(){//blockを配置/手札に戻す
     Point putAt = PutBlockAt();
     if(putAt != Point{-1, -1}){
         UpdateBoardNum(putAt);
+        block.SetPos(putAt.x + block.GetPiece(0,0).x, putAt.y + block.GetPiece(0,0).y);
     }
     else{
+        block.SetStat(1);
         //手札に戻す
     }
     is_block_selected = false;
@@ -102,3 +107,4 @@ void Board::PassBlock(const Block& selectedBlock, const vector<Block> deck) {//�
 }
 
 //Update()後でちゃんとかく
+//block.statを触る。

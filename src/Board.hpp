@@ -25,10 +25,8 @@ private:
 	const Point offset = {0,0};//Boardの左上の絶対座標
 	const int32 cell_size = 50;
 	const Texture board_img{U"../image/banmen_kuuhaku.png"};
-	const std::array<Texture, 4> block_sides = {Texture{U"../image/card_sukima_top.png"},
-												Texture{U"../image/card_sukima_bottom.png"},
-												Texture{U"../image/card_sukima_right.png"},
-												Texture{U"../image/card_sukima_left.png"}};
+	std::map<Block, Point> block_hand_pos;
+
 
 	//function
 	Point PutBlockAt();
@@ -40,6 +38,7 @@ private:
 	void AddUsablePlace();
 	void ResetBoard();
 	void CalcRow();
+	void DrawBlockOnBoard(Block block_on_board);
 
 	
 	

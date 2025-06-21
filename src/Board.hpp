@@ -48,6 +48,7 @@ public://Write public functions here.
 	Board();
 	//variables
 	bool is_board_active = false;
+	int32 unlocked_num = 6;
 
 	//functions
 	void Update(int32 idx);

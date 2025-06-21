@@ -1,6 +1,7 @@
 #include <Siv3D.hpp>
 #include "common.hpp"
 #include "Board.hpp"
+#include <array>
 #include <vector>
 using namespace std;
 
@@ -12,9 +13,9 @@ Point Board::PutBlockAt(){
     //Blockの左上のピースの中心の絶対座標
     int32 px = block.GetPiece(0,0).x+Cursor::Pos().x;
     int32 py = block.GetPiece(0,0).y+Cursor::Pos().y;
-    //マス座標に変換
-    int32 bx = (px-offset.x)/cell_size;
-    int32 by = (py-offset.y)/cell_size;
+    //マスの中心同士を結んだ マス座標 に変換
+    int32 bx = (px-offset.x-cell_size/2)/cell_size;
+    int32 by = (py-offset.y-cell_size/2)/cell_size;
 
     Point putAt = {-1, -1};
     double minDist = rSquared;

@@ -77,7 +77,7 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 
 		for (int i = 0; i < used_blocks.size(); i++) {//ブロックの描画
 			if (block_anim[i] >= 0) {
-				used_blocks[i].Draw(used_blocks[i].GetPos(), 2.0, 0.0, 1.0);
+				used_blocks[i].Draw(used_blocks[i].GetPos(), img_scale, 0.0, 1.0);
 			}
 		}
 

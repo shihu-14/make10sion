@@ -154,7 +154,7 @@ void Board::PassBlock(Block& selectedBlock, const Point hand_pos) {//選択さ�
     block = selectedBlock;
 
     auto itr = find(used_blocks.begin(), used_blocks.end(), block);
-    if(itr != used_blocks.end()){
+    if(itr == used_blocks.end()){
         used_blocks.push_back(block);
         blockNum = used_blocks.size();//1-indexed
         block_hand_pos.push_back(hand_pos);//手札の位置を記録

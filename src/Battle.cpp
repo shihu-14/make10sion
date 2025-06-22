@@ -10,6 +10,7 @@ Battle::Battle(const InitData& init)
 	: IScene(init), 
     board_locked(false), // 盤面の操作を初期状態ではロックしない
     num_turn(0), // ターン数を初期化
+    global_id(0), // グローバルIDを初期化
     deck_width(15), // ターン数を初期化
     table_size(getTableSize()), // 手札のサイズを取得
     m_currentAnimState(BattleAnimationState::Idle) // アニメーション状態を初期化
@@ -47,10 +48,10 @@ Battle::Battle(const InitData& init)
 	// }
     for (int i = 0; i < 6; ++i){
         getData().Deck[i].SetStat(1);
-        getData().Deck[i].SetPos(300+i*60, 600); // 手札の位置を設定
+        getData().Deck[i].SetPos(300+i*60, 800); // 手札の位置を設定
     }
     for (int i = 0; i < 15; ++i){
-        m_tehuda_hantei.emplace_back(300+i*30, 1000, 15, 100); 
+        m_tehuda_hantei.emplace_back(300+i*60, 800, 30, 30); 
     }
     // updateCardDrawEffect();
 }
@@ -386,7 +387,7 @@ void Battle::update()
         if (m_tehuda_hantei[i].leftClicked() && !board_locked)
         {
             // Edit here
-            m_board.PassBlock(getData().Deck[global_id], {getData().Deck[i].GetPos().first, getData().Deck[i].GetPos().second}); // 手札のブロックを盤面に移動
+            m_board.PassBlock(getData().Deck[i], {getData().Deck[i].GetPos().first, getData().Deck[i].GetPos().second}); // 手札のブロックを盤面に移動
             return; // 一度のクリックで一つのブロックのみ処理する
         }
     }

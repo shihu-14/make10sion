@@ -13,7 +13,7 @@ Battle::Battle(const InitData& init)
     deck_width(15), // ターン数を初期化
     table_size(getTableSize()), // 手札のサイズを取得
     table_id(0), 
-    m_currentAnimState(BattleAnimationState::CardDrawEffect) // アニメーション状態を初期化
+    m_currentAnimState(BattleAnimationState::Idle) // アニメーション状態を初期化
 {
     m_backgroundTexture = Texture(U"../../image/haikei_sentou.png"); // 背景画像のパスを指定
     m_myTexture = Texture(U"../../image/chara_player.png"); // 自分のカードのテクスチャ
@@ -43,7 +43,7 @@ Battle::Battle(const InitData& init)
 		Deck_yama.pop_back();
         Deck_table.back().SetStat(1); // 手札のステータスを1に設定
         // Edit here (座標)
-        Deck_table.back().SetPos(300+i*30, 600); // 手札の位置を設定
+        Deck_table.back().SetPos(300+i*50, 600); // 手札の位置を設定
 	}
     for (int i = 0; i < 15; ++i){
         m_tehuda_hantei.emplace_back(300+i*30, 1000, 15, 100); 
@@ -437,7 +437,7 @@ void Battle::drawTableDeck() const
     {
         if (block.GetStat() == 1) // 手札の状態
         {
-            // Print << U"手札のブロックを描画"; // デバッグ
+            Print << U"手札のブロックを描画"; // デバッグ
             auto [x, y] = block.GetPos(); // ブロックの位置を取得
             block.Draw({x, y}); // BlockクラスにDrawメソッドがあると仮定
         }

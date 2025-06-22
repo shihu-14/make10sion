@@ -59,7 +59,7 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 		}
 		for (int i = 0; i < used_blocks.size(); i++) {//捨札へ移動するブロック
 			if (block_anim[i] == 2) {
-				BlockAnimation(used_blocks[i], Point{ 100, 100 }, block_anim[i]);//捨て札の座標を指定
+				BlockAnimation(used_blocks[i], Point{ 1600, 880 }, block_anim[i]);//捨て札の座標を指定
 			}
 		}
 

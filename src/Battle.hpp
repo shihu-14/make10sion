@@ -43,7 +43,6 @@ private:
 	int32 ene_defense = 0;
 	int32 ene_real_attack = 0;
 	int32 global_id = 0;
-	int32 global_tmp_max = 0;
 
 
 	enum class BattleAnimationState
@@ -65,11 +64,11 @@ private:
 
 	
 	// Battle Sceneでは、Data ManagerのDeck(vector<Block>)をコピーして使用状況を管理する
-	// Array<Block> Deck_yama;     // 山札 (元のGlobalDeckのコピー) 
-	// Array<Block> Deck_table;   // 手札 
-	// Array<Block> Deck_gomi;     // 捨て札
-	// Array<Block> Deck_board;
-	// Array<Block> Deck;
+	Array<Block> Deck_yama;     // 山札 (元のGlobalDeckのコピー) 
+	Array<Block> Deck_table;   // 手札 
+	Array<Block> Deck_gomi;     // 捨て札
+	Array<Block> Deck_board;
+	Array<Block> Deck;
 
 
 	// Texture 
@@ -101,7 +100,7 @@ private:
 	int32 flag_once_draw = 0;
 	double yamahuda_angle = 0.0;
 	double sutehuda_angle = 0.0;
-	// int32 table_id = 0;
+	int32 table_id = 0;
 	double tehuda_rate = 0.0;
 	double tehuda_angle = 0.0;
 	// Board Class が管理するとされる盤面の情報 (Battle Class 内では参照・操作に使う)
@@ -109,7 +108,7 @@ private:
 	// ここでは RectF の配列で仮定。
 	int32 getTableSize() const;
 	void setupEnemy();
-	// void updateTableDeck();
+	void updateTableDeck();
 	void attack();
 	// 各演出の更新関数 (private)
     // これらはupdate()から呼ばれ、アニメーションの状態を更新し、完了時に次の状態へ遷移させる

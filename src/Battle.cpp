@@ -37,13 +37,13 @@ Battle::Battle(const InitData& init)
 	// Deck_yama.shuffle();
     // Print << U"{}"_fmt(table_size);
 	// // 最初の手札をセットアップ
-	for (int i = 0; i < 5; ++i)
+	for (int i = 0; i < 8; ++i)
 	{
         getData().Deck[i].SetStat(1);
         getData().Deck[i].SetPos(300 + i*150, 800); // 手札の位置を設定
 	}
     for (int i = 0; i < 5; ++i){
-        m_tehuda_hantei.emplace_back(300+i*150, 800, 50, 50); 
+        m_tehuda_hantei.emplace_back(300+i*150, 800, 100, 130); 
     }
     // updateCardDrawEffect();
 }
@@ -374,13 +374,17 @@ void Battle::update()
     //     m_deck.draw();
     //     return;
     // }
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < 8; ++i)
     {
         if (m_tehuda_hantei[i].leftClicked() && !board_locked)
         {
             // Edit here
             m_board.PassBlock(getData().Deck[i], {getData().Deck[i].GetPos().first, getData().Deck[i].GetPos().second}); // 手札のブロックを盤面に移動
             return; // 一度のクリックで一つのブロックのみ処理する
+        }
+        if (m_tehuda_hantei[i].mouseOver() && !board_locked)
+        {
+            Cursor::RequestStyle(CursorStyle::Hand); // マウスオーバー時にカーソルを手の形に変更
         }
     }
     my_hpbar.update(0.1);
@@ -433,7 +437,7 @@ void Battle::drawTableDeck() const
 {
     for (const auto& block: getData().Deck)
     {
-        Print << U"ブロックの状態: {}"_fmt(block.GetStat()); // デバッグ
+        // Print << U"ブロックの状態: {}"_fmt(block.GetStat()); // デバッグ
         if (block.GetStat() == 1) // 手札の状態
         {
             // Print << U"手札のブロックを描画"; // デバッグ

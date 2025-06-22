@@ -2,8 +2,7 @@
 #include "Board.hpp"
 using namespace std;
 
-Board::Board() : 
-	board_usage(Size{ 7,6 }, -1), 
+Board::Board() :  
 	board_number(Size{ 7,6 }, 0),
 	board_effect_back(Size{ 7,6 }, 0),
 	board_effect_front(Size{ 7,6 }, 0),
@@ -71,28 +70,32 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 	}
 }
 
-void Board::DrawBoard(int32 idx){//idx : 0:バトル中, 1:リザルト(マス解放時)
+void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(マス解放時)
 	if (idx == 0) {
+
 		DrawOnlyBoard();//Boardの描画
 
 		for (int i = 0; i < used_blocks.size(); i++) {//ブロックの描画
-			if(block_anim[i] > -1){
-				used_blocks[i].Draw(used_blocks[i].GetPos(), 1.0, 0.0, 1.0);
+			if(block_anim[i] >= 0){
+				used_blocks[i].Draw(used_blocks[i].GetPos(), 2.0, 0.0, 1.0);
 			}
 		}
 
 		for (int i = 0; i < 3; i++) {
 			Point num = board_coordinate[i][6];
-			num.x += 50;
-			font(result_of_calc[i]).drawAt(45, board_coordinate[i][6], ColorF{ 1.0, 0.2, 0.2});
+			num.x += cell_size;
+			font(result_of_calc[i]).drawAt(90, board_coordinate[i][6], ColorF{ 1.0, 0.2, 0.2});
 		}
 		for (int i = 3; i < 6; i++) {
 			Point num = board_coordinate[i][6];
-			num.x += 50;
-			font(result_of_calc[i]).drawAt(45, board_coordinate[i][6], ColorF{ 0.2, 0.2, 1.0 });
+			num.x += cell_size;
+			font(result_of_calc[i]).drawAt(90, board_coordinate[i][6], ColorF{ 0.2, 0.2, 1.0 });
 		}
 	}
 	else if(idx == 1){
 		DrawAddPlaceBoard();
+	}
+	else{//臨時で追加してみる
+		DrawOnlyBoard();
 	}
 }

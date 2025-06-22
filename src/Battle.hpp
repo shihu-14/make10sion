@@ -6,6 +6,7 @@
 # include "Board.hpp" // Board クラスの定義があるヘッダファイルをインクルード
 # include "Enemy.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
 # include "Banner.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
+# include "HPbar.cpp" // Enemy クラスの定義があるヘッダファイルをインクルード
 
 // Data Manager の Deck を模倣したグローバル変数
 // 実際には Data Manager クラス (DataManager.hpp) で定義し、ここからインクルードするのが望ましい
@@ -25,7 +26,6 @@ private:
 
 	Board m_board; // 盤面の状態を管理する Board クラスのインスタンス
 	Banner m_banner; // バナーの表示を管理する Banner クラスのインスタンス
-	Deck m_deck; // デッキの状態を管理する Deck クラスのインスタンス
 	bool is_result = false;
 	bool board_locked = false; // 盤面の操作がロックされているかどうか
 	bool flag_exit = false; // 敵が逃走するか
@@ -76,8 +76,8 @@ private:
 	Texture m_sutehudaTexture; // 手札のテクスチャ
 	Texture m_buttonTexture; // ボタンのテクスチャ
 	Texture m_effectTexture; // エフェクトのテクスチャ
-	// HPBar my_hpbar; // HPバーのインスタンス
-	// HPBar ene_hpbar; // HPバーのインスタンス
+	HPBar my_hpbar; // HPバーのインスタンス
+	HPBar ene_hpbar; // HPバーのインスタンス
 	Texture m_attackIcon;
 	Texture m_defenceIcon;
 	Rect m_button_hantei;
@@ -94,6 +94,7 @@ private:
 	int32 ene_effect_x = -1, ene_effect_y = -1; // エフェクトの位置
 
 
+	bool is_deck = false;
 	int32 flag_once_draw = 0;
 	double yamahuda_angle = 0.0;
 	double sutehuda_angle = 0.0;

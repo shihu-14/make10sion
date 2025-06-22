@@ -12,7 +12,12 @@ class Board{
 private:
 
 	//variables
-	Grid<int32> board_usage;
+	Grid<int32> board_usage={{-1,-1,-1,-1,-1,-1,-1},
+							 {-1,-1,-2,-2,-2,-1,-1},
+							 {-1,-2, 0, 0, 0,-2,-1},
+							 {-1,-2, 0, 0, 0,-2,-1},
+							 {-1,-2,-2,-2,-2,-1,-1},
+							 {-1,-1,-1,-1,-1,-1,-1}};
 	Grid<int32> board_number;
 	Grid<int32> board_effect_back;
 	Grid<int32> board_effect_front;
@@ -25,9 +30,9 @@ private:
 	bool is_block_selected = false;
 	int32 blockNum;
 	Block block;
-	const Point offset = {0,0};//Boardの左上の絶対座標(バトル時)
+	const Point offset = {100,100};//Boardの左上の絶対座標(バトル時)
 	const Point offset_u = {0,0};//Boardの左上の絶対座標(アンロック時)(使わないかも)
-	const int32 cell_size = 50;
+	const int32 cell_size = 100;
 	const Texture board_img{U"../../image/banmen_kuuhaku.png"};
 	const Texture chosed_board_img{ U"../../image/special_n.png" };
 	const Texture chosable_board_img{ U"../../image/tile_kokodayo.png" };
@@ -52,10 +57,10 @@ private:
 	void TakeOutBlock(Point pos);
 	void AddUsablePlace();
 	void CalcRow();
-	void DrawOnlyBoard();
+	void DrawOnlyBoard() const;
 	void DrawBlock(Block block_on_board);
 	void BlockAnimation(Block moving_block, Point end_pos, int32 anim_num);
-	void DrawAddPlaceBoard();
+	void DrawAddPlaceBoard() const;
 	void DoRelic(std::vector<int32> relics);
 
 	double CalcDist(Point a, Point b);
@@ -74,7 +79,7 @@ public:
 	void InitAll();
 	void Discard();
 	void Update(int32 idx, std::vector<int32> relics);
-	void DrawBoard(int32 idx);
+	void DrawBoard(int32 idx) const;
 	void SetStat();
 	std::pair<int32, int32> Confirm();
 	void PassBlock(const Block& selectedBlock, const Point hand_pos);

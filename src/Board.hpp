@@ -53,7 +53,7 @@ private:
 	void DrawBlock(Block block_on_board);
 	void BlockAnimation(Block moving_block, Point end_pos);
 	void DrawAddPlaceBoard();
-	void DoRelic(vector<int32> relics);
+	void DoRelic(std::vector<int32> relics);
 
 	double CalcDist(Point a, Point b);
 	

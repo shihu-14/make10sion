@@ -64,6 +64,7 @@ void Battle::setupEnemy()
 // 山札の枚数を盤面の情報から求める関数
 int32 Battle::getTableSize() const
 {
+    return 6;
     return Min(deck_width, m_board.unlocked_num/2+2);
 }
 
@@ -444,7 +445,7 @@ void Battle::drawDefault() const
     // m_backgroundTexture.scaled(0.5).draw();
     m_board.DrawBoard(0); 
     // プレイヤーのキャラクターを描画
-    m_myTexture.scaled(0.75).rotated(my_angle).draw(180, 250);
+    m_myTexture.scaled(0.75).rotated(my_angle).draw(180, 230);
     // 敵の情報を描画
     m_enemy.texture.scaled(enemy_scale).draw(1450, 350);
     // 山札のテクスチャを描画

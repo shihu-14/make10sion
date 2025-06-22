@@ -67,6 +67,7 @@ private:
 	Array<Block> Deck_table;   // 手札 
 	Array<Block> Deck_gomi;     // 捨て札
 	Array<Block> Deck_board;
+	Array<Block> Deck;
 
 
 	// Texture 

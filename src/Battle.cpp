@@ -32,8 +32,9 @@ Battle::Battle(const InitData& init)
 	setupEnemy();
 	// --- デッキの初期化 ---
 	// GameDataからマスターデッキを取得し、バトル用の山札にコピー
-	Deck_yama = getData().Deck;
-	// Deck_yama.shuffle();
+	Deck = getData().Deck; 
+    Deck_yama = Deck;
+	Deck_yama.shuffle();
     // Print << U"{}"_fmt(table_size);
 	// // 最初の手札をセットアップ
 	for (int i = 0; i < table_size; ++i)
@@ -41,7 +42,6 @@ Battle::Battle(const InitData& init)
 		if (Deck_yama.isEmpty()) break;
 		Deck_table.push_back(Deck_yama.back());
 		Deck_yama.pop_back();
-        getData().Deck[i].SetStat(1);
         Deck_table.back().SetStat(1); // 手札のステータスを1に設定
         // Edit here (座標)
         Deck_table.back().SetPos(300+i*50, 600); // 手札の位置を設定
@@ -78,7 +78,7 @@ void Battle::updateTableDeck()
 {
     // 0:山札, 1:手札, 2:盤面, -1:捨て札
     // グローバルのDeckのstate変数を見て、盤面か手札かを参照し、Deck_tableとDeck_boardを更新する。
-    for (const auto& block : getData().Deck)
+    for (const auto& block : Deck)
     {
         if (block.GetStat() == 2 && Deck_board.includes(block) == false)
         {
@@ -434,7 +434,7 @@ void Battle::update()
 // 手札の描画
 void Battle::drawTableDeck() const
 {
-    for (const auto& block: getData().Deck)
+    for (const auto& block: Deck)
     {
         // Print << U"ブロックの状態: {}"_fmt(block.GetStat()); // デバッグ
         if (block.GetStat() == 1) // 手札の状態

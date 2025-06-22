@@ -106,6 +106,7 @@ void Board::TakeOutBlock(Point pos){//クリックしたBlockをボードから�
 
         blockNum = num;
         block = used_blocks[blockNum - 1];
+        CalcRow();
     }
 }
 
@@ -141,7 +142,7 @@ void Board::DoRelic(vector<int32> relics){ //cf.) md
     if(relics[14] > relics_old[14]){
         add_armor = relics[14]*3;
     }
-    
+
     do_armor_raise = (relics[15] == 1);
 
     if(relics[16]-relics_old[16] > 0){

@@ -7,9 +7,7 @@ const Font font{ FontMethod::MSDF, 48, Typeface::Bold };
 
 //public function
 void Board::DrawBoard(){//Boardの描画のみ
-	int32 center_x = offset.x + cell_size*3.5;
-	int32 center_y = offset.y + cell_size*3;
-	board_frame_img.drawAt(Point{center_x, center_y});
+
     for(int i=0;i<6;i++){
         for(int j=0;j<7;j++){
             if(board_usage[i][j] >= 0){
@@ -17,6 +15,11 @@ void Board::DrawBoard(){//Boardの描画のみ
             }
         }
     }
+
+	//枠の描画
+	int32 center_x = offset.x + cell_size*3.5;
+	int32 center_y = offset.y + cell_size*3;
+	board_frame_img.drawAt(Point{center_x, center_y});
 }
 
 //private function

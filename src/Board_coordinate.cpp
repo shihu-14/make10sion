@@ -127,15 +127,7 @@ void Board::DoRelic(vector<int32> relics){ //cf.) md
             board_multiply[i] += 0.5;
         }
     }
-    int32 off_count = 3 + relics[10] - relics[11];
-    if(off_count != accumulate(board_off_def.begin(), board_off_def.end(), 0)){
-        for(int i=0;i<off_count;i++){
-            board_off_def[i] = 1;
-        }
-        for(int i=off_count;i<6;i++){
-            board_off_def[i] = 0;
-        }
-    }
+    off_count = 3 + relics[10] - relics[11];//攻防の範囲の動かす数を記録
     if(relics[13] > relics_old[13]){
         add_damage += (relics[13]-relics_old[13])*3;
     }

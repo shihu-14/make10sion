@@ -39,6 +39,7 @@ private:
 	std::vector<int32> relics_old;
 	bool do_armor_raise = false;
 	int32 add_damage_by_cards = 0;
+	int32 off_count;
 
 	//function
 	Point PutBlockAt();

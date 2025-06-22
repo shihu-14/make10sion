@@ -359,7 +359,7 @@ void Battle::updateCardDrawEffect()
 void Battle::update()
 {
 
-    is_deck = m_deck.update();
+    is_deck = m_banner.update(getData().Deck);
     if (is_deck) return;
 	// 「=」ボタンの代わりのデバッグ操作
 	if (m_button_hantei.leftClicked() && !board_locked)
@@ -367,11 +367,11 @@ void Battle::update()
 		attack();
         return;
 	}
-    if (KeyS.down() && !board_locked)
-    {
-        m_deck.draw();
-        return;
-    }
+    // if (KeyS.down() && !board_locked)
+    // {
+    //     m_deck.draw();
+    //     return;
+    // }
     for (int i = 0; i < Deck_table.size(); ++i)
     {
         if (m_tehuda_hantei[i].leftClicked() && !board_locked)
@@ -443,7 +443,6 @@ void Battle::drawDefault() const
     // 盤面の描画
     // 盤面の背景を描画
     m_backgroundTexture.scaled(0.5).draw();
-    m_banner.draw();
     // プレイヤーのキャラクターを描画
     m_board.DrawBoard(0); 
     m_myTexture.scaled(0.75).rotated(my_angle).draw(180, 110);
@@ -499,6 +498,7 @@ void Battle::drawCardDrawEffect() const
 
 void Battle::draw() const
 {
+    m_banner.draw();
     if (is_deck) return;
 	// ... (背景や手札、山札などの基本描画)
     drawDefault();

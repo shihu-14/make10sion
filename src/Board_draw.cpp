@@ -3,7 +3,10 @@
 #include <array>
 using namespace std;
 
+
+//public function
 void Board::DrawBoard(){//Boardの描画のみ
+	//枠の描画
     for(int i=0;i<6;i++){
         for(int j=0;j<7;j++){
             if(board_usage[i][j] >= 0){
@@ -13,7 +16,8 @@ void Board::DrawBoard(){//Boardの描画のみ
     }
 }
 
-void Board::BlockAnimation(Block moving_block, Point end_pos){//アニメーション. 移動速度が時間に反比例します(log的な)
+//private function
+void Board::BlockAnimation(Block moving_block, Point end_pos){//アニメーション. 移動速度が時間経過に反比例します(log的な)
     Point curr_pos = {moving_block.GetPos().first, moving_block.GetPos().second};
     if(CalcDist(end_pos, curr_pos) > 5.0){
         int32 new_x = (curr_pos.x*4 + end_pos.x)/5;

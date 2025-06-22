@@ -40,10 +40,10 @@ Battle::Battle(const InitData& init)
 	for (int i = 0; i < 8; ++i)
 	{
         getData().Deck[i].SetStat(1);
-        getData().Deck[i].SetPos(300 + i*150, 800); // 手札の位置を設定
+        getData().Deck[i].SetPos(300 + i*150, 1000); // 手札の位置を設定
 	}
-    for (int i = 0; i < 5; ++i){
-        m_tehuda_hantei.emplace_back(300+i*150, 800, 100, 130); 
+    for (int i = 0; i < 8; ++i){
+        m_tehuda_hantei.emplace_back(300+i*150, 1000, 100, 130); 
     }
     // updateCardDrawEffect();
 }

@@ -513,6 +513,7 @@ void Map::draw() const {
 		}
 	}
 	//TODO:主人公ちゃんの描画
+	player_icon.drawAt(move_x + 200 + getData().Layer * 300, 420 + getData().Index * 265);
 
 	// バナーの描画
 	banner.draw();

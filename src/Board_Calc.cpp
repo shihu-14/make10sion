@@ -54,6 +54,7 @@ void Board::CalcRow() {
 
 			else if (board_number[i][j] & (1 << 16)) { // Max, Min, Aveのとき  
 				if (before_was_number == true) continue;
+				before_was_number = true;
 				if (board_number[i][j] & (1 << 0)) { // Max  
 					function += Format(num_on_board.back()); // 修正: int を String に変換  
 				}

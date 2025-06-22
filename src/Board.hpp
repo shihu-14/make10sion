@@ -52,10 +52,10 @@ private:
 	void TakeOutBlock(Point pos);
 	void AddUsablePlace();
 	void CalcRow();
-	void DrawOnlyBoard();
+	void DrawOnlyBoard() const;
 	void DrawBlock(Block block_on_board);
 	void BlockAnimation(Block moving_block, Point end_pos, int32 anim_num);
-	void DrawAddPlaceBoard();
+	void DrawAddPlaceBoard() const;
 	void DoRelic(std::vector<int32> relics);
 
 	double CalcDist(Point a, Point b);
@@ -74,7 +74,7 @@ public:
 	void InitAll();
 	void Discard();
 	void Update(int32 idx, std::vector<int32> relics);
-	void DrawBoard(int32 idx);
+	void DrawBoard(int32 idx) const;
 	void SetStat();
 	std::pair<int32, int32> Confirm();
 	void PassBlock(const Block& selectedBlock, const Point hand_pos);

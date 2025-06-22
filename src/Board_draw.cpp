@@ -4,7 +4,7 @@
 using namespace std;
 
 //public function
-void Board::DrawOnlyBoard(){//Boardの描画のみ
+void Board::DrawOnlyBoard() const {//Boardの描画のみ
 
     for(int i=0;i<6;i++){
         for(int j=0;j<7;j++){
@@ -42,7 +42,7 @@ void Board::BlockAnimation(Block moving_block, Point end_pos, int32 anim_num){//
     }
 }
 
-void Board::DrawAddPlaceBoard() {
+void Board::DrawAddPlaceBoard() const {
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 7; j++) {
             if (board_usage[i][j] == 0) {

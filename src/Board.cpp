@@ -71,12 +71,13 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 	}
 }
 
-void Board::DrawBoard(int32 idx){//idx : 0:バトル中, 1:リザルト(マス解放時)
+void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(マス解放時)
 	if (idx == 0) {
+
 		DrawOnlyBoard();//Boardの描画
 
 		for (int i = 0; i < used_blocks.size(); i++) {//ブロックの描画
-			if(block_anim[i] > -1){
+			if(block_anim[i] >= 0){
 				used_blocks[i].Draw(used_blocks[i].GetPos(), 1.0, 0.0, 1.0);
 			}
 		}

@@ -14,7 +14,7 @@ double Board::CalcDist(Point a, Point b){//2点間の距離(の2乗)の計算
 
 Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)のピースのボード座標を返す
 
-    double rSquared = 25.0;//吸い込み半径(の2乗)
+    double rSquared = 100.0;//吸い込み半径(の2乗)
     
     //Blockの左上のピースの絶対座標
     Point piece_pos;

@@ -23,9 +23,9 @@ void Board::DrawOnlyBoard() const {//Boardの描画のみ
 //private function
 void Board::BlockAnimation(Block moving_block, Point end_pos, int32 anim_num){//アニメーション. 移動速度が時間経過に反比例します(log的な)
     Point curr_pos = {moving_block.GetPos().first, moving_block.GetPos().second};
-    if(CalcDist(end_pos, curr_pos) > 5.0){
-        int32 new_x = (curr_pos.x*4 + end_pos.x)/5;
-        int32 new_y = (curr_pos.y*4 + end_pos.y)/5;
+    if(CalcDist(end_pos, curr_pos) > 10000.0){
+        int32 new_x = (curr_pos.x*9 + end_pos.x)/10;
+        int32 new_y = (curr_pos.y*9 + end_pos.y)/10;
         moving_block.SetPos(new_x, new_y);
     }
     else{

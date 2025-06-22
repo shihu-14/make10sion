@@ -84,7 +84,7 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 		for (int i = 0; i < 6; i++) {
 			Point num = board_coordinate[i][6];
 			num.x += cell_size;
-			num.y += dy[i];
+			num.y -= dy[i];
 			if (board_off_def[i] == 1) {
 				font(result_of_calc[i]).drawAt(TextStyle::Outline(0.2, ColorF{ 0.0 }), 85, num, ColorF{ 1.0, 0.5, 0.5 });
 			}

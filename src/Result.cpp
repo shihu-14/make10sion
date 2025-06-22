@@ -2,22 +2,23 @@
 using namespace std;
 
 Result::Result(const InitData& init) : IScene(init),
-retry_rect(Arg::center = Vec2(Scene::Center().x + 20, Scene::Height() - 450), 420, 100, 20),
+retry_rect(Arg::center = Vec2(Scene::Center().x - 450, Scene::Height() - 200), 300, 300, 20),
 // 左下寄りボタン
-title_rect(Arg::center = Vec2(Scene::Center().x + 20, Scene::Height() - 450), 420, 100, 20)
+title_rect(Arg::center = Vec2(Scene::Center().x +450, Scene::Height() - 200), 300, 300, 20)
 // 右下寄りボタン
 {
-	Scene::SetBackground(Palette::White);
-	title_back = Texture(U"../../image/title_end_0.png");
-	retry = Texture(U"../../image/back_button_deck0.png");
+	Scene::SetBackground(Palette::Skyblue);
+	background = Texture(U"../../image/haikei_sentou.png");
+	title_back = Texture(U"../../image/bottun_titlehe.png");
+	retry = Texture(U"../../image/bottun_mouitido.png");
     
-    score = getData().Layer * 5;
+    score = getData().Layer * 5+ getData().enemy*2+ getData().Layer/10*50;
 }
 
 
 
 void Result::update(){
-	font(U"Clear!\n \n Score:{}"_fmt(score)).drawAt(200, Vec2{ Scene::Center().x,Scene::Center().y}, ColorF{0.2});
+    
     if (retry_rect.mouseOver())
     {
         Cursor::RequestStyle(CursorStyle::Hand);
@@ -37,8 +38,17 @@ void Result::update(){
 }
 
 void Result::draw() const{
-    title_back.draw(300, 700);
-	retry.scaled(0.5).draw(1500,700);
+	//background.scaled(1.5).draw();
+    title_back.drawAt(title_rect.center());
+	retry.drawAt(retry_rect.center());
+    if (getData().Layer == 30)
+    {
+        font(U"Clear!\nScore:{} \n"_fmt(score)).drawAt(Scene::Center().x, Scene::Center().y - 100, ColorF{ 0.2 });
+    }
+    else
+    {
+        font(U"Game Over\nScore:{} \n"_fmt(score)).drawAt(Scene::Center().x, Scene::Center().y - 100, ColorF{ 0.2 });
+    }
 	
 }
 

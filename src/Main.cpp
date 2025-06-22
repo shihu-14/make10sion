@@ -1,11 +1,11 @@
 ﻿# include <Siv3D.hpp> // Siv3D v0.6.16
 # include "common.hpp"
-# include "Title.hpp"
-# include "Map.hpp"
+//# include "Title.hpp"
+//# include "Map.hpp"
 //# include "Battle.hpp"
-//# include "Result.hpp"
-# include "Shop.hpp"
-# include "Deck.hpp"
+# include "Result.hpp"
+//# include "Shop.hpp"
+//# include "Deck.hpp"
 
 using namespace std;
 
@@ -23,16 +23,16 @@ void Main()
 	Window::SetTitle(U"Arithmancer");
 
 	App manager;
-	manager.add<Title>(State::Title);
-	manager.add<Map>(State::Map);
+	//manager.add<Title>(State::Title);
+	//manager.add<Map>(State::Map);
 	//manager.add<Battle>(State::Battle);
-	//manager.add<Result>(State::Result);
-	manager.add<Shop>(State::Shop);
+	manager.add<Result>(State::Result);
+	//manager.add<Shop>(State::Shop);
 
 
 	//XXX:debug用
 	//開始シーンを指定する
-	manager.init(State::Map);
+	manager.init(State::Result);
 
 	while (System::Update() && manager.update()) {};
 }

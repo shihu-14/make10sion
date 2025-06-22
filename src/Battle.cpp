@@ -8,9 +8,18 @@ Battle::Battle(const InitData& init)
 	: IScene(init), 
     board_locked(false), // 盤面の操作を初期状態ではロックしない
     num_turn(0), // ターン数を初期化
+    deck_width(15), // ターン数を初期化
     table_size(getTableSize()), // 手札のサイズを取得
     m_currentAnimState(BattleAnimationState::Idle) // アニメーション状態を初期化
 {
+    m_backgroundTexture = Texture(U"../image/haikei_sentou.png"); // 背景画像のパスを指定
+    m_myTexture = Texture(U"../image/chara_player.png"); // 自分のカードのテクスチャ
+    m_yamahudaTexture = Texture(U"../image/yamahuda.png"); // 山札のテクスチャ
+    m_sutehudaTexture = Texture(U"../image/sutehuda.png"); // 捨て札のテクスチャ
+    m_buttonTexture = Texture(U"../image/bottun_equal.png"); // ボタンのテクスチャ
+    m_effectTexture = Texture(U"../image/effect_attack.png"); // エフェクトのテクスチャ
+    m_attackIcon = Texture(U"../image/icon_attack.png"); // 攻撃アイコンのテクスチャ
+    m_defenceIcon = Texture(U"../image/icon_defence.png"); // 防御アイコンのテクスチャ
 	// --- 戦う敵のセットアップ ---
 	setupEnemy();
 	// --- デッキの初期化 ---
@@ -24,8 +33,9 @@ Battle::Battle(const InitData& init)
 		if (Deck_yama.isEmpty()) break;
 		Deck_table.push_back(Deck_yama.back());
 		Deck_yama.pop_back();
+        Deck_table.back().SetStat(1); // 手札のステータスを1に設定
+        Deck_table.back().SetPos(300+i*deck_width, 500); // 手札の位置を設定
 	}
-    drawCombatEffect(); // 
 }
 
 
@@ -87,22 +97,8 @@ void Battle::attack()
         // 敵の攻撃・防御を取得
         ene_attack = m_enemy.actionPattern[num_turn % m_enemy.actionPattern.size()].attack;
         ene_defense = m_enemy.actionPattern[num_turn % m_enemy.actionPattern.size()].defense;
-        // 敵にダメージを与える
-        m_currentAnimState = BattleAnimationState::CombatEffect;
-        // ここから未定
-        m_currentAnimDuration = 1.0s; // アニメーションの時間を設定
-        m_animStopwatch.restart(); // ストップウォッチをリセットして開始
-	}
-}
 
-
-// 戦闘演出の更新処理
-void Battle::updateCombatEffect()
-{
-    // 演出時間が経過したら、次の状態（例えばDiscardEffect）に遷移する
-    if (m_animStopwatch > 1.0s)
-    {
-        // 敵にダメージを与える
+        // -------特殊攻撃--------
         if (ene_attack == -10)
         {
             ene_attack = 3+2*(table_size-Deck_table.size());
@@ -149,68 +145,144 @@ void Battle::updateCombatEffect()
         {
             ene_attack = 3+5*(table_size-Deck_table.size());
         }
-
+        // ------------------
 
         // 敵->プレイヤーの攻撃力を計算
-        int32 my_real_attack = Min(0, my_attack - ene_defense); // プレイヤーの攻撃力から敵の防御力を引く
+        my_real_attack = Min(0, my_attack - ene_defense); // プレイヤーの攻撃力から敵の防御力を引く
         m_enemy.hp -= my_real_attack; // プレイヤーのHPを減らす
 
         // プレイヤー->敵の攻撃力を計算
-        int32 ene_real_attack = Min(0, ene_attack - my_defense); // 敵の攻撃力から防御力を引く
+        ene_real_attack = Min(0, ene_attack - my_defense); // 敵の攻撃力から防御力を引く
         getData().HP -= ene_real_attack; // 敵のHPを減らす
         if (is_boss3)
         {
             m_enemy.hp += my_real_attack;
         }
-        m_currentAnimState = BattleAnimationState::DiscardEffect;
-        m_animStopwatch.reset();
+        my_damage_max_cnt = ene_real_attack/10;
+        ene_damage_max_cnt = my_real_attack/10;
+        m_currentAnimState = BattleAnimationState::CombatEnemyEffect;
+        m_currentAnimDuration = 1.0s; // アニメーションの時間を設定
+        m_animeStopwatch.restart(); // ストップウォッチをリセットして開始
+	}
+}
+
+
+// 戦闘演出の更新処理
+void Battle::updateCombatEnemyEffect()
+{
+    if (ene_damage_effect_cnt < ene_damage_max_cnt)
+    {
+        if (m_animeStopwatch.sF() > 0.25*ene_damage_effect_cnt)
+        {
+            if (ene_damage_effect_cnt == 0)
+            {
+                // ene_hpbar.damage(my_real_attack);
+            }
+            ene_effect_x = Random(1350, 1600); // エフェクトのX座標をランダムに設定
+            ene_effect_y = Random(200, 450); // エフェクトのY座標をランダムに設定
+            ene_damage_effect_cnt++;
+            enemy_scale = 0.7;
+        }
+        return;
     }
+    // 演出時間が経過したら、次の状態（例えばDiscardEffect）に遷移する
+    // 敵にダメージを与える
+    bool isLose = getData().HP <= 0; 
+    if (isLose)
+    {
+        m_currentAnimState = BattleAnimationState::GameOver;
+        m_animeStopwatch.restart();
+        return;
+    }
+    enemy_scale = 0.85; // エフェクトの拡大を元に戻す
+    m_currentAnimState = BattleAnimationState::CombatMyEffect;
+    m_animeStopwatch.reset();
+}
+
+// 戦闘演出の更新処理
+void Battle::updateCombatMyEffect()
+{
+    if (my_damage_effect_cnt < my_damage_max_cnt)
+    {
+        if (m_animeStopwatch.sF() > 0.25*my_damage_effect_cnt)
+        {
+            if (my_damage_effect_cnt == 0)
+            {
+                // my_hpbar.damage(my_real_attack);
+            }
+            my_effect_x = Random(1350, 1600); // エフェクトのX座標をランダムに設定
+            my_effect_y = Random(200, 450); // エフェクトのY座標をランダムに設定
+            my_damage_effect_cnt++;
+            my_angle = Random(-0.6, -0.1);
+        }
+        return;
+    }
+    // 2. 勝利判定を行う
+    bool isVictory = m_enemy.hp <= 0;
+    if (isVictory)
+    {
+        m_currentAnimState = BattleAnimationState::WinEffect;
+        m_currentAnimDuration = 2.0s;
+        m_animeStopwatch.restart();
+        return; // 勝利したので、以降の処理は行わない
+    }
+    my_angle = 0.0;
+    table_id = Deck_table.size()-1;
+    m_currentAnimState = BattleAnimationState::DiscardEffect;
+    m_animeStopwatch.reset();
 }
 
 // 捨て札アニメーション(盤面, 手札 -> 捨て札)の更新処理
 void Battle::updateDiscardEffect()
 {
 	// アニメーションが完了したら
-	if (m_animStopwatch > 1.0s)
+	if (table_id < Deck_table.size())
 	{
-		// 1. Boardクラスの公開されているブロック配列から直接、捨て札に追加する
-		for (const auto& block : Deck_board)
-		{
-			Deck_gomi.push_back(block);
-		}
-		// Boardに盤面をクリアするよう指示する
-		// m_board.clearBoard();
-
-        for (const auto& block : Deck_table)
+        if (sutehuda_angle > -90_deg)
         {
-            // 手札のブロックを捨て札に移動
-            Deck_gomi.push_back(block);
+            sutehuda_angle -= Scene::DeltaTime()*3.5; // 捨て札の角度を徐々に変える
         }
-        Deck_table.clear();
+        else
+        {
+            tehuda_rate = Min(1.0, m_animeStopwatch.sF()/0.5); // 捨て札の位置を徐々に変える
+            if (tehuda_rate < 0.99)
+            {
 
-		// 2. 勝利判定を行う
-		bool isVictory = m_enemy.hp <= 0;
-		if (isVictory)
-		{
-			m_currentAnimState = BattleAnimationState::WinEffect;
-			m_currentAnimDuration = 2.0s;
-			m_animStopwatch.restart();
-			return; // 勝利したので、以降の処理は行わない
-		}
+            }
+            else
+            {
+                // 捨て札に移動したから、stateを変更。Deck_gomiに追加する
+                Deck_gomi.emplace_back(Deck_table[table_id]); // 手札のブロックを捨て札に移動
+                Deck_table[table_id].SetStat(-1); // ブロックのステータスを捨て札に設定
+                table_id--;
+                m_animeStopwatch.reset(); // ストップウォッチをリセット
+                tehuda_rate = 0; // 捨て札の位置を固定
+            }
+        }
+    }
+    // 1. Boardクラスの公開されているブロック配列から直接、捨て札に追加する
+    for (auto& block : Deck_board)
+    {
+        block.SetStat(-1); // ブロックのステータスを捨て札に設定
+        Deck_gomi.push_back(block);
 
-		// (敗北判定もここで行う)
-		bool isLose = getData().HP <= 0; 
-		if (isLose)
-		{
-			m_currentAnimState = BattleAnimationState::GameOver;
-            m_animStopwatch.restart();
-			return;
-		}
-		// 3. 次の状態（カードドロー）へ遷移する準備
-		m_currentAnimState = BattleAnimationState::CardDrawEffect;
-		m_currentAnimDuration = 0.6s; // 0.6秒かけてドロー
-		m_animStopwatch.restart();
-	}
+    }
+    // Boardに盤面をクリアするよう指示する
+    // m_board.clearBoard();
+    // for (auto& block : Deck_table)
+    // {
+    //     // 手札のブロックを捨て札に移動
+    //     block.SetStat(-1); // ブロックのステータスを捨て札に設定
+    //     Deck_gomi.push_back(block);
+    // }
+    Deck_table.clear();
+    // (敗北判定もここで行う)
+    
+    // 3. 次の状態（カードドロー）へ遷移する準備
+    table_id = 0;
+    m_currentAnimState = BattleAnimationState::CardDrawEffect;
+    // m_currentAnimDuration = 0.6s; // 0.6秒かけてドロー
+    m_animeStopwatch.restart();
 }
 
 
@@ -226,12 +298,38 @@ void Battle::updateCardDrawEffect()
         Block card = Deck_yama.back();
         Deck_yama.pop_back(); // 山札から削除
         Deck_table.push_back(card); // 手札に追加
+        Deck_table.back().SetStat(1); // 手札のステータスを1に設定
+        Deck_table.back().SetPos(300 + i*deck_width, 500); //
     }
+    if (table_id < Deck_table.size())
+	{
+        if (sutehuda_angle < 90_deg)
+        {
+            yamahuda_angle += Scene::DeltaTime()*3.5; // 捨て札の角度を徐々に変える
+        }
+        else
+        {
+            tehuda_rate = Min(1.0, m_animeStopwatch.sF()/0.5); // 捨て札の位置を徐々に変える
+            if (tehuda_rate < 0.99)
+            {
+
+            }
+            else
+            {
+                // 捨て札に移動したから、stateを変更。Deck_gomiに追加する
+                Deck_table[table_id].SetStat(1); // ブロックのステータスを捨て札に設定
+                table_id++;
+                m_animeStopwatch.reset(); // ストップウォッチをリセット
+                tehuda_rate = 0; // 捨て札の位置を固定
+            }
+        }
+    }
+
 	// アニメーションが完了したら
-	if (m_animStopwatch > 1.0s)
+	if (m_animeStopwatch > 1.0s)
 	{
 		m_currentAnimState = BattleAnimationState::Idle;
-        m_animStopwatch.reset(); // ストップウォッチをリセット
+        m_animeStopwatch.reset(); // ストップウォッチをリセット
         board_locked = false; // 盤面の操作をアンロック
 	}
 }
@@ -258,9 +356,14 @@ void Battle::update()
         // ここにデッキと盤面の移動についての処理を記述する
         updateTableDeck();
 		break;
-	case BattleAnimationState::CombatEffect:
-		updateCombatEffect();
+	case BattleAnimationState::CombatEnemyEffect:
+        enemy_scale = Min(0.85, enemy_scale + Scene::DeltaTime()); // 敵のエフェクトの拡大
+		updateCombatEnemyEffect();
 		break;
+    case BattleAnimationState::CombatMyEffect:
+        my_angle = Min(0.0, my_angle + Scene::DeltaTime()); // 敵のエフェクトの拡大
+        updateCombatMyEffect();
+        break;
 	case BattleAnimationState::DiscardEffect:
 		updateDiscardEffect();
 		break;
@@ -287,19 +390,83 @@ void Battle::update()
 	}
 }
 
+// 手札の描画
+void Battle::drawTableDeck() const
+{
+    for (const auto& block: getData().Deck)
+    {
+        if (block.GetStat() == 1) // 手札の状態
+        {
+            auto [x, y] = block.GetPos(); // ブロックの位置を取得
+            block.Draw(x, y); // BlockクラスにDrawメソッドがあると仮定
+        }
+    }
+}
+
+void Battle::drawDefault() const
+{
+    // 盤面の背景を描画
+    m_backgroundTexture.scaled(0.5).draw();
+    // プレイヤーのキャラクターを描画
+    m_myTexture.scaled(0.75).rotated(my_angle).draw(180, 110);
+    // 敵の情報を描画
+    m_enemy.texture.scaled(enemy_scale).draw(1400, 240);
+    // 山札のテクスチャを描画
+    m_yamahudaTexture.scaled(0.8).draw(50, 750);
+    // 捨て札のテクスチャを描画
+    m_sutehudaTexture.scaled(0.8).draw(1560, 750);
+    // =buttonのテクスチャを描画
+    m_buttonTexture.scaled(0.75).draw(1300, 640); 
+    
+}
+
+// 戦闘演出の描画
+void Battle::drawCombatEnemyEffect() const
+{
+    if (ene_effect_x != -1 && ene_effect_y != -1)
+    {
+        m_effectTexture.scaled(0.5).draw(ene_effect_x, ene_effect_y);
+    }
+}
+void Battle::drawCombatMyEffect() const
+{
+    if (my_effect_x != -1 && my_effect_y != -1)
+    {
+        m_effectTexture.scaled(0.5).draw(my_effect_x, my_effect_y);
+    }
+}
+
+// 捨て札/カードドローアニメーションの描画
+void Battle::drawDiscardEffect() const
+{
+    auto [sx, sy] = Deck_table[table_id].GetPos();
+    Vec2 pos = Vec2{sx, sy}.lerp(Vec2{1560, 750}, tehuda_rate); // 手札の位置を取得
+    Deck_table[table_id].Draw(pos.x, pos.y, 1.0, sutehuda_angle); 
+}
+
+void Battle::drawCardDrawEffect() const
+{
+    auto [sx, sy] = Deck_table[table_id].GetPos();
+    Vec2 pos = Vec2{sx, sy}.lerp(Vec2{1560, 750}, tehuda_rate); // 手札の位置を取得
+    Deck_table[table_id].Draw(pos.x, pos.y, 1.0, sutehuda_angle); 
+}
+
 
 void Battle::draw() const
 {
 	// ... (背景や手札、山札などの基本描画)
-
+    drawDefault();
 	// 現在の状態で描画処理を分岐
 	switch (m_currentAnimState)
 	{
     case BattleAnimationState::Idle:
         drawTableDeck();
         break;
-    case BattleAnimationState::CombatEffect:
-        drawCombatEffect();
+    case BattleAnimationState::CombatEnemyEffect:
+        drawCombatEnemyEffect();
+        break;
+    case BattleAnimationState::CombatMyEffect:
+        drawCombatMyEffect();
         break;
 	case BattleAnimationState::DiscardEffect:
 		drawDiscardEffect();
@@ -314,36 +481,3 @@ void Battle::draw() const
 	}
 }
 
-// 手札の描画
-void drawTableDeck()
-{
-    // 
-}
-
-void drawDefalut()
-{
-    
-}
-
-// 戦闘演出の描画
-void Battle::drawCombatEffect() const
-{
-    // ここでは仮に攻撃・防御のエフェクトを描画する
-    // 例えば、攻撃のエフェクトを表示するなど
-    // 具体的な描画内容はゲームの仕様に依存する
-    const Vec2 effectPos = Vec2{ 400, 300 }; // 仮の位置
-    Circle(effectPos, 100).draw(ColorF(1.0, 0.5)); // 半透明の赤い円を描画
-}
-
-// 捨て札/カードドローアニメーションの描画
-void Battle::drawDiscardEffect() const
-{
-    // 
-}
-
-void Battle::drawCardDrawEffect() const
-{
-	// アニメーション進捗 (0.0～1.0)
-	const double progress = m_animStopwatch.sF() / m_currentAnimDuration.count();
-	const double easedProgress = EaseOutCubic(progress); // 滑らかな動きにする
-}

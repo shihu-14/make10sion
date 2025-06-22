@@ -24,17 +24,15 @@ Battle::Battle(const InitData& init)
     m_defenceIcon = Texture(U"../../image/icon_defence.png"); // 防御アイコンのテクスチャ
     m_button_hantei = Rect{1300, 400, 200, 100}; // ボタンの位置とサイズを設定
 
-
     // init
     m_banner.init(getData().money, getData().Layer, getData().leric); // バナーの初期化
-    m_board.InitAll();
+    // m_board.InitAll();
 	// --- 戦う敵のセットアップ ---
 	setupEnemy();
 	// --- デッキの初期化 ---
 	// GameDataからマスターデッキを取得し、バトル用の山札にコピー
 	Deck_yama = getData().Deck;
 	Deck_yama.shuffle();
-
 	// // 最初の手札をセットアップ
 	// for (int i = 0; i < table_size; ++i)
 	// {
@@ -450,11 +448,11 @@ void Battle::drawDefault() const
     // 敵の情報を描画
     m_enemy.texture.scaled(enemy_scale).draw(1400, 350);
     // 山札のテクスチャを描画
-    m_yamahudaTexture.scaled(0.8).rotated(yamahuda_angle).draw(50, 750);
+    m_yamahudaTexture.scaled(0.75).rotated(yamahuda_angle).draw(50, 780);
     // 捨て札のテクスチャを描画
-    m_sutehudaTexture.scaled(0.8).rotated(sutehuda_angle).draw(1560, 750);
+    m_sutehudaTexture.scaled(0.5).rotated(sutehuda_angle).draw(1570, 780);
     // =buttonのテクスチャを描画
-    m_buttonTexture.scaled(0.75).draw(1300, 640); 
+    m_buttonTexture.scaled(0.65).draw(1570, 600); 
     my_hpbar.draw(RectF{130, 680, 320, 20});
     ene_hpbar.draw(RectF{1420, 680, 320, 20});
 }

@@ -31,9 +31,9 @@ private:
 	int32 blockNum;
 	Block block;
 	const Point offset = {600,100};//Boardの左上の絶対座標(バトル時)
-	const Point offset_u = {0,0};//Boardの左上の絶対座標(アンロック時)(使わないかも)
+	//const Point offset_u = {0,0};//Boardの左上の絶対座標(アンロック時)(使わないかも)
 	const double img_scale = 1.8;
-	const int32 cell_size = 50 * img_scale;
+	const int32 cell_size = int(50 * img_scale);
 	const Texture board_img{U"../../image/banmen_kuuhaku.png"};
 	const Texture chosed_board_img{ U"../../image/special_n.png" };
 	const Texture chosable_board_img{ U"../../image/tile_kokodayo.png" };

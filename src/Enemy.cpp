@@ -14,7 +14,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"enemy_1",
-			.texturePath = U"../image/enemy_1.png",
+			.texturePath = U"../../image/enemy_1.png",
 			.maxHp = 20,
 			.actionPattern = {
 				{ .attack = 8, .defense = 2 },
@@ -28,7 +28,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"enemy_2",
-			.texturePath = U"../image/enemy_2.png",
+			.texturePath = U"../../image/enemy_2.png",
 			.maxHp = 30,
 			.actionPattern = {
 				{ .attack = 0, .defense = 0 },
@@ -42,7 +42,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"enemy_3",
-			.texturePath = U"../image/enemy_3.png",
+			.texturePath = U"../../image/enemy_3.png",
 			.maxHp = 30,
 			.actionPattern = {
 				{ .attack = 14, .defense = 0 },
@@ -59,7 +59,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"enemy_4",
-			.texturePath = U"../image/enemy_4.png",
+			.texturePath = U"../../image/enemy_4.png",
 			.maxHp = 60,
 			.actionPattern = {
 				{ .attack = 0,  .defense = 15 },
@@ -73,7 +73,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"enemy_5",
-			.texturePath = U"../image/enemy_5.png",
+			.texturePath = U"../../image/enemy_5.png",
 			.maxHp = 60,
 			.actionPattern = {
 				{ .attack = 0,   .defense = 20 },
@@ -87,7 +87,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"enemy_6",
-			.texturePath = U"../image/enemy_6.png",
+			.texturePath = U"../../image/enemy_6.png",
 			.maxHp = 70,
 			.actionPattern = {
 				{ .attack = 16, .defense = 10 },
@@ -104,7 +104,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"enemy_7",
-			.texturePath = U"../image/enemy_7.png",
+			.texturePath = U"../../image/enemy_7.png",
 			.maxHp = 90,
 			.actionPattern = {
 				{ .attack = 20, .defense = 15 },
@@ -118,7 +118,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"enemy_8",
-			.texturePath = U"../image/enemy_8.png",
+			.texturePath = U"../../image/enemy_8.png",
 			.maxHp = 80,
 			.actionPattern = {
 				{ .attack = 60, .defense = 12 },
@@ -132,7 +132,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"enemy_9",
-			.texturePath = U"../image/enemy_9.png",
+			.texturePath = U"../../image/enemy_9.png",
 			.maxHp = 90,
 			.actionPattern = {
 				{ .attack = 60, .defense = 8 },
@@ -149,7 +149,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"enemy_10",
-			.texturePath = U"../image/enemy_10.png",
+			.texturePath = U"../../image/enemy_10.png",
 			.maxHp = 60,
 			.actionPattern = {
 				{ .attack = -10, .defense = 3 }, // 3+2*N
@@ -163,7 +163,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"enemy_11",
-			.texturePath = U"../image/enemy_11.png",
+			.texturePath = U"../../image/enemy_11.png",
 			.maxHp = 70,
 			.actionPattern = {
 				{ .attack = 0,   .defense = 10 },
@@ -180,7 +180,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"enemy_12",
-			.texturePath = U"../image/enemy_12.png",
+			.texturePath = U"../../image/enemy_12.png",
 			.maxHp = 100,
 			.actionPattern = {
 				{ .attack = -12, .defense = 15 }, // 60-4*N
@@ -194,7 +194,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"enemy_13",
-			.texturePath = U"../image/enemy_13.png",
+			.texturePath = U"../../image/enemy_13.png",
 			.maxHp = 80,
 			.actionPattern = {
 				{ .attack = -13, .defense = 15 }, // 40 + 30マネー強奪
@@ -208,7 +208,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"enemy_14",
-			.texturePath = U"../image/enemy_14.png",
+			.texturePath = U"../../image/enemy_14.png",
 			.maxHp = 150,
 			.actionPattern = {
 				{ .attack = -15, .defense = 14 }, // 10+14*N
@@ -222,7 +222,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"enemy_15",
-			.texturePath = U"../image/enemy_15.png",
+			.texturePath = U"../../image/enemy_15.png",
 			.maxHp = 160,
 			.actionPattern = {
 				{ .attack = 120, .defense = 0 },
@@ -239,7 +239,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"boss_1",
-			.texturePath = U"../image/boss_1.png",
+			.texturePath = U"../../image/boss_1.png",
 			.maxHp = 100,
 			.actionPattern = {
 				{ .attack = 30, .defense = 0 },
@@ -257,7 +257,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"boss_2",
-			.texturePath = U"../image/boss_2.png",
+			.texturePath = U"../../image/boss_2.png",
 			.maxHp = 100,
 			.actionPattern = {
 				{ .attack = 6, .defense = 15 },
@@ -271,7 +271,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"boss_3",
-			.texturePath = U"../image/boss_3.png",
+			.texturePath = U"../../image/boss_3.png",
 			.maxHp = 200,
 			.actionPattern = {
 				{ .attack = 40, .defense = 15 },
@@ -284,7 +284,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"boss_4",
-			.texturePath = U"../image/boss_4.png",
+			.texturePath = U"../../image/boss_4.png",
 			.maxHp = 200,
 			.actionPattern = {
 				{ .attack = 60, .defense = 0 },
@@ -302,7 +302,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"boss_5",
-			.texturePath = U"../image/boss_5.png",
+			.texturePath = U"../../image/boss_5.png",
 			.maxHp = 300,
 			.actionPattern = {
 				{ .attack = 12, .defense = 30 },
@@ -316,7 +316,7 @@ void Enemy::loadEnemies()
 	m_enemies.push_back(
 		{
 			.name = U"boss_6",
-			.texturePath = U"../image/boss_6.png",
+			.texturePath = U"../../image/boss_6.png",
 			.maxHp = 300,
 			.actionPattern = {
 				{ .attack = 60, .defense = 20 },

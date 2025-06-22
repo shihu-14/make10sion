@@ -30,7 +30,7 @@ private:
 	bool is_block_selected = false;
 	int32 blockNum;
 	Block block;
-	const Point offset = {600,150};//Boardの左上の絶対座標(バトル時)
+	const Point offset = {600,170};//Boardの左上の絶対座標(バトル時)
 	//const Point offset_u = {0,0};//Boardの左上の絶対座標(アンロック時)(使わないかも)
 	const double img_scale = 1.8;
 	const int32 cell_size = int(50 * img_scale);

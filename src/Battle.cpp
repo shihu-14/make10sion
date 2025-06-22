@@ -43,9 +43,10 @@ Battle::Battle(const InitData& init)
 		Deck_yama.pop_back();
         Deck_table.back().SetStat(1); // 手札のステータスを1に設定
         // Edit here (座標)
-        Deck_table.back().SetPos(300+i*deck_width, 500); // 手札の位置を設定
-        m_tehuda_hantei.emplace_back(300+i*deck_width, 500, deck_width, 100); 
+        Deck_table.back().SetPos(300+i*50*deck_width, 600); // 手札の位置を設定
+        // m_tehuda_hantei.emplace_back(300+i*50*deck_width, 600, deck_width, 100); 
 	}
+    updateCardDrawEffect();
 }
 
 
@@ -407,7 +408,7 @@ void Battle::update()
 		updateCardDrawEffect();
 		break;
 	case BattleAnimationState::WinEffect:
-        if (false) // 最後の勝利か
+        if (getData().Layer >= 30) // 最後の勝利か
         {
             // ここで、勝利した敵を「倒した」状態にする
             changeScene(State::Result); // リザルト画面へ遷移
@@ -443,19 +444,19 @@ void Battle::drawDefault() const
     // 盤面の描画
     // 盤面の背景を描画
     // m_backgroundTexture.scaled(0.5).draw();
-    // プレイヤーのキャラクターを描画
     m_board.DrawBoard(0); 
-    m_myTexture.scaled(0.75).rotated(my_angle).draw(180, 110);
+    // プレイヤーのキャラクターを描画
+    m_myTexture.scaled(0.75).rotated(my_angle).draw(180, 250);
     // 敵の情報を描画
-    m_enemy.texture.scaled(enemy_scale).draw(1400, 240);
+    m_enemy.texture.scaled(enemy_scale).draw(1400, 350);
     // 山札のテクスチャを描画
     m_yamahudaTexture.scaled(0.8).rotated(yamahuda_angle).draw(50, 750);
     // 捨て札のテクスチャを描画
     m_sutehudaTexture.scaled(0.8).rotated(sutehuda_angle).draw(1560, 750);
     // =buttonのテクスチャを描画
     m_buttonTexture.scaled(0.75).draw(1300, 640); 
-    my_hpbar.draw(RectF{130, 580, 320, 20});
-    ene_hpbar.draw(RectF{1420, 580, 320, 20});
+    my_hpbar.draw(RectF{130, 680, 320, 20});
+    ene_hpbar.draw(RectF{1420, 680, 320, 20});
 }
 
 // 戦闘演出の描画

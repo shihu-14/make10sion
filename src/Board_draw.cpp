@@ -32,11 +32,18 @@ void Board::BlockAnimation(Block moving_block, Point end_pos){//アニメーシ�
     }
 }
 
-void DrawAddPlaceBoard() {
+void Board::DrawAddPlaceBoard() {
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 7; j++) {
-            if (board_usage[i][j] = 0) {
-                board_img.drawAt(board_coordinate[i][j]);
+            if (board_usage[i][j] == 0) {
+                chosed_board_img.drawAt(board_coordinate[i][j]); continue;
+            }
+            else if (board_usase[i][j] == -1) {
+                board_img.drawAt(board_coordinate[i][j]); continue;
+            }
+            else if (board_usage[i][j] == -2) {
+                //ここにチカチカさせる条件分岐
+                chosable_board_img.drawAt(board_coordinate[i][j]); continue;
             }
         }
     }

@@ -64,7 +64,7 @@ void Battle::setupEnemy()
 // 山札の枚数を盤面の情報から求める関数
 int32 Battle::getTableSize() const
 {
-    return 6;
+    // return 6;
     return Min(deck_width, m_board.unlocked_num/2+2);
 }
 

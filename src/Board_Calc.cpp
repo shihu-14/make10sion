@@ -130,25 +130,21 @@ void Board::SetStat() {//ボードの操作状態を設定する
 
 void Board::ResetBoard() {
 	board_number.fill(0);
-	
 	num_on_board.clear();
 	result_of_calc.fill(0);
 	board_off_def = { 1,1,1,0,0,0 }; // 初期化: 攻撃側の行を1に設定
 	for (Block b : Deck_board) {
-		do_block_anim[b] = 2;
+		block_anim[b] = 2;
 	}
-	used_blocks.clear();
-	block_hand_pos.clear();
-	do_block_anim.clear();
 	board_effect_front = board_effect_back;
 	board_effect_back.fill(0);
+	
+
 }
 
 
 
 void Board::AddUsablePlace(){
-	if (! MouseL.down())return;
-	
 	int32 px = Cursor::Pos().x;
 	int32 py = Cursor::Pos().y;
 	//マスの中心同士を結んだ マス座標 に変換

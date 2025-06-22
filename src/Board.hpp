@@ -43,6 +43,7 @@ private:
 	void CalcRow();
 	void DrawBlock(Block block_on_board);
 	void BlockAnimation(Block moving_block, Point end_pos);
+	void DrawAddPlaceBoard();
 
 	double CalcDist(Point a, Point b);
 	

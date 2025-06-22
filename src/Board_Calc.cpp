@@ -92,7 +92,7 @@ void Board::CalcRow() {
 		if (function.length() > 0 && (function.back() == '+' || function.back() == '-' || function.back() == '*' || function.back() == '/')) {
 			function.pop_back();
 		}
-		 result_of_calc[i] = Eval(function);
+		if (function.size() != 0)result_of_calc[i] = Eval(function);
 	}
 }
 

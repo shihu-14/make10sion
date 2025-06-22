@@ -450,9 +450,9 @@ void Battle::drawDefault() const
     // 山札のテクスチャを描画
     m_yamahudaTexture.scaled(0.75).rotated(yamahuda_angle).draw(50, 800);
     // 捨て札のテクスチャを描画
-    m_sutehudaTexture.scaled(0.6).rotated(sutehuda_angle).draw(1600, 980);
+    m_sutehudaTexture.scaled(0.6).rotated(sutehuda_angle).draw(1600, 850);
     // =buttonのテクスチャを描画
-    m_buttonTexture.scaled(0.65).draw(1570, 800); 
+    m_buttonTexture.scaled(0.7).draw(1580, 750); 
     my_hpbar.draw(RectF{130, 680, 320, 20});
     ene_hpbar.draw(RectF{1420, 680, 320, 20});
 }

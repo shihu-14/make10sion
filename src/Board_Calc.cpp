@@ -135,12 +135,16 @@ void Board::ResetBoard() {
 	board_number.fill(0);
 	num_on_board.clear();
 	result_of_calc.fill(0);
-	board_off_def = { 1,1,1,0,0,0 }; // 初期化: 攻撃側の行を1に設定
-	for (Block b : Deck_board) {
-		block_anim[b] = 2;
+	board_off_def.fill(0); // 初期化: 攻撃側の行を1に設定
+	for (int i = 0; i < 3; i++) {
+		board_off_def[i] = 1;
+	}
+	for (int i = 0; block_anim.size(); i++) {
+		block_anim[i] = 2;
 	}
 	board_effect_front = board_effect_back;
 	board_effect_back.fill(0);
+	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };//ココ編集
 }
 
 

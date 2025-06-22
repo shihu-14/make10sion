@@ -2,7 +2,7 @@
 # include <Siv3D.hpp>
 # include <vector>
 # include "Block.hpp"
-//# include "Board.hpp"
+# include "Board.hpp"
 
 // シーンの名前
 enum class State
@@ -10,19 +10,54 @@ enum class State
 	Title,
 	Battle,
 	Map,
-	Result
+	Result,
+	Shop,
+	Event
+};
+
+// マップのポイントタイプ
+enum class MapPointType {
+	Boss,
+	Elite,
+	Event,
+	Shop,
+	Enemy,
+	Treasure,
+	None,
+};
+// マップのノードデータ
+struct Node {
+	MapPointType type = MapPointType::None;
+	bool isVisited = false;
+	int NextLayerIndex = 0; // 次の層のインデックス (1:上層, 2:中層, 4:下層)
 };
 
 // 共有するデータ
 struct GameData
 {
-	std::vector<Block> Deck;
+	std::vector<Block> Deck = {
+		Block("2\n3"),
+		Block("2\n3"),
+		Block("3\n2"),
+		Block("3\n2"),
+		Block("2\n3"),
+		Block("q\nj"),
+		Block("+\n+"),
+		Block("+\n+"),
+		Block("+\n+"),
+		Block("+\n*"),
+		Block("+\n*")
+	};
 	int Layer = 0;
+	int Index = 1; // 現在のマップのインデックス
 	int HP = 80;
 	int MaxHP = 80;
-	int money = 0;
+	int money = 100;
 	//Board board;
 	long long status = 0; // 状態
+
+	// Map Data
+	std::vector<std::vector<Node>> selected_nodes;
 
 	//Shop のカードデータ
 	// 通常カード

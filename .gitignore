@@ -395,7 +395,6 @@ gmon.out
 .vscode/
 *.PVS-Studio.stacktrace.txt
 *.code-workspace
-*.vcxproj
 *.vcxproj.filters
 
 
@@ -422,3 +421,5 @@ build/
 empty.xcodeproj/
 icon.icns
 info.plist
+25spring-26/25spring-26.vcxproj
+25spring-26/25spring-26.vcxproj.filters

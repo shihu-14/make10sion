@@ -442,7 +442,7 @@ void Battle::drawDefault() const
 {
     // 盤面の描画
     // 盤面の背景を描画
-    m_backgroundTexture.scaled(0.5).draw();
+    // m_backgroundTexture.scaled(0.5).draw();
     // プレイヤーのキャラクターを描画
     m_board.DrawBoard(0); 
     m_myTexture.scaled(0.75).rotated(my_angle).draw(180, 110);
@@ -498,6 +498,7 @@ void Battle::drawCardDrawEffect() const
 
 void Battle::draw() const
 {
+    m_backgroundTexture.scaled(0.5).draw();
     m_banner.draw();
     if (is_deck) return;
 	// ... (背景や手札、山札などの基本描画)

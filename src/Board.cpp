@@ -79,9 +79,13 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 			}
 		}
 		for (int i = 0; i < 3; i++) {
+			Point num = board_coordinate[i][6];
+			num.x += 50;
 			font(result_of_calc[i]).drawAt(45, board_coordinate[i][6], ColorF{ 1.0, 0.2, 0.2});
 		}
 		for (int i = 3; i < 6; i++) {
+			Point num = board_coordinate[i][6];
+			num.x += 50;
 			font(result_of_calc[i]).drawAt(45, board_coordinate[i][6], ColorF{ 0.2, 0.2, 1.0 });
 		}
 	}

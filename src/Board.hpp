@@ -83,7 +83,7 @@ public:
 	void DrawBoard(int32 idx) const;
 	void SetStat();
 	std::pair<int32, int32> Confirm();
-	void PassBlock(const Block& selectedBlock, const Point hand_pos);
+	void PassBlock(Block& selectedBlock, const Point hand_pos);
 };
 
 #endif

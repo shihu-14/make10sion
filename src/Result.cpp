@@ -2,9 +2,9 @@
 using namespace std;
 
 Result::Result(const InitData& init) : IScene(init),
-retry_rect(Arg::center = Vec2(Scene::Center().x + 20, Scene::Height() - 450), 420, 100, 20),
+retry_rect(Arg::center = Vec2(Scene::Center().x - 400, Scene::Height() - 450), 420, 100, 20),
 // 左下寄りボタン
-title_rect(Arg::center = Vec2(Scene::Center().x + 20, Scene::Height() - 450), 420, 100, 20)
+title_rect(Arg::center = Vec2(Scene::Center().x +450, Scene::Height() - 300), 200, 200, 20)
 // 右下寄りボタン
 {
 	Scene::SetBackground(Palette::White);
@@ -17,7 +17,12 @@ title_rect(Arg::center = Vec2(Scene::Center().x + 20, Scene::Height() - 450), 42
 
 
 void Result::update(){
-	font(U"Clear!\n \n Score:{}"_fmt(score)).drawAt(200, Vec2{ Scene::Center().x,Scene::Center().y}, ColorF{0.2});
+    if (getData().Layer == 30)
+    {
+        font(U"Clear!\n \n Score:{}"_fmt(score)).drawAt(200, Vec2{ Scene::Center().x,Scene::Center().y }, ColorF{ 0.2 });
+    }else{
+		font(U"Game Over\n \n Score:{}"_fmt(score)).drawAt(200, Vec2{ Scene::Center().x,Scene::Center().y }, ColorF{ 0.2 });
+	}
     if (retry_rect.mouseOver())
     {
         Cursor::RequestStyle(CursorStyle::Hand);
@@ -37,8 +42,8 @@ void Result::update(){
 }
 
 void Result::draw() const{
-    title_back.draw(300, 700);
-	retry.scaled(0.5).draw(1500,700);
+    title_back.draw(title_rect.center());
+	retry.scaled(0.5).draw(retry_rect.center());
 	
 }
 

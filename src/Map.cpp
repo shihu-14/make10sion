@@ -512,10 +512,15 @@ void Map::draw() const {
 			}
 		}
 	}
-	//TODO:主人公ちゃんの描画
 	player_icon.drawAt(move_x + 200 + getData().Layer * 300, 420 + getData().Index * 265);
 
 	// バナーの描画
 	banner.draw();
+}
+
+void Map::drawFadeOut(double t) const {
+	draw();
+	const double progress = EaseInOutExpo(t);
+	loading_icon.draw(-1920 * Math::Lerp(1.0, 0.0, progress), 0);
 }
 

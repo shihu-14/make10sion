@@ -273,5 +273,9 @@ void Shop::drawFadeIn(double t) const {
 
     // バナーの描画
     banner.draw();
+    if (t <= 0.5) {
+        const double progress = EaseInOutExpo(t * 2.0);
+        loading_icon.draw(1920 * Math::Lerp(0.0, 1.0, progress), 0);
+    }
 }
 #undef money_check

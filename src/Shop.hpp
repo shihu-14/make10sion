@@ -36,6 +36,7 @@ private:
 	const Texture price_img{ U"../../image/UI_money.png" };
 	const Texture back_button_img{ U"../../image/back_button_deck0.png" };
 	const Texture background_img{ U"../../image/UI_shop.png" };
+	const Texture loading_icon{ U"../../image/gamenseni_loadtyuu.png" };
 
 	const Font fontBitMap{ 48 };
 public:

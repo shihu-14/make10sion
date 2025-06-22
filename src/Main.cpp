@@ -32,7 +32,7 @@ void Main()
 
 	//XXX:debug用
 	//開始シーンを指定する
-	manager.init(State::Map);
+	manager.init(State::Title);
 
 	while (System::Update() && manager.update()) {};
 }

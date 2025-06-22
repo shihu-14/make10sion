@@ -16,6 +16,10 @@ private:
 	Texture m_startButtonTexture2;// スタートボタンのテクスチャ
 	Texture m_endButtonTexture;
 	Texture m_endButtonTexture2; // 終了ボタンのテクスチャ
+	bool go_to_map = false; // マップシーンに移動するかどうかのフラグ
+	int timer = 0; // タイマー
+
+	std::vector<Texture> fadeTextures; // フェード用のテクスチャ
 public:
 	Title(const InitData& init);
 	//Write public functions here.

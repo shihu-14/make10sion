@@ -4,7 +4,7 @@
 using namespace std;
 
 //public function
-void Board::DrawBoard(){//Boardの描画のみ
+void Board::DrawOnlyBoard(){//Boardの描画のみ
 
     for(int i=0;i<6;i++){
         for(int j=0;j<7;j++){
@@ -57,4 +57,8 @@ void Board::DrawAddPlaceBoard() {
             }
         }
     }
+    //枠の描画
+	int32 center_x = offset.x + cell_size*3.5;
+	int32 center_y = offset.y + cell_size*3;
+	board_frame_img.drawAt(Point{center_x, center_y});
 }

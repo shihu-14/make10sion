@@ -52,8 +52,16 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 		DoRelic(relics);
 		relics_old = relics;
 
-		//以下、描画処理
-		DrawBoard();//Boardの描画
+	}
+	else if(idx == 1){
+		DrawAddPlaceBoard();
+		if(MouseL.down())AddUsablePlace();
+	}
+}
+
+void Board::DrawBoard(int32 idx){//idx : 0:バトル中, 1:リザルト(マス解放時)
+	if (idx == 0) {
+		DrawOnlyBoard();//Boardの描画
 
 		for (int i = 0; i < used_blocks.size(); i++) {//ボードに配置されているブロック
 			if (block_anim[i] == 0) {

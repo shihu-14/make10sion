@@ -515,7 +515,7 @@ void Battle::draw() const
 		break;
 	case BattleAnimationState::WinEffect:
 		// TODO: 勝利演出の描画
-		drawWinEffect();
+		// drawWinEffect();
 		break;
 	}
 }

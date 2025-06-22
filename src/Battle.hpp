@@ -130,7 +130,7 @@ public:
 	
 	Battle(const InitData& init);
 		
-	~Battle(); 
+	// ~Battle(); 
 	
 	void update() override;
 	

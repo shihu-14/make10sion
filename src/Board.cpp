@@ -96,4 +96,7 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 	else if(idx == 1){
 		DrawAddPlaceBoard();
 	}
+	else{//臨時で追加してみる
+		DrawOnlyBoard();
+	}
 }

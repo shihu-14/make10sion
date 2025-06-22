@@ -42,6 +42,7 @@ private:
 	int32 ene_attack = 0; 
 	int32 ene_defense = 0;
 	int32 ene_real_attack = 0;
+	int32 global_id = 0;
 
 
 	enum class BattleAnimationState

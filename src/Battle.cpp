@@ -32,20 +32,20 @@ Battle::Battle(const InitData& init)
 	setupEnemy();
 	// --- デッキの初期化 ---
 	// GameDataからマスターデッキを取得し、バトル用の山札にコピー
-	Deck = getData().Deck; 
-    Deck_yama = Deck;
-	Deck_yama.shuffle();
+	// Deck = getData().Deck; 
+    // Deck_yama = Deck;
+	// Deck_yama.shuffle();
     // Print << U"{}"_fmt(table_size);
 	// // 最初の手札をセットアップ
-	for (int i = 0; i < table_size; ++i)
-	{
-		if (Deck_yama.isEmpty()) break;
-		Deck_table.push_back(Deck_yama.back());
-		Deck_yama.pop_back();
-        Deck_table.back().SetStat(1); // 手札のステータスを1に設定
-        // Edit here (座標)
-        Deck_table.back().SetPos(300+i*50, 600); // 手札の位置を設定
-	}
+	// for (int i = 0; i < table_size; ++i)
+	// {
+		// if (Deck_yama.isEmpty()) break;
+		// Deck_table.push_back(Deck_yama.back());
+		// Deck_yama.pop_back();
+        // Deck_table.back().SetStat(1); // 手札のステータスを1に設定
+        // // Edit here (座標)
+        // Deck_table.back().SetPos(300+i*50, 600); // 手札の位置を設定
+	// }
     for (int i = 0; i < 15; ++i){
         m_tehuda_hantei.emplace_back(300+i*30, 1000, 15, 100); 
     }
@@ -266,8 +266,8 @@ void Battle::updateDiscardEffect()
             if (tehuda_rate > 0.99)
             {
                 // 捨て札に移動したから、stateを変更。Deck_gomiに追加する
-                Deck_gomi.emplace_back(Deck_table[table_id]); // 手札のブロックを捨て札に移動
-                Deck_table[table_id].SetStat(-1); // ブロックのステータスを捨て札に設定
+                // Deck_gomi.emplace_back(Deck_table[table_id]); // 手札のブロックを捨て札に移動
+                getData().Deck[table_id].SetStat(-1); // ブロックのステータスを捨て札に設定
                 table_id--;
                 m_animeStopwatch.reset(); // ストップウォッチをリセット
                 tehuda_rate = 0; // 捨て札の位置を固定
@@ -280,11 +280,11 @@ void Battle::updateDiscardEffect()
         return;
     }
     // 1. Boardクラスの公開されているブロック配列から直接、捨て札に追加する
-    for (auto& block : Deck_board)
-    {
-        block.SetStat(-1); // ブロックのステータスを捨て札に設定
-        Deck_gomi.push_back(block);
-    }
+    // for (auto& block : Deck_board)
+    // {
+    //     block.SetStat(-1); // ブロックのステータスを捨て札に設定
+    //     // Deck_gomi.push_back(block);
+    // }
     // Boardに盤面をクリアするよう指示する
     // m_board.clearBoard();
     // for (auto& block : Deck_table)
@@ -293,7 +293,7 @@ void Battle::updateDiscardEffect()
     //     block.SetStat(-1); // ブロックのステータスを捨て札に設定
     //     Deck_gomi.push_back(block);
     // }
-    Deck_table.clear();
+    // Deck_table.clear();
     // (敗北判定もここで行う)
     
     // 3. 次の状態（カードドロー）へ遷移する準備
@@ -309,19 +309,19 @@ void Battle::updateDiscardEffect()
 void Battle::updateCardDrawEffect()
 {
     // 手札を補充する枚数だけ、山札からアニメーションリストへ移す
-    for (int i = 0; i < table_size; ++i)
+    for (int32 i = global_id; i < table_size; ++i)
     {
         // 山札が空なら、捨て札をシャッフルして戻す (reshuffle関数があるとより良い)
-        if (Deck_yama.empty()) break;
+        if (i >= getData().Deck.size()) break;
         // 山札からカードを1枚引く
-        Block card = Deck_yama.back();
-        Deck_yama.pop_back(); // 山札から削除
-        Deck_table.push_back(card); // 手札に追加
-        Deck_table.back().SetStat(1); // 手札のステータスを1に設定
-        Deck_table.back().SetPos(300 + i*15, 700); //
+        // Block card = Deck_yama.back();
+        // Deck_yama.pop_back(); // 山札から削除
+        // Deck_table.push_back(card); // 手札に追加
+        // Deck_table.back().SetStat(1); // 手札のステータスを1に設定
+        // Deck_table.back().SetPos(300 + i*15, 700); //
     }
 
-    if (table_id < Deck_table.size())
+    if (table_id < 5)
 	{
         if (yamahuda_angle < 90_deg)
         {
@@ -334,7 +334,7 @@ void Battle::updateCardDrawEffect()
             if (tehuda_rate > 0.99)
             {
                 // 捨て札に移動したから、stateを変更。Deck_gomiに追加する
-                Deck_table[table_id].SetStat(1); // ブロックのステータスを捨て札に設定
+                getData().Deck[table_id].SetStat(1); // ブロックのステータスを捨て札に設定
                 table_id++;
                 m_animeStopwatch.reset(); // ストップウォッチをリセット
                 tehuda_rate = 0; // 捨て札の位置を固定
@@ -378,7 +378,7 @@ void Battle::update()
     //     m_deck.draw();
     //     return;
     // }
-    for (int i = 0; i < Deck_table.size(); ++i)
+    for (int i = 0; i < 6; ++i)
     {
         if (m_tehuda_hantei[i].leftClicked() && !board_locked)
         {
@@ -434,7 +434,7 @@ void Battle::update()
 // 手札の描画
 void Battle::drawTableDeck() const
 {
-    for (const auto& block: Deck)
+    for (const auto& block: getData().Deck)
     {
         // Print << U"ブロックの状態: {}"_fmt(block.GetStat()); // デバッグ
         if (block.GetStat() == 1) // 手札の状態

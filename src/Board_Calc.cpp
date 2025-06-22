@@ -144,7 +144,7 @@ void Board::Discard() {
 	}
 	board_effect_front = board_effect_back;
 	board_effect_back.fill(0);
-	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };//ココ編集
+	board_multiply_effect.fill(0);//ココ編集
 }
 
 

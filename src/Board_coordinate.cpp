@@ -139,7 +139,7 @@ void Board::DoRelic(vector<int32> relics){ //cf.) md
 
     do_armor_raise = (relics[15] == 1);
 
-    if(relics[16]-relics_old[16] > 0){
+    if(relics[16] > relics_old[16]){
         add_damage_by_cards = relics[16];
     }
 }

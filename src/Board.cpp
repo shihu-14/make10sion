@@ -46,11 +46,6 @@ void Board::Update(int32 idx){//idx : 0:バトル中, 1:リザルト(マス解�
 
 		Array<Block> Deck_board;//Deck_boardがprivateになっているので、publicにしてもらうまで暫定的に
 
-		//以下、描画処理
-		DrawBoard();//Boardの描画
-
-		Array<Block> Deck_board;//Deck_boardがprivateになっているので、publicにしてもらうまで暫定的に
-
         for(int i=0;i<used_blocks.size();i++){//ボードに配置されているブロック
             if(block_anim[i] == 0){
                 used_blocks[i].Draw(used_blocks[i].GetPos(), 1.0, 0.0, 1.0);
@@ -77,5 +72,16 @@ void Board::Update(int32 idx){//idx : 0:バトル中, 1:リザルト(マス解�
 
 	else if(idx == 1){
 		//リザルト(マス解放)
+		DrawBoard();
+		for (int i = 0; i < 6; i++) {
+			for (int j = 0; j < 7; j++) {
+				if (board_usage[i][j] >= 0) {
+					board_img.drawAt(board_coordinate[i][j]);
+				}
+			}
+		}
+		if (MouseL.down())AddUsablePlace();
+
+
 	}
 }

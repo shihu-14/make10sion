@@ -45,6 +45,9 @@ Battle::Battle(const InitData& init)
         // // Edit here (座標)
         // Deck_table.back().SetPos(300+i*50, 600); // 手札の位置を設定
 	// }
+    for (int i = 0; i < 6; ++i){
+        getData().Deck[i].SetStat(1);
+    }
     for (int i = 0; i < 15; ++i){
         m_tehuda_hantei.emplace_back(300+i*30, 1000, 15, 100); 
     }
@@ -390,6 +393,7 @@ void Battle::update()
     ene_hpbar.update(0.1);
     m_board.Update(is_result, getData().leric.getLeric());
     m_banner.update(getData().Deck);
+    return; // for debug
     // 現在の状態で処理を分岐
 	switch (m_currentAnimState)
 	{
@@ -435,7 +439,7 @@ void Battle::drawTableDeck() const
 {
     for (const auto& block: getData().Deck)
     {
-        Print << U"ブロックの状態: {}"_fmt(block.GetStat()); // デバッグ
+        // Print << U"ブロックの状態: {}"_fmt(block.GetStat()); // デバッグ
         if (block.GetStat() == 1) // 手札の状態
         {
             // Print << U"手札のブロックを描画"; // デバッグ
@@ -511,6 +515,7 @@ void Battle::draw() const
 	// ... (背景や手札、山札などの基本描画)
     drawDefault();
     drawTableDeck();
+    return;
 	// 現在の状態で描画処理を分岐
 	switch (m_currentAnimState)
 	{

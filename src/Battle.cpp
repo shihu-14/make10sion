@@ -13,7 +13,7 @@ Battle::Battle(const InitData& init)
     deck_width(15), // ターン数を初期化
     table_size(getTableSize()), // 手札のサイズを取得
     table_id(0), 
-    m_currentAnimState(BattleAnimationState::CardDrawEffect) // アニメーション状態を初期化
+    m_currentAnimState(BattleAnimationState::Idle) // アニメーション状態を初期化
 {
     m_backgroundTexture = Texture(U"../../image/haikei_sentou.png"); // 背景画像のパスを指定
     m_myTexture = Texture(U"../../image/chara_player.png"); // 自分のカードのテクスチャ
@@ -36,20 +36,19 @@ Battle::Battle(const InitData& init)
 	Deck_yama.shuffle();
     // Print << U"{}"_fmt(table_size);
 	// // 最初の手札をセットアップ
-	// for (int i = 0; i < table_size; ++i)
-	// {
-	// 	if (Deck_yama.isEmpty()) break;
-	// 	Deck_table.push_back(Deck_yama.back());
-	// 	Deck_yama.pop_back();
-    //     Deck_table.back().SetStat(1); // 手札のステータスを1に設定
-    //     // Edit here (座標)
-    //     Deck_table.back().SetPos(300+i*50*deck_width, 600); // 手札の位置を設定
-	// }
+	for (int i = 0; i < table_size; ++i)
+	{
+		if (Deck_yama.isEmpty()) break;
+		Deck_table.push_back(Deck_yama.back());
+		Deck_yama.pop_back();
+        Deck_table.back().SetStat(1); // 手札のステータスを1に設定
+        // Edit here (座標)
+        Deck_table.back().SetPos(300+i*50, 600); // 手札の位置を設定
+	}
     for (int i = 0; i < 15; ++i){
-        m_tehuda_hantei.emplace_back(300+i*30*15, 700, 15, 100); 
+        m_tehuda_hantei.emplace_back(300+i*30, 1000, 15, 100); 
     }
-
-    updateCardDrawEffect();
+    // updateCardDrawEffect();
 }
 
 
@@ -318,8 +317,9 @@ void Battle::updateCardDrawEffect()
         Deck_yama.pop_back(); // 山札から削除
         Deck_table.push_back(card); // 手札に追加
         Deck_table.back().SetStat(1); // 手札のステータスを1に設定
-        Deck_table.back().SetPos(300 + (i*30)*15, 700); //
+        Deck_table.back().SetPos(300 + i*15, 700); //
     }
+
     if (table_id < Deck_table.size())
 	{
         if (yamahuda_angle < 90_deg)
@@ -346,7 +346,7 @@ void Battle::updateCardDrawEffect()
         yamahuda_angle -= Scene::DeltaTime()*5.5; // 山札の角度を徐々に戻す
         return;
     }
-    // m_board.InitAll();
+    m_board.InitAll();
     m_currentAnimState = BattleAnimationState::Idle;
     m_animeStopwatch.reset(); // ストップウォッチをリセット
     board_locked = false; // 盤面の操作をアンロック
@@ -437,7 +437,7 @@ void Battle::drawTableDeck() const
     {
         if (block.GetStat() == 1) // 手札の状態
         {
-            // Print << U"手札のブロックを描画"; // デバッグ
+            Print << U"手札のブロックを描画"; // デバッグ
             auto [x, y] = block.GetPos(); // ブロックの位置を取得
             block.Draw({x, y}); // BlockクラスにDrawメソッドがあると仮定
         }

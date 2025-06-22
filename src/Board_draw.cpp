@@ -11,6 +11,18 @@ void Board::DrawOnlyBoard() const {//Boardの描画のみ
             if(board_usage[i][j] >= 0){
                 board_img.scaled(img_scale).drawAt(board_coordinate[i][j]);
             }
+            if (board_effect_front[i][j] == 1) {
+                font(U"+1").drawAt(60, board_coordinate[i][j], ColorF{ 0.2 });
+            }
+            else if (board_effect_front[i][j] == 2) {
+                font(U"+2").drawAt(60, board_coordinate[i][j], ColorF{ 0.2 });
+            }
+            else if (board_effect_front[i][j] == 4) {
+                font(U"+4").drawAt(60, board_coordinate[i][j], ColorF{ 0.2 });
+            }
+            else if (board_effect_front[i][j] == 5) {
+                font(U"+5").drawAt(60, board_coordinate[i][j], ColorF{ 0.2 });
+            }
         }
     }
 

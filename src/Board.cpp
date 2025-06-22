@@ -13,6 +13,8 @@ Board::Board() :
 	
 }
 
+const Font font{ FontMethod::MSDF, 48, Typeface::Bold };
+
 //InitBoardCoordinate()は別で、ターン開始時に呼び出してもらう
 
 
@@ -46,6 +48,8 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 		DoRelic(relics);
 		relics_old = relics;
 
+		std::pair<int,int> 
+
 		//以下、描画処理
 		DrawBoard();//Boardの描画
 
@@ -72,6 +76,12 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 			if (block_anim[i] == 3) {
 				used_blocks[i].Draw(used_blocks[i].GetPos(), 1.0, 0.0, 1.0);
 			}
+		}
+		for (int i = 0; i < 3; i++) {
+			font(result_of_calc[i]).drawAt(45, board_coordinate[i][6], ColorF{ 1.0, 0.2, 0.2});
+		}
+		for (int i = 3; i < 6; i++) {
+			font(result_of_calc[i]).drawAt(45, board_coordinate[i][6], ColorF{ 0.2, 0.2, 1.0 });
 		}
 	}
 		//

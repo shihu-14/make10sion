@@ -4,6 +4,7 @@
 using namespace std;
 
 
+
 //public function
 void Board::DrawBoard(){//Boardの描画のみ
 	//枠の描画

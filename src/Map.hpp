@@ -24,6 +24,10 @@ class Map : public App::Scene {
 	Texture treasure_icon = Texture{ U"../../image/map_treasure.png" };
 	Texture treasure_icon_1 = Texture{ U"../../image/map_treasure_1.png" };
 	Texture arrow_icon = Texture{ U"../../image/map_arrow.png" };
+
+	Texture player_icon = Texture{ U"../../image/map_player.png" };
+
+	Texture loading_icon = Texture{ U"../../image/gamenseni_loadtyuu.png" };
 	
 	//Map情報
 	std::vector<std::vector<Node>> map_nodes; // 各地点の情報を保持するノードの配列
@@ -42,6 +46,7 @@ public:
 
 	void update() override;
 	void draw() const override;
+	void drawFadeOut(double t) const override;
 };
 
 #endif // MAP_HPP

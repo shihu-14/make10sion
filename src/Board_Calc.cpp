@@ -111,9 +111,9 @@ std::pair<int, int> Board::Confirm() {
 			defense = result_of_calc[i];  
 		}
 	}
-	attack += add_damege_by_cards*;
+	attack += add_damage_by_cards* used_blocks.size();
 	if (do_armor_raise) {
-		if (defence < 6)defence = 6;
+		if (defense < 6)defense = 6;
 	}
 	return { attack, defense };
 }  

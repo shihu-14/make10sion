@@ -30,10 +30,10 @@ private:
 	bool is_block_selected = false;
 	int32 blockNum;
 	Block block;
-	const Point offset = {100,100};//Boardの左上の絶対座標(バトル時)
+	const Point offset = {300,80};//Boardの左上の絶対座標(バトル時)
 	const Point offset_u = {0,0};//Boardの左上の絶対座標(アンロック時)(使わないかも)
-	const int32 cell_size = 100;
-	const int32 img_scale = 4;
+	const int32 img_scale = 2;
+	const int32 cell_size = 50 * img_scale;
 	const Texture board_img{U"../../image/banmen_kuuhaku.png"};
 	const Texture chosed_board_img{ U"../../image/special_n.png" };
 	const Texture chosable_board_img{ U"../../image/tile_kokodayo.png" };

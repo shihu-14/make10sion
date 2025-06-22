@@ -1,7 +1,6 @@
 ﻿	#include "../src/Board.hpp"  
 #include "Block.hpp"
 #include "Board.hpp"
-#include "Battle.hpp"
 #include <Siv3D.hpp>
 
 void Board::CalcRow() {

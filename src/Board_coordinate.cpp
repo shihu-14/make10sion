@@ -77,10 +77,11 @@ void Board::PutBlock(){//blockがドロップされたら、配置/手札に戻�
         int32 newx = offset.x + putAt.x*cell_size + cell_size/2 + block.GetPiece(0,0).x;
         int32 newy = offset.y + putAt.y*cell_size + cell_size/2 + block.GetPiece(0,0).y;
         block.SetPos(newx, newy);
+        block_anim[blockNum] = 0;
     }
     else{
         block.SetStat(1);
-        do_block_anim[blockNum] = 1;
+        block_anim[blockNum] = 1;
     }
     is_block_selected = false;
 }
@@ -130,11 +131,11 @@ void Board::PassBlock(const Block& selectedBlock, const Point hand_pos) {//選�
         used_blocks.push_back(block);
         blockNum = used_blocks.size();//1-indexed
         block_hand_pos.push_back(hand_pos);//手札の位置を記録
-        do_block_anim.push_back(0); 
+        block_anim.push_back(3); 
     }
     else{
         blockNum = distance(used_blocks.begin(), itr) + 1;//1-indexed
-        do_block_anim[blockNum - 1] = 0;
+        block_anim[blockNum - 1] = 3;
     }
     is_block_selected = true;
 }

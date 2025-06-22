@@ -28,7 +28,7 @@ private:
 	const Texture board_img{U"../image/banmen_kuuhaku.png"};
 	Array<Block> used_blocks;//盤面に出てきたブロックの配列. blockNumは「このインデックス+1」とする
 	Array<Point> block_hand_pos;//各ブロックの手札上の位置を保存
-	Array<int32> block_anim;//-1:盤面上に無い, 0:ボード上, 1:手札へ, 2:捨札へ, 3:アニメーション無し
+	Array<int32> block_anim;//実質描画順	-1:盤面上に無い, 0:ボード上, 1:手札へ, 2:捨札へ, 3:アニメーション無し
 
 	//function
 	Point PutBlockAt();

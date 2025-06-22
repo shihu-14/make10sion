@@ -33,6 +33,7 @@ Battle::Battle(const InitData& init)
 	// GameDataからマスターデッキを取得し、バトル用の山札にコピー
 	Deck_yama = getData().Deck;
 	Deck_yama.shuffle();
+    Print << U"{}"_fmt(table_size);
 	// // 最初の手札をセットアップ
 	// for (int i = 0; i < table_size; ++i)
 	// {
@@ -432,6 +433,7 @@ void Battle::drawTableDeck() const
     {
         if (block.GetStat() == 1) // 手札の状態
         {
+            Print << U"手札のブロックを描画"; // デバッグ
             auto [x, y] = block.GetPos(); // ブロックの位置を取得
             block.Draw({x, y}); // BlockクラスにDrawメソッドがあると仮定
         }

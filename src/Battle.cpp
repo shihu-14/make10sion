@@ -12,7 +12,7 @@ Battle::Battle(const InitData& init)
     num_turn(0), // ターン数を初期化
     deck_width(15), // ターン数を初期化
     table_size(getTableSize()), // 手札のサイズを取得
-    m_currentAnimState(BattleAnimationState::Idle) // アニメーション状態を初期化
+    m_currentAnimState(BattleAnimationState::CardDrawEffect) // アニメーション状態を初期化
 {
     m_backgroundTexture = Texture(U"../../image/haikei_sentou.png"); // 背景画像のパスを指定
     m_myTexture = Texture(U"../../image/chara_player.png"); // 自分のカードのテクスチャ

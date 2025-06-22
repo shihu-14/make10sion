@@ -35,17 +35,17 @@ Battle::Battle(const InitData& init)
 	Deck_yama = getData().Deck;
 	Deck_yama.shuffle();
 
-	// 最初の手札をセットアップ
-	for (int i = 0; i < table_size; ++i)
-	{
-		if (Deck_yama.isEmpty()) break;
-		Deck_table.push_back(Deck_yama.back());
-		Deck_yama.pop_back();
-        Deck_table.back().SetStat(1); // 手札のステータスを1に設定
-        // Edit here (座標)
-        Deck_table.back().SetPos(300+i*50*deck_width, 600); // 手札の位置を設定
-        // m_tehuda_hantei.emplace_back(300+i*50*deck_width, 600, deck_width, 100); 
-	}
+	// // 最初の手札をセットアップ
+	// for (int i = 0; i < table_size; ++i)
+	// {
+	// 	if (Deck_yama.isEmpty()) break;
+	// 	Deck_table.push_back(Deck_yama.back());
+	// 	Deck_yama.pop_back();
+    //     Deck_table.back().SetStat(1); // 手札のステータスを1に設定
+    //     // Edit here (座標)
+    //     Deck_table.back().SetPos(300+i*50*deck_width, 600); // 手札の位置を設定
+    //     // m_tehuda_hantei.emplace_back(300+i*50*deck_width, 600, deck_width, 100); 
+	// }
     updateCardDrawEffect();
 }
 

@@ -27,6 +27,8 @@ private:
 	const Point offset_u = {0,0};//Boardの左上の絶対座標(アンロック時)(使わないかも)
 	const int32 cell_size = 50;
 	const Texture board_img{U"../image/banmen_kuuhaku.png"};
+	const Texture chosed_board_img{ U"../image/special_n.png" };
+	const Texture chosable_board_img{ U"../image/tile_kokodayo.png" };
 	Array<Block> used_blocks;//盤面に出てきたブロックの配列. blockNumは「このインデックス+1」とする
 	Array<Point> block_hand_pos;//各ブロックの手札上の位置を保存
 	Array<int32> block_anim;//実質描画順	-1:盤面上に無い, 0:ボード上, 1:手札へ, 2:捨札へ, 3:アニメーション無し

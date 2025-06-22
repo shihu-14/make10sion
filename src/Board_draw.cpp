@@ -31,3 +31,13 @@ void Board::BlockAnimation(Block moving_block, Point end_pos){//アニメーシ�
         block_anim[idx] = -1;
     }
 }
+
+void DrawAddPlaceBoard() {
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < 7; j++) {
+            if (board_usage[i][j] = 0) {
+                board_img.drawAt(board_coordinate[i][j]);
+            }
+        }
+    }
+}

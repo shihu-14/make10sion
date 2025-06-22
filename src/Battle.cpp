@@ -33,7 +33,7 @@ Battle::Battle(const InitData& init)
 	// GameDataからマスターデッキを取得し、バトル用の山札にコピー
 	Deck_yama = getData().Deck;
 	Deck_yama.shuffle();
-    Print << U"{}"_fmt(table_size);
+    // Print << U"{}"_fmt(table_size);
 	// // 最初の手札をセットアップ
 	// for (int i = 0; i < table_size; ++i)
 	// {
@@ -66,7 +66,7 @@ void Battle::setupEnemy()
 int32 Battle::getTableSize() const
 {
     // return 6;
-    return Min(deck_width, m_board.unlocked_num/2+2);
+    return Min(15, m_board.unlocked_num/2+2);
 }
 
 // 盤面のデッキの状況をリアルタイムで監視する関数
@@ -314,7 +314,7 @@ void Battle::updateCardDrawEffect()
         Deck_yama.pop_back(); // 山札から削除
         Deck_table.push_back(card); // 手札に追加
         Deck_table.back().SetStat(1); // 手札のステータスを1に設定
-        Deck_table.back().SetPos(300 + i*deck_width, 500); //
+        Deck_table.back().SetPos(300 + (i*30)*15, 700); //
     }
     if (table_id < Deck_table.size())
 	{
@@ -342,7 +342,7 @@ void Battle::updateCardDrawEffect()
         yamahuda_angle -= Scene::DeltaTime()*5.5; // 山札の角度を徐々に戻す
         return;
     }
-    m_board.InitAll();
+    // m_board.InitAll();
     m_currentAnimState = BattleAnimationState::Idle;
     m_animeStopwatch.reset(); // ストップウォッチをリセット
     board_locked = false; // 盤面の操作をアンロック
@@ -433,7 +433,7 @@ void Battle::drawTableDeck() const
     {
         if (block.GetStat() == 1) // 手札の状態
         {
-            Print << U"手札のブロックを描画"; // デバッグ
+            // Print << U"手札のブロックを描画"; // デバッグ
             auto [x, y] = block.GetPos(); // ブロックの位置を取得
             block.Draw({x, y}); // BlockクラスにDrawメソッドがあると仮定
         }

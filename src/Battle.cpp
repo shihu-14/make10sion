@@ -359,7 +359,7 @@ void Battle::updateCardDrawEffect()
 void Battle::update()
 {
 
-    is_deck = m_deck.update();
+    is_deck = m_banner.update(getData().Deck);
     if (is_deck) return;
 	// 「=」ボタンの代わりのデバッグ操作
 	if (m_button_hantei.leftClicked() && !board_locked)
@@ -367,11 +367,11 @@ void Battle::update()
 		attack();
         return;
 	}
-    if (KeyS.down() && !board_locked)
-    {
-        m_deck.draw();
-        return;
-    }
+    // if (KeyS.down() && !board_locked)
+    // {
+    //     m_deck.draw();
+    //     return;
+    // }
     for (int i = 0; i < Deck_table.size(); ++i)
     {
         if (m_tehuda_hantei[i].leftClicked() && !board_locked)

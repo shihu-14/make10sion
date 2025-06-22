@@ -54,7 +54,7 @@ struct GameData
 	int HP = 80;
 	int MaxHP = 80;
 	int money = 100;
-	//Board board;
+	Board board;
 	long long status = 0; // 状態
 	int enemy = 0;
 	Leric leric; // レリック

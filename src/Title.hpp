@@ -10,7 +10,6 @@ private:
 	Font m_font;
 	RoundRect m_startButtonRect; // ボタンの矩形
 	RoundRect m_endButtonRect;
-	Audio m_titleBGM;
 	Audio m_buttonSE; // ボタン押下時の効果音
 	Texture m_titlelogo; // タイトルロゴのテクスチャ
 	Texture m_startButtonTexture;

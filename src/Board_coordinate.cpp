@@ -80,9 +80,9 @@ void Board::PutBlock(){//blockがドロップされたら、配置/手札に戻�
         block_anim[blockNum] = 0;
     }
     else{
-        block.SetStat(1);
         block_anim[blockNum] = 1;
     }
+
     is_block_selected = false;
 }
 
@@ -92,7 +92,7 @@ void Board::TakeOutBlock(Point pos){//クリックしたBlockをボードから�
     if(num > 0){
         for (int y=0;y<6;y++){
             for(int x=0;x<7;x++){
-                if(board_usage[y][x] == blockNum){
+                if(board_usage[y][x] == num){
                     board_usage[y][x] = 0;
                     if(board_number[y][x] < 100){//数字マスなら
                         auto itr = find(num_on_board.begin(), num_on_board.end(), board_number[y][x]);
@@ -104,9 +104,11 @@ void Board::TakeOutBlock(Point pos){//クリックしたBlockをボードから�
             }
         }
 
-        blockNum = num;
-        block = used_blocks[blockNum - 1];
         CalcRow();
+
+        block = used_blocks[num - 1];
+        blockNum = num;
+        is_block_selected = true;
     }
 }
 

@@ -139,7 +139,7 @@ void Board::Discard() {
 	for (int i = 0; i < off_count; i++) {
 		board_off_def[i] = 1;
 	}
-	for (int i = 0; block_anim.size(); i++) {
+	for (int i = 0; i < block_anim.size(); i++) {
 		block_anim[i] = 2;
 	}
 	board_effect_front = board_effect_back;

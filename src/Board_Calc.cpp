@@ -153,7 +153,7 @@ void Board::AddUsablePlace(){
 	//マスの中心同士を結んだ マス座標 に変換
 	int32 bx = (px - offset.x + cell_size / 2) / cell_size;
 	int32 by = (py - offset.y + cell_size / 2) / cell_size;
-
+	if (by < 0 || by >= 6 || bx < 0 || bx >= 7)return; //範囲外なら終了
 	if (board_usage[by][bx] != -2)return;
 
 	board_usage[by][bx] = 0;

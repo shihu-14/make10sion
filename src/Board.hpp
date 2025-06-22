@@ -18,6 +18,7 @@ private:
 	Grid<Point> board_coordinate;
 	Array<int32> num_on_board;
 	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };
+	Array<double> board_multiply_effect = { 0,0,0,0,0,0 };
 	Array<int32> board_off_def = { 1,1,1,0,0,0 };//攻1守0
 	Array<int32> result_of_calc= { 0,0,0,0,0,0 };
 	bool is_block_selected = false;

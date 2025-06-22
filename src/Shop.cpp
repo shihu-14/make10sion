@@ -3,7 +3,7 @@
 using namespace std;
 
 Shop::Shop(const InitData& init) : IScene(init) {
-    banner.init(getData().money, getData().Layer);
+    banner.init(getData().money, getData().Layer, getData().leric); // バナーの初期化
 
     normal_1 = getData().normal_cards[Random<int>(0, (int)getData().normal_cards.size() - 1)];
     normal_2 = getData().normal_cards[Random<int>(0, (int)getData().normal_cards.size() - 1)];
@@ -29,7 +29,7 @@ void Shop::update() {
                 //Shopのカードを更新
                 void_normal_1 = true;
                 normal_1_alpha = 0.8; // 売り切れ
-                banner.init(getData().money, getData().Layer);
+                banner.init(getData().money, getData().Layer, getData().leric);
             } else {
                 //TODO:効果音！！
             }
@@ -55,7 +55,7 @@ void Shop::update() {
                 //Shopのカードを更新
                 void_normal_2 = true;
                 normal_2_alpha = 0.8; // 売り切れ
-                banner.init(getData().money, getData().Layer);
+                banner.init(getData().money, getData().Layer, getData().leric);
             } else {
             }
             return;
@@ -80,7 +80,7 @@ void Shop::update() {
                 //Shopのカードを更新
                 void_uncommon = true;
                 uncommon_alpha = 0.8; // 売り切れ
-                banner.init(getData().money, getData().Layer);
+                banner.init(getData().money, getData().Layer, getData().leric);
             } else {
             }
             return;
@@ -104,7 +104,7 @@ void Shop::update() {
                 //Shopのカードを更新
                 void_rare = true;
                 rare_alpha = 0.8; // 売り切れ
-                banner.init(getData().money, getData().Layer);
+                banner.init(getData().money, getData().Layer, getData().leric);
             } else {
             }
             return;

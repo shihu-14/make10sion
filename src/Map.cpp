@@ -394,15 +394,15 @@ Map::Map(const InitData& init) :
 	}
 	};
 	//抽選スタート！
-	if (getData().Layer%10 == 0){
+	if (getData().Layer % 10 == 0) {
 		map_nodes = map_nodes_source[Random(0, 5)]; // 0から5の範囲でランダムに選択
 		getData().selected_nodes = map_nodes; // 選択されたノードを保存
-	}else{
+	} else {
 		map_nodes = getData().selected_nodes;
 	}
 	//Map生成完了！！
 
-	banner.init(getData().money, getData().Layer); // バナーの初期化
+	banner.init(getData().money, getData().Layer, getData().leric); // バナーの初期化
 }
 
 // update() メソッドの実装
@@ -492,8 +492,8 @@ void Map::draw() const {
 				continue; // Noneの場合は何もしない
 			}
 			{
-				double node_alpha = (getData().Layer%10 < i) ? 0.0 : 0.6; // 現在の層より上の層は半透明
-				if ((node_alpha == 0.6) && (getData().Layer%10 == i) && (getData().Index == j)) {
+				double node_alpha = (getData().Layer % 10 < i) ? 0.0 : 0.6; // 現在の層より上の層は半透明
+				if ((node_alpha == 0.6) && (getData().Layer % 10 == i) && (getData().Index == j)) {
 					node_alpha = 0.0;
 				}
 				const ScopedColorMul2D colorMul{ ColorF{ 1.0 - node_alpha, 1.0 - node_alpha, 1.0 - node_alpha } };

@@ -1,9 +1,10 @@
 #include "Banner.hpp"
 using namespace std;
 
-void Banner::init(int global_money, int global_floor) {
+void Banner::init(int global_money, int global_floor, Leric& global_leric) {
     money = global_money;
     floor = global_floor;
+    leric = global_leric; // レリックの初期化
 }
 
 bool Banner::update(vector<Block>& deck_data) {
@@ -42,7 +43,7 @@ void Banner::draw() const {
         deck.draw(); // デッキの描画
     banner_img.draw(0, 0);
     floor_img.scaled(0.5).draw(0, 0);
-    money_img.draw(500, 20);
+    money_img.draw(200, 20);
     if (!deck_mode) {
         {
             const ScopedColorMul2D colorMul{ ColorF{ 1.0 - deck_alpha, 1.0 - deck_alpha, 1.0 - deck_alpha } };
@@ -52,7 +53,8 @@ void Banner::draw() const {
     }
     setting_img.scaled(0.5).draw(1720, 0, ColorF{ 1.0, 1.0 });
     RectF{ 1720, 0, 150, 150 }.draw(ColorF{ 0.0, 0.0, 0.0, setting_alpha });
-    fontBitMap(money).draw(610, 35, ColorF{ 1.0, 1.0, 1.0 });
+    fontBitMap(money).draw(310, 35, ColorF{ 1.0, 1.0, 1.0 });
     fontBitMap2(floor).drawAt(65, 65, ColorF{ 0.0, 0.0, 0.0 });
+    leric.draw(); // レリックの描画
 }
 

@@ -28,10 +28,11 @@ private:
 	const Point offset = {0,0};//Boardの左上の絶対座標(バトル時)
 	const Point offset_u = {0,0};//Boardの左上の絶対座標(アンロック時)(使わないかも)
 	const int32 cell_size = 50;
-	const Texture board_img{U"../image/banmen_kuuhaku.png"};
-	const Texture chosed_board_img{ U"../image/special_n.png" };
-	const Texture chosable_board_img{ U"../image/tile_kokodayo.png" };
-	const Texture board_frame_img{ U"../image/tile_frame.png" };
+	const Texture board_img{U"../../image/banmen_kuuhaku.png"};
+	const Texture chosed_board_img{ U"../../image/special_n.png" };
+	const Texture chosable_board_img{ U"../../image/tile_kokodayo.png" };
+	const Texture board_frame_img{ U"../../image/tile_frame.png" };
+	const Font font{ FontMethod::MSDF, 48, Typeface::Bold };
 	Array<Block> used_blocks;//盤面に出てきたブロックの配列. blockNumは「このインデックス+1」とする
 	Array<Point> block_hand_pos;//各ブロックの手札上の位置を保存
 	Array<int32> block_anim;//実質描画順	-1:盤面上に無い, 0:ボード上, 1:手札へ, 2:捨札へ, 3:アニメーション無し
@@ -51,6 +52,7 @@ private:
 	void TakeOutBlock(Point pos);
 	void AddUsablePlace();
 	void CalcRow();
+	void DrawOnlyBoard();
 	void DrawBlock(Block block_on_board);
 	void BlockAnimation(Block moving_block, Point end_pos, int32 anim_num);
 	void DrawAddPlaceBoard();
@@ -72,10 +74,10 @@ public:
 	void InitAll();
 	void Discard();
 	void Update(int32 idx, std::vector<int32> relics);
+	void DrawBoard(int32 idx);
 	void SetStat();
 	std::pair<int32, int32> Confirm();
 	void PassBlock(const Block& selectedBlock, const Point hand_pos);
-	void DrawBoard();
 };
 
 #endif

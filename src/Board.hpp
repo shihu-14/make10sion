@@ -52,6 +52,7 @@ private:
 	void TakeOutBlock(Point pos);
 	void AddUsablePlace();
 	void CalcRow();
+	void DrawBoard();
 	void DrawBlock(Block block_on_board);
 	void BlockAnimation(Block moving_block, Point end_pos, int32 anim_num);
 	void DrawAddPlaceBoard();
@@ -76,7 +77,6 @@ public:
 	void SetStat();
 	std::pair<int32, int32> Confirm();
 	void PassBlock(const Block& selectedBlock, const Point hand_pos);
-	void DrawBoard();
 };
 
 #endif

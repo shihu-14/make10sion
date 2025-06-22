@@ -1,4 +1,4 @@
-﻿#include "../src/Board.hpp"  
+﻿	#include "../src/Board.hpp"  
 #include "Block.hpp"
 #include "Board.hpp"
 #include "Battle.hpp"
@@ -106,9 +106,9 @@ std::pair<int, int> Board::Confirm() {
 	int attack, defense;
 	for (int i = 0; i < 6; i++) {
 		if (board_off_def[i] == 1) { //攻撃側の行  
-			attack = result_of_calc[i];  
+			attack += result_of_calc[i] * (board_multiply[i] + board_multiply_effect[i]);
 		} else if (board_off_def[i] == 0) { //防御側の行  
-			defense = result_of_calc[i];  
+			defense += result_of_calc[i] * (board_multiply[i] + board_multiply_effect[i]);
 		}
 	}
 	attack += add_damage_by_cards* used_blocks.size();

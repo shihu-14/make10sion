@@ -59,7 +59,7 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 		}
 		for (int i = 0; i < used_blocks.size(); i++) {//捨札へ移動するブロック
 			if (block_anim[i] == 2) {
-				BlockAnimation(used_blocks[i], Point{ 100, 100 }, block_anim[i]);//捨て札の座標を指定
+				BlockAnimation(used_blocks[i], Point{ 1600, 880 }, block_anim[i]);//捨て札の座標を指定
 			}
 		}
 
@@ -80,10 +80,10 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 				used_blocks[i].Draw(used_blocks[i].GetPos(), img_scale, 0.0, 1.0);
 			}
 		}
-
+		Array<int32> dy = { 10,10, 10, -10,-10,-10 };
 		for (int i = 0; i < 6; i++) {
 			Point num = board_coordinate[i][6];
-			num.x += cell_size;
+			num.x += cell_size + dy[i];
 			if (board_off_def[i] == 1) {
 				font(result_of_calc[i]).drawAt(TextStyle::Outline(0.2, ColorF{ 0.0 }), 85, num, ColorF{ 1.0, 0.5, 0.5 });
 			}

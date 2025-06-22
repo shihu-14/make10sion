@@ -66,7 +66,7 @@ void Battle::setupEnemy()
 int32 Battle::getTableSize() const
 {
     // return 6;
-    return Min(deck_width, m_board.unlocked_num/2+2);
+    return Min(15, m_board.unlocked_num/2+2);
 }
 
 // 盤面のデッキの状況をリアルタイムで監視する関数

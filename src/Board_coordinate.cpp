@@ -50,7 +50,7 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)の�
     for(int i=0;i<block.Size().second;i++){
         for(int j=0;j<block.Size().first;j++){
             char content = block.GetPiece(j,i).content;
-            if(content != '$' && board_usage[putAt.y + i][putAt.x + j] != 0){
+            if((content != '$') && (board_usage[putAt.y + i][putAt.x + j] != 0)){
                 putAt = {-1, -1};
                 finish = true;
                 break;
@@ -87,6 +87,7 @@ void Board::PutBlock(){//blockがドロップされたら、配置/手札に戻�
 }
 
 void Board::TakeOutBlock(Point pos){//クリックしたBlockをボードから外す
+
     int32 num = board_usage[pos.y][pos.x];
 
     if(num > 0){
@@ -149,7 +150,7 @@ void Board::DoRelic(vector<int32> relics){ //cf.) md
 //public variables
 
 //public　functions
-void Board::PassBlock(const Block& selectedBlock, const Point hand_pos) {//選択されているBlockとその手札座標が渡される
+void Board::PassBlock(Block& selectedBlock, const Point hand_pos) {//選択されているBlockとその手札座標が渡される
     block = selectedBlock;
 
     auto itr = find(used_blocks.begin(), used_blocks.end(), block);

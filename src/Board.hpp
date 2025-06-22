@@ -16,7 +16,7 @@ private:
 							 {-1,-1,-2,-2,-2,-1,-1},
 							 {-1,-2, 0, 0, 0,-2,-1},
 							 {-1,-2, 0, 0, 0,-2,-1},
-							 {-1,-2,-2,-2,-2,-1,-1},
+							 {-1,-1,-2,-2,-2,-1,-1},
 							 {-1,-1,-1,-1,-1,-1,-1}};
 	Grid<int32> board_number;
 	Grid<int32> board_effect_back;
@@ -83,7 +83,7 @@ public:
 	void DrawBoard(int32 idx) const;
 	void SetStat();
 	std::pair<int32, int32> Confirm();
-	void PassBlock(const Block& selectedBlock, const Point hand_pos);
+	void PassBlock(Block& selectedBlock, const Point hand_pos);
 };
 
 #endif

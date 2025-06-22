@@ -27,7 +27,7 @@ Battle::Battle(const InitData& init)
 
     // init
     m_banner.init(getData().money, getData().Layer, getData().leric); // バナーの初期化
-    // m_board.InitAll();
+    m_board.InitAll();
 	// --- 戦う敵のセットアップ ---
 	setupEnemy();
 	// --- デッキの初期化 ---

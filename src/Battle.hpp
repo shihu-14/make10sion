@@ -109,7 +109,7 @@ private:
 	// ここでは RectF の配列で仮定。
 	int32 getTableSize() const;
 	void setupEnemy();
-	void updateTableDeck();
+	// void updateTableDeck();
 	void attack();
 	// 各演出の更新関数 (private)
     // これらはupdate()から呼ばれ、アニメーションの状態を更新し、完了時に次の状態へ遷移させる

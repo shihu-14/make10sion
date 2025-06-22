@@ -17,7 +17,7 @@ Board::Board() :
 
 
 //ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
-void Board::Update(int32 idx, Leric relics){//idx : 0:バトル中, 1:リザルト(マス解放時)
+void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:リザルト(マス解放時)
 	if (idx == 0) {
 		if (is_board_active) {
 			if (is_block_selected) {//Blockをドラッグしているとき
@@ -41,6 +41,10 @@ void Board::Update(int32 idx, Leric relics){//idx : 0:バトル中, 1:リザル�
 				}
 			}
 		}
+
+		//レリック
+		DoRelic(relics);
+		relics_old = relics;
 
 		//以下、描画処理
 		DrawBoard();//Boardの描画

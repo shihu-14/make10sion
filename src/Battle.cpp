@@ -439,12 +439,12 @@ void Battle::drawTableDeck() const
 
 void Battle::drawDefault() const
 {
-    m_banner.draw();
     // 盤面の描画
     // 盤面の背景を描画
     m_backgroundTexture.scaled(0.5).draw();
+    m_banner.draw();
     // プレイヤーのキャラクターを描画
-    // m_board.DrawBoard(0); 
+    m_board.DrawBoard(0); 
     m_myTexture.scaled(0.75).rotated(my_angle).draw(180, 110);
     // 敵の情報を描画
     m_enemy.texture.scaled(enemy_scale).draw(1400, 240);

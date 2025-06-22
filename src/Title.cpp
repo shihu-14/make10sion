@@ -22,7 +22,8 @@ m_titleBGM(U"example/audio/game_bgm.mp3", Loop::Yes)
 void Title::update() {
     if (go_to_map) {
         if (Time::GetMillisec() - timer > 9000) { // 6000ミリ秒待つ
-            changeScene(State::Map, 0.5s); // マップシーンへ遷移
+            getData().enemy = 0; // 敵の初期化
+            changeScene(State::Battle, 0.5s); // マップシーンへ遷移
         }
         return;
     }

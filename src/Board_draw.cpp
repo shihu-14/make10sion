@@ -38,7 +38,7 @@ void Board::DrawAddPlaceBoard() {
             if (board_usage[i][j] == 0) {
                 chosed_board_img.drawAt(board_coordinate[i][j]); continue;
             }
-            else if (board_usase[i][j] == -1) {
+            else if (board_usage[i][j] == -1) {
                 board_img.drawAt(board_coordinate[i][j]); continue;
             }
             else if (board_usage[i][j] == -2) {

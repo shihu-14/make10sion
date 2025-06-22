@@ -23,7 +23,8 @@ private:
 	bool is_block_selected = false;
 	int32 blockNum;
 	Block block;
-	const Point offset = {0,0};//Boardの左上の絶対座標
+	const Point offset = {0,0};//Boardの左上の絶対座標(バトル時)
+	const Point offset_u = {0,0};//Boardの左上の絶対座標(アンロック時)(使わないかも)
 	const int32 cell_size = 50;
 	const Texture board_img{U"../image/banmen_kuuhaku.png"};
 	Array<Block> used_blocks;//盤面に出てきたブロックの配列. blockNumは「このインデックス+1」とする

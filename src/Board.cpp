@@ -76,6 +76,6 @@ void Board::Update(int32 idx){//idx : 0:バトル中, 1:リザルト(マス解�
 	}
 
 	else if(idx == 1){
-		//リザルト(マス解放)
+		//
 	}
 }

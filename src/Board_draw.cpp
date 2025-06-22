@@ -15,9 +15,9 @@ void Board::DrawOnlyBoard() const {//Boardの描画のみ
     }
 
 	//枠の描画
-	int32 center_x = offset.x + cell_size*3.5;
-	int32 center_y = offset.y + cell_size*3;
-	board_frame_img.scaled(img_scale).drawAt(Point{center_x, center_y});
+	//int32 center_x = offset.x + cell_size*3.5;
+	//int32 center_y = offset.y + cell_size*3;
+	//board_frame_img.scaled(img_scale).drawAt(Point{center_x, center_y});
 }
 
 //private function
@@ -58,7 +58,7 @@ void Board::DrawAddPlaceBoard() const {
         }
     }
     //枠の描画
-	int32 center_x = offset.x + cell_size*3.5;
-	int32 center_y = offset.y + cell_size*3;
-	board_frame_img.scaled(img_scale).drawAt(Point{center_x, center_y});
+	//int32 center_x = offset.x + cell_size*3.5;
+	//int32 center_y = offset.y + cell_size*3;
+	//board_frame_img.scaled(img_scale).drawAt(Point{center_x, center_y});
 }

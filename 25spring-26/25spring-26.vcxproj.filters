@@ -162,7 +162,7 @@
     <ClCompile Include="..\src\Title.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Event.cpp">
+    <ClCompile Include="..\src\Map.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -905,7 +905,7 @@
     <ClInclude Include="..\src\Title.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Event.hpp">
+    <ClInclude Include="..\src\Map.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

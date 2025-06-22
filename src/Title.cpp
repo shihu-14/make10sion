@@ -36,7 +36,7 @@ void Title::update() {
 }  
 
 void Title::draw() const {
-    m_background.draw(0, 0);
+    m_background.scaled(0.5).draw(0, 0);
 
 	m_titlelogo.drawAt(Scene::Center().x, Scene::Center().y - 100); // タイトルロゴを画面中央に配置
     if (m_startButtonRect.mouseOver()) {

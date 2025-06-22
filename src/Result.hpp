@@ -7,9 +7,10 @@
 class Result : public App::Scene{
 private:
 	//Write private functions or varables here.
-	const Font font{ FontMethod::MSDF, 80,Typeface::Bold };
+	const Font font{ FontMethod::MSDF, 120,Typeface::Bold };
 	Texture title_back;
 	Texture retry;
+	Texture background;
 	RoundRect retry_rect;
 	RoundRect title_rect;
 	int score;

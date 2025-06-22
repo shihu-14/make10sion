@@ -71,7 +71,7 @@ public:
 	//functions
 	void InitAll();
 	void Discard();
-	void Update(int32 idx, vector<int32> relics);
+	void Update(int32 idx, std::vector<int32> relics);
 	void SetStat();
 	std::pair<int32, int32> Confirm();
 	void PassBlock(const Block& selectedBlock, const Point hand_pos);

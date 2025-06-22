@@ -36,19 +36,19 @@ Battle::Battle(const InitData& init)
 	Deck_yama.shuffle();
     // Print << U"{}"_fmt(table_size);
 	// // 最初の手札をセットアップ
-	// for (int i = 0; i < table_size; ++i)
-	// {
-	// 	if (Deck_yama.isEmpty()) break;
-	// 	Deck_table.push_back(Deck_yama.back());
-	// 	Deck_yama.pop_back();
-    //     Deck_table.back().SetStat(1); // 手札のステータスを1に設定
-    //     // Edit here (座標)
-    //     Deck_table.back().SetPos(300+i*50*deck_width, 600); // 手札の位置を設定
-	// }
+	for (int i = 0; i < table_size; ++i)
+	{
+		if (Deck_yama.isEmpty()) break;
+		Deck_table.push_back(Deck_yama.back());
+		Deck_yama.pop_back();
+        Deck_table.back().SetStat(1); // 手札のステータスを1に設定
+        // Edit here (座標)
+        Deck_table.back().SetPos(300+i*30, 600); // 手札の位置を設定
+	}
     for (int i = 0; i < 15; ++i){
         m_tehuda_hantei.emplace_back(300+i*30, 1000, 15, 100); 
     }
-    updateCardDrawEffect();
+    // updateCardDrawEffect();
 }
 
 
@@ -319,6 +319,7 @@ void Battle::updateCardDrawEffect()
         Deck_table.back().SetStat(1); // 手札のステータスを1に設定
         Deck_table.back().SetPos(300 + i*15, 700); //
     }
+
     if (table_id < Deck_table.size())
 	{
         if (yamahuda_angle < 90_deg)

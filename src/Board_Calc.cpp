@@ -103,7 +103,7 @@ void Board::CalcRow() {
 std::pair<int, int> Board::Confirm() {  
     SetStat();
 	CalcRow();
-	int attack, defense;
+	int attack=0, defense=0;
 	for (int i = 0; i < 6; i++) {
 		if (board_off_def[i] == 1) { //攻撃側の行  
 			attack += result_of_calc[i] * (board_multiply[i] + board_multiply_effect[i]);
@@ -133,18 +133,18 @@ void Board::SetStat() {//ボードの操作状態を設定する
 
 void Board::Discard() {
 	board_number.fill(0);
-	num_on_board.clear();
+	num_on_board.clear();	
 	result_of_calc.fill(0);
 	board_off_def.fill(0); // 初期化: 攻撃側の行を1に設定
-	for (int i = 0; i < off_count; i++) {//ココ編集
+	for (int i = 0; i < off_count; i++) {
 		board_off_def[i] = 1;
 	}
-	for (int i = 0; block_anim.size(); i++) {
+	for (int i = 0; i < block_anim.size(); i++) {
 		block_anim[i] = 2;
 	}
 	board_effect_front = board_effect_back;
 	board_effect_back.fill(0);
-	board_multiply_effect.fill(0);//ココ編集
+	board_multiply_effect.fill(0);
 }
 
 

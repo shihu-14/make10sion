@@ -11,10 +11,10 @@ m_endButtonTexture2(U"../../image/title_end_1.png"),
 m_startButtonRect(Arg::center = Vec2(Scene::Center().x + 20, Scene::Height() - 450), 420, 100, 20), // 修正: RoundRect の正しいコンストラクタを使用
 m_endButtonRect(Arg::center = Vec2(Scene::Center().x + 20, Scene::Height() - 250), 420, 100, 20), // 修正: RoundRect の正しいコンストラクタを使用
 m_font(30, Typeface::Bold),
-fadeTextures(3),
-m_titleBGM(U"example/audio/game_bgm.mp3", Loop::Yes)
+fadeTextures(3)
 {
-    m_titleBGM.play();
+    // タイトル画面のBGMを再生
+    titleBGM.play();
     for (int i = 0; i < 3; i++)
         fadeTextures[i] = Texture{ U"../../image/tyu-toriarumae_" + ToString(i + 1) + U".png" };
 }
@@ -22,7 +22,8 @@ m_titleBGM(U"example/audio/game_bgm.mp3", Loop::Yes)
 void Title::update() {
     if (go_to_map) {
         if (Time::GetMillisec() - timer > 9000) { // 6000ミリ秒待つ
-            changeScene(State::Map, 0.5s); // マップシーンへ遷移
+            getData().enemy = 0; // 敵の初期化
+            changeScene(State::Battle, 0.5s); // マップシーンへ遷移
         }
         return;
     }

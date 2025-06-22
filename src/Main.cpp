@@ -2,7 +2,7 @@
 # include "common.hpp"
 # include "Title.hpp"
 # include "Map.hpp"
-//# include "Battle.hpp"
+# include "Battle.hpp"
 # include "Result.hpp"
 # include "Shop.hpp"
 # include "Deck.hpp"
@@ -25,7 +25,7 @@ void Main()
 	App manager;
 	manager.add<Title>(State::Title);
 	manager.add<Map>(State::Map);
-	//manager.add<Battle>(State::Battle);
+	manager.add<Battle>(State::Battle);
 	manager.add<Result>(State::Result);
 	manager.add<Shop>(State::Shop);
 

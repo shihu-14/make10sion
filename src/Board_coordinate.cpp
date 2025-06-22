@@ -99,6 +99,23 @@ void Board::TakeOutBlock(Point pos){//クリックしたBlockをボードから�
                         auto itr = find(num_on_board.begin(), num_on_board.end(), board_number[y][x]);
                         num_on_board.erase(itr);
                     }
+                    //防御、攻撃マスが含まれているときの処理
+                    if (board_number[y][x] == 16777217) {//攻
+                        board_number[y][x] = 0;
+                        if ([&]()->bool {
+                            for (int i = 0; i < 7; i++) {
+                                if (board_number[y][i] == 16777217)return false;
+                            }return true;
+                            }())board_off_def[y] = 0;
+                    }
+                    if (board_number[y][x] == 16777218) {//防
+                        board_number[y][x] = 0;
+                        if ([&]()->bool {
+                            for (int i = 0; i < 7; i++) {
+                                if (board_number[y][i] == 16777218)return false;
+                            }return true;
+							}())board_off_def[y] = 1;
+                    }
                     board_number[y][x] = 0;
                     board_effect_back[y][x] = 0;
                 }

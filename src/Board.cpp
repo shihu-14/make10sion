@@ -63,13 +63,13 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 		}
 		for (int i = 0; i < used_blocks.size(); i++) {//手札へ移動するブロック
 			if (block_anim[i] == 1) {
-				BlockAnimation(used_blocks[i], block_hand_pos[i]);
+				BlockAnimation(used_blocks[i], block_hand_pos[i], block_anim[i]);
 				used_blocks[i].Draw(used_blocks[i].GetPos(), 1.0, 0.0, 1.0);
 			}
 		}
 		for (int i = 0; i < used_blocks.size(); i++) {//捨札へ移動するブロック
 			if (block_anim[i] == 2) {
-				BlockAnimation(used_blocks[i], Point{ 100, 100 });//捨て札の座標を指定
+				BlockAnimation(used_blocks[i], Point{ 100, 100 }, block_anim[i]);//捨て札の座標を指定
 				used_blocks[i].Draw(used_blocks[i].GetPos(), 1.0, 0.0, 1.0);
 			}
 		}

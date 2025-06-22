@@ -89,8 +89,8 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 			font(result_of_calc[i]).drawAt(45, board_coordinate[i][6], ColorF{ 0.2, 0.2, 1.0 });
 		}
 	}
-		//
-else if(idx == 1){
-	DrawAddPlaceBoard();
-	if(MouseL.down())AddUsablePlace();
+	else if(idx == 1){
+		DrawAddPlaceBoard();
+		if(MouseL.down())AddUsablePlace();
+	}
 }

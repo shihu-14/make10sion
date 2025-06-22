@@ -450,11 +450,11 @@ void Battle::drawDefault() const
     // 山札のテクスチャを描画
     m_yamahudaTexture.scaled(0.75).rotated(yamahuda_angle).draw(50, 800);
     // 捨て札のテクスチャを描画
-    m_sutehudaTexture.scaled(0.6).rotated(sutehuda_angle).draw(1600, 850);
+    m_sutehudaTexture.scaled(0.6).rotated(sutehuda_angle).draw(1600, 880);
     // =buttonのテクスチャを描画
-    m_buttonTexture.scaled(0.7).draw(1580, 750); 
+    m_buttonTexture.scaled(0.7).draw(1600, 750); 
     my_hpbar.draw(RectF{130, 700, 320, 20});
-    ene_hpbar.draw(RectF{1450, 700, 320, 20});
+    ene_hpbar.draw(RectF{1480, 700, 320, 20});
 }
 
 // 戦闘演出の描画
@@ -502,11 +502,11 @@ void Battle::draw() const
     if (is_deck) return;
 	// ... (背景や手札、山札などの基本描画)
     drawDefault();
+    drawTableDeck();
 	// 現在の状態で描画処理を分岐
 	switch (m_currentAnimState)
 	{
     case BattleAnimationState::Idle:
-        drawTableDeck();
         break;
     case BattleAnimationState::CombatEnemyEffect:
         drawCombatEnemyEffect();

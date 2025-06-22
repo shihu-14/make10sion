@@ -13,7 +13,6 @@ Board::Board() :
 	
 }
 
-const Font font{ FontMethod::MSDF, 48, Typeface::Bold };
 
 
 void Board::InitAll(){//毎ターン開始時に呼び出してもらう
@@ -25,6 +24,7 @@ void Board::InitAll(){//毎ターン開始時に呼び出してもらう
 
 //ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
 void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:リザルト(マス解放時)
+	const Font font{ FontMethod::MSDF, 48, Typeface::Bold };
 	if (idx == 0) {
 		if (is_board_active) {
 			if (is_block_selected) {//Blockをドラッグしているとき

@@ -12,7 +12,12 @@ class Board{
 private:
 
 	//variables
-	Grid<int32> board_usage;
+	Grid<int32> board_usage={{-1,-1,-1,-1,-1,-1,-1},
+							 {-1,-1,-2,-2,-2,-1,-1},
+							 {-1,-2, 0, 0, 0,-2,-1},
+							 {-1,-2, 0, 0, 0,-2,-1},
+							 {-1,-2,-2,-2,-2,-1,-1},
+							 {-1,-1,-1,-1,-1,-1,-1}};
 	Grid<int32> board_number;
 	Grid<int32> board_effect_back;
 	Grid<int32> board_effect_front;

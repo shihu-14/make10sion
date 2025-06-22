@@ -2,8 +2,7 @@
 #include "Board.hpp"
 using namespace std;
 
-Board::Board() : 
-	board_usage(Size{ 7,6 }, -1), 
+Board::Board() :  
 	board_number(Size{ 7,6 }, 0),
 	board_effect_back(Size{ 7,6 }, 0),
 	board_effect_front(Size{ 7,6 }, 0),

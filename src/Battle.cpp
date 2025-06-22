@@ -47,6 +47,7 @@ Battle::Battle(const InitData& init)
 	// }
     for (int i = 0; i < 6; ++i){
         getData().Deck[i].SetStat(1);
+        getData().Deck[i].SetPos(300+i*60, 600); // 手札の位置を設定
     }
     for (int i = 0; i < 15; ++i){
         m_tehuda_hantei.emplace_back(300+i*30, 1000, 15, 100); 

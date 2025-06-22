@@ -120,21 +120,13 @@ void Board::InitBoardCoordinate(){//board_coordinateの初期化
     }
 }
 
-//Update()の引数にrelic
-/*
-void DoRelic(Relic relics)
-
-void Board::DoRelic(Relic relics){//cf.) md
-    if(relics[3] > 0){
+void Board::DoRelic(vector<int32> relics){ //cf.) md
+    if(relics[3]-relics_old[3] > 0){
         for(int i=0;i<6;i++){
-            board_multiply[i] += 0.5
+            board_multiply[i] += 0.5;
         }
     }
-    if(relics[5] > 0){
-        AddUsablePlace()
-        AddUsablePlace()
-    }
-    if(relics[10] > 0){
+    if(relics[10]-relics_old[10] > 0){
         for(int i=0;i<6;i++){
             if(board_off_def[i] == 0){
                 board_off_def[i] = 1;
@@ -142,7 +134,7 @@ void Board::DoRelic(Relic relics){//cf.) md
             }
         }
     }
-    if(relics[11] > 0){
+    if(relics[11]-relics_old[11] > 0){
         for(int i=5;i>=0;i--){
             if(board_off_def[i] == 1){
                 board_off_def[i] = 0;
@@ -150,17 +142,65 @@ void Board::DoRelic(Relic relics){//cf.) md
             }
         }
     }
-    if(relics[13] > 0){
+    if(relics[13]-relics_old[13] > 0){
+        add_damage += (relics[13]-relics_old[13])*3;
+    }
+    if(relics[14]-relics_old[14] > 0){
+        add_armor = relics[14]*3;
+    }
+    if(relics[15]-relics_old[15] > 0){
         //
     }
-    if(relics[14] > 0){
+    if(relics[16]-relics_old[16] > 0){
+        add_damage +=0;
+    }
+}
+
+/*
+//hpp内
+int32 add_damage = 0;
+int32 add_armor = 0;
+void DoRelic(Leric relics);
+//
+
+//Update内(引数にLeric relicを追加)
+DoRelic(relic)
+relics_old = relics;
+//
+
+void Board::DoRelic(Relic relics){ //cf.) md
+    if(relics[3]-relics_old[3] > 0){
+        for(int i=0;i<6;i++){
+            board_multiply[i] += 0.5;
+        }
+    }
+    if(relics[10]-relics_old[10] > 0){
+        for(int i=0;i<6;i++){
+            if(board_off_def[i] == 0){
+                board_off_def[i] = 1;
+                break;
+            }
+        }
+    }
+    if(relics[11]-relics_old[11] > 0){
+        for(int i=5;i>=0;i--){
+            if(board_off_def[i] == 1){
+                board_off_def[i] = 0;
+                break;
+            }
+        }
+    }
+    if(relics[13]-relics_old[13] > 0){
+        add_damage += (relics[13]-relics_old[13])*3;
+    }
+    if(relics[14]-relics_old[14] > 0){
+        add_armor = relics[14]*3;
+    }
+    if(relics[15]-relics_old[15] > 0){
         //
     }
-    if(relics[15] > 0){
-        //
-    }
-    if(relics[16] > 0){
-        //
+    if(relics[16]-relics_old[16] > 0){
+        add_damage +=;
     }
 }
 

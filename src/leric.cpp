@@ -1,4 +1,4 @@
-#include "Leric.hpp"
+#include "leric.hpp"
 using namespace std;
 
 Leric::Leric() :leric_imgs(19), leric_sum(19, 0) {

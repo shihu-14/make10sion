@@ -435,12 +435,15 @@ void Map::update() {
 			if (node.type == MapPointType::Shop) {
 				changeScene(State::Shop, 2s); // ショップに移動
 			} else if (node.type == MapPointType::Boss) {
+				getData().enemy = 2; // ボスの敵IDをセット
 				changeScene(State::Battle, 2s); // ボス戦に移動
 			} else if (node.type == MapPointType::Event) {
 				//changeScene(State::Event, 2s); // イベントに移動
 			} else if (node.type == MapPointType::Elite) {
+				getData().enemy = 1; // エリートの敵IDをセット
 				changeScene(State::Battle, 2s); // エリート戦に移動
 			} else if (node.type == MapPointType::Enemy) {
+				getData().enemy = 0; // 通常の敵IDをセット
 				changeScene(State::Battle, 2s); // 通常戦闘に移動
 			} else if (node.type == MapPointType::Treasure) {
 				//changeScene(State::Battle, 2s); // 宝箱を開けるための戦闘に移動

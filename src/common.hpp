@@ -55,6 +55,7 @@ struct GameData
 	int money = 100;
 	//Board board;
 	long long status = 0; // 状態
+	int enemy = 0;
 
 	// Map Data
 	std::vector<std::vector<Node>> selected_nodes;

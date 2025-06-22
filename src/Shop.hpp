@@ -16,15 +16,23 @@ private:
 	double uncommon_alpha = 0.0; // 特殊カードのアルファ値
 	double rare_alpha = 0.0; // レアカードのアルファ値
 
+	std::vector<double> leric_alpha; // レリックのアルファ値
+
 	bool void_normal_1 = false; // 通常カード1が空かどうか
 	bool void_normal_2 = false; // 通常カード2が空かどうか
 	bool void_uncommon = false; // 特殊カードが空かどうか
 	bool void_rare = false; // レアカードが空かどうか
 
+	std::vector<bool> void_leric; // レリックが空かどうか
+
 	Block normal_1;
 	Block normal_2;
 	Block uncommon;
 	Block rare;
+	std::vector<int> leric_index; // レリックのインデックス
+
+	double discount = 1.0;
+
 	const Texture price_img{ U"../../image/UI_money.png" };
 	const Texture back_button_img{ U"../../image/back_button_deck0.png" };
 	const Texture background_img{ U"../../image/UI_shop.png" };

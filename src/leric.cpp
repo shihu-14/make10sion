@@ -18,3 +18,8 @@ void Leric::draw() const {
 			leric_imgs.at(i).scaled(0.5).draw(510 + i * 50, 50); // 適当な位置に描画
 	}
 }
+
+void Leric::drawOne(int index, int x, int y, double alpha, double angle) const {
+	if (index < 0 || index >= static_cast<int>(leric_imgs.size())) return; // 範囲外のインデックスは無視
+	leric_imgs.at(index).scaled(1.0).rotated(angle).draw(x, y, ColorF{ 1.0, 1.0, 1.0, alpha });
+}

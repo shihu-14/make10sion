@@ -12,6 +12,7 @@ Battle::Battle(const InitData& init)
     num_turn(0), // ターン数を初期化
     deck_width(15), // ターン数を初期化
     table_size(getTableSize()), // 手札のサイズを取得
+    table_id(0), 
     m_currentAnimState(BattleAnimationState::CardDrawEffect) // アニメーション状態を初期化
 {
     m_backgroundTexture = Texture(U"../../image/haikei_sentou.png"); // 背景画像のパスを指定
@@ -43,8 +44,11 @@ Battle::Battle(const InitData& init)
     //     Deck_table.back().SetStat(1); // 手札のステータスを1に設定
     //     // Edit here (座標)
     //     Deck_table.back().SetPos(300+i*50*deck_width, 600); // 手札の位置を設定
-    //     // m_tehuda_hantei.emplace_back(300+i*50*deck_width, 600, deck_width, 100); 
 	// }
+    for (int i = 0; i < 15; ++i){
+        m_tehuda_hantei.emplace_back(300+i*30*15, 700, 15, 100); 
+    }
+
     updateCardDrawEffect();
 }
 

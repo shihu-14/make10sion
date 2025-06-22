@@ -65,6 +65,16 @@ Block& Block::operator=(const string& value) {
 	return *this;
 }
 
+bool Block::operator==(const Block& other) const {
+	if (sizeX != other.sizeX || sizeY != other.sizeY) return false;
+	for (int y = 0; y < sizeY; y++) {
+		for (int x = 0; x < sizeX; x++) {
+			if (contents[x][y].content != other.contents[x][y].content) return false;
+		}
+	}
+	return true;
+}
+
 void Block::Rotate() {
 	vector<vector<Piece>> newContents(sizeX, vector<Piece>(sizeY));
 	for (int y = 0; y < sizeY; y++) {

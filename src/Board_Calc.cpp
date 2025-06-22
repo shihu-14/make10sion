@@ -1,5 +1,4 @@
-﻿	#include "../src/Board.hpp"  
-#include "Block.hpp"
+﻿#include "Block.hpp"
 #include "Board.hpp"
 #include <Siv3D.hpp>
 

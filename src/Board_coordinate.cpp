@@ -120,6 +120,52 @@ void Board::InitBoardCoordinate(){//board_coordinateの初期化
     }
 }
 
+//Update()の引数にrelic
+/*
+void DoRelic(Relic relics)
+
+void Board::DoRelic(Relic relics){//cf.) md
+    if(relics[3] > 0){
+        for(int i=0;i<6;i++){
+            board_multiply[i] += 0.5
+        }
+    }
+    if(relics[5] > 0){
+        AddUsablePlace()
+        AddUsablePlace()
+    }
+    if(relics[10] > 0){
+        for(int i=0;i<6;i++){
+            if(board_off_def[i] == 0){
+                board_off_def[i] = 1;
+                break;
+            }
+        }
+    }
+    if(relics[11] > 0){
+        for(int i=5;i>=0;i--){
+            if(board_off_def[i] == 1){
+                board_off_def[i] = 0;
+                break;
+            }
+        }
+    }
+    if(relics[13] > 0){
+        //
+    }
+    if(relics[14] > 0){
+        //
+    }
+    if(relics[15] > 0){
+        //
+    }
+    if(relics[16] > 0){
+        //
+    }
+}
+
+*/
+
 //public variables
 
 //public　functions
@@ -139,3 +185,14 @@ void Board::PassBlock(const Block& selectedBlock, const Point hand_pos) {//選�
     }
     is_block_selected = true;
 }
+
+/*
+void InitAll();
+
+void Board::InitAll(){
+    InitBoardCoordinate();
+    used_blocks.clear();
+	block_hand_pos.clear();
+	block_anim.clear();
+}
+*/

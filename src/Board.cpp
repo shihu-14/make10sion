@@ -76,20 +76,20 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 		DrawOnlyBoard();//Boardの描画
 
 		for (int i = 0; i < used_blocks.size(); i++) {//ブロックの描画
-			if(block_anim[i] >= 0){
-				used_blocks[i].Draw(used_blocks[i].GetPos(), 2.0, 0.0, 1.0);
+			if (block_anim[i] >= 0) {
+				used_blocks[i].Draw(used_blocks[i].GetPos(), img_scale, 0.0, 1.0);
 			}
 		}
 
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < 6; i++) {
 			Point num = board_coordinate[i][6];
 			num.x += cell_size;
-			font(result_of_calc[i]).drawAt(TextStyle::Outline(0.2, ColorF{ 0.0 }),72, num, ColorF{ 1.0, 0.5, 0.5});
-		}
-		for (int i = 3; i < 6; i++) {
-			Point num = board_coordinate[i][6];
-			num.x += cell_size;
-			font(result_of_calc[i]).drawAt(TextStyle::Outline(0.2, ColorF{ 0.0 }),72, num, ColorF{ 0.5, 1.0, 1.0 });
+			if (board_off_def[i] == 1) {
+				font(result_of_calc[i]).drawAt(TextStyle::Outline(0.2, ColorF{ 0.0 }), 85, num, ColorF{ 1.0, 0.5, 0.5 });
+			}
+			if (board_off_def[i] == 0) {
+				font(result_of_calc[i]).drawAt(TextStyle::Outline(0.2, ColorF{ 0.0 }), 85, num, ColorF{ 0.5, 1.0, 1.0 });
+			}
 		}
 	}
 	else if(idx == 1){

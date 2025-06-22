@@ -77,11 +77,12 @@ void Board::PutBlock(){//blockがドロップされたら、配置/手札に戻�
         int32 newx = offset.x + putAt.x*cell_size + cell_size/2 + block.GetPiece(0,0).x;
         int32 newy = offset.y + putAt.y*cell_size + cell_size/2 + block.GetPiece(0,0).y;
         block.SetPos(newx, newy);
+        block_anim[blockNum] = 0;
     }
     else{
-        block.SetStat(1);
-        do_block_anim[blockNum] = 1;
+        block_anim[blockNum] = 1;
     }
+
     is_block_selected = false;
 }
 
@@ -91,7 +92,7 @@ void Board::TakeOutBlock(Point pos){//クリックしたBlockをボードから�
     if(num > 0){
         for (int y=0;y<6;y++){
             for(int x=0;x<7;x++){
-                if(board_usage[y][x] == blockNum){
+                if(board_usage[y][x] == num){
                     board_usage[y][x] = 0;
                     if(board_number[y][x] < 100){//数字マスなら
                         auto itr = find(num_on_board.begin(), num_on_board.end(), board_number[y][x]);
@@ -103,8 +104,11 @@ void Board::TakeOutBlock(Point pos){//クリックしたBlockをボードから�
             }
         }
 
+        CalcRow();
+
+        block = used_blocks[num - 1];
         blockNum = num;
-        block = used_blocks[blockNum - 1];
+        is_block_selected = true;
     }
 }
 
@@ -119,6 +123,29 @@ void Board::InitBoardCoordinate(){//board_coordinateの初期化
     }
 }
 
+void Board::DoRelic(vector<int32> relics){ //cf.) md
+    if(relics[3] > relics_old[3]){
+        for(int i=0;i<6;i++){
+            board_multiply[i] += 0.5;
+        }
+    }
+    off_count = 3 + relics[10] - relics[11];//攻防の範囲の動かす数を記録
+    if(relics[13] > relics_old[13]){
+        add_damage += (relics[13]-relics_old[13])*3;
+    }
+    if(relics[14] > relics_old[14]){
+        add_armor = relics[14]*3;
+    }
+
+    do_armor_raise = (relics[15] == 1);
+
+    if(relics[16]-relics_old[16] > 0){
+        add_damage_by_cards = relics[16];
+    }
+}
+
+
+
 //public variables
 
 //public　functions
@@ -130,11 +157,11 @@ void Board::PassBlock(const Block& selectedBlock, const Point hand_pos) {//選�
         used_blocks.push_back(block);
         blockNum = used_blocks.size();//1-indexed
         block_hand_pos.push_back(hand_pos);//手札の位置を記録
-        do_block_anim.push_back(0); 
+        block_anim.push_back(3); 
     }
     else{
         blockNum = distance(used_blocks.begin(), itr) + 1;//1-indexed
-        do_block_anim[blockNum - 1] = 0;
+        block_anim[blockNum - 1] = 3;
     }
     is_block_selected = true;
 }

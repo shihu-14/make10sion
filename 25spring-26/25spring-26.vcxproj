@@ -117,6 +117,10 @@
   <ItemGroup>
     <ClCompile Include="..\src\Banner.cpp" />
     <ClCompile Include="..\src\Block.cpp" />
+    <ClCompile Include="..\src\Board.cpp" />
+    <ClCompile Include="..\src\Board_Calc.cpp" />
+    <ClCompile Include="..\src\Board_coordinate.cpp" />
+    <ClCompile Include="..\src\Board_draw.cpp" />
     <ClCompile Include="..\src\Deck.cpp" />
     <ClCompile Include="..\src\Event.cpp" />
     <ClCompile Include="..\src\leric.cpp" />

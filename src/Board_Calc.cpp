@@ -1,4 +1,4 @@
-﻿#include "../src/Board.hpp"  
+﻿	#include "../src/Board.hpp"  
 #include "Block.hpp"
 #include "Board.hpp"
 #include "Battle.hpp"
@@ -95,7 +95,6 @@ void Board::CalcRow() {
 			function.pop_back();
 		}
 		 result_of_calc[i] = Eval(function);
-
 	}
 }
 
@@ -107,10 +106,14 @@ std::pair<int, int> Board::Confirm() {
 	int attack, defense;
 	for (int i = 0; i < 6; i++) {
 		if (board_off_def[i] == 1) { //攻撃側の行  
-			attack = result_of_calc[i];  
+			attack += result_of_calc[i] * (board_multiply[i] + board_multiply_effect[i]);
 		} else if (board_off_def[i] == 0) { //防御側の行  
-			defense = result_of_calc[i];  
+			defense += result_of_calc[i] * (board_multiply[i] + board_multiply_effect[i]);
 		}
+	}
+	attack += add_damage_by_cards* used_blocks.size();
+	if (do_armor_raise) {
+		if (defense < 6)defense = 6;
 	}
 	return { attack, defense };
 }  
@@ -128,27 +131,25 @@ void Board::SetStat() {//ボードの操作状態を設定する
 
 
 
-void Board::ResetBoard() {
+void Board::Discard() {
 	board_number.fill(0);
-	
 	num_on_board.clear();
 	result_of_calc.fill(0);
-	board_off_def = { 1,1,1,0,0,0 }; // 初期化: 攻撃側の行を1に設定
-	for (Block b : Deck_board) {
-		do_block_anim[b] = 2;
+	board_off_def.fill(0); // 初期化: 攻撃側の行を1に設定
+	for (int i = 0; i < off_count; i++) {//ココ編集
+		board_off_def[i] = 1;
 	}
-	used_blocks.clear();
-	block_hand_pos.clear();
-	do_block_anim.clear();
+	for (int i = 0; block_anim.size(); i++) {
+		block_anim[i] = 2;
+	}
 	board_effect_front = board_effect_back;
 	board_effect_back.fill(0);
+	board_multiply_effect.fill(0);//ココ編集
 }
 
 
 
 void Board::AddUsablePlace(){
-	if (! MouseL.down())return;
-	
 	int32 px = Cursor::Pos().x;
 	int32 py = Cursor::Pos().y;
 	//マスの中心同士を結んだ マス座標 に変換
@@ -200,6 +201,7 @@ void Board::UpdateBoardNum(Point putAt){
 			GetPieceNum(content, putAt.y + i, putAt.x + j); // 数字の取得&マスの変更
 		}
 	}
+	CalcRow();
 }
 
 
@@ -214,11 +216,11 @@ void Board::GetPieceNum(char content, int y, int x) {
 	}else if (content == '/') {
 		board_number[y][x] = 264; return; // 割り算
 	}else if (content == 'a') {
-		return;//未定
+		board_multiply_effect[y] = 1.0; return;
 	}else if (content == 'b') {
-		return;//未定
+		board_multiply_effect[y] = 1.5; return;
 	}else if (content == 'c') {
-		return;//未定
+		board_multiply_effect[y] = 2.0; return;//未定
 	}else if (content == 'd') {
 		return;//未定
 	}else if (content == 'e') {

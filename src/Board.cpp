@@ -84,12 +84,12 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 		for (int i = 0; i < 3; i++) {
 			Point num = board_coordinate[i][6];
 			num.x += cell_size;
-			font(result_of_calc[i]).drawAt(90, board_coordinate[i][6], ColorF{ 1.0, 0.2, 0.2});
+			font(result_of_calc[i]).drawAt(72, board_coordinate[i][6], ColorF{ 1.0, 0.5, 0.5});
 		}
 		for (int i = 3; i < 6; i++) {
 			Point num = board_coordinate[i][6];
 			num.x += cell_size;
-			font(result_of_calc[i]).drawAt(90, board_coordinate[i][6], ColorF{ 0.2, 0.2, 1.0 });
+			font(result_of_calc[i]).drawAt(72, board_coordinate[i][6], ColorF{ 0.5, 1.0, 1.0 });
 		}
 	}
 	else if(idx == 1){

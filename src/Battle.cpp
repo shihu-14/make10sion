@@ -448,11 +448,11 @@ void Battle::drawDefault() const
     // 敵の情報を描画
     m_enemy.texture.scaled(enemy_scale).draw(1400, 350);
     // 山札のテクスチャを描画
-    m_yamahudaTexture.scaled(0.75).rotated(yamahuda_angle).draw(50, 780);
+    m_yamahudaTexture.scaled(0.75).rotated(yamahuda_angle).draw(50, 800);
     // 捨て札のテクスチャを描画
-    m_sutehudaTexture.scaled(0.5).rotated(sutehuda_angle).draw(1570, 780);
+    m_sutehudaTexture.scaled(0.6).rotated(sutehuda_angle).draw(1600, 980);
     // =buttonのテクスチャを描画
-    m_buttonTexture.scaled(0.65).draw(1570, 600); 
+    m_buttonTexture.scaled(0.65).draw(1570, 800); 
     my_hpbar.draw(RectF{130, 680, 320, 20});
     ene_hpbar.draw(RectF{1420, 680, 320, 20});
 }

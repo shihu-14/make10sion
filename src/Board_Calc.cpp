@@ -131,12 +131,12 @@ void Board::SetStat() {//ボードの操作状態を設定する
 
 
 
-void Board::ResetBoard() {
+void Board::Discard() {
 	board_number.fill(0);
 	num_on_board.clear();
 	result_of_calc.fill(0);
 	board_off_def.fill(0); // 初期化: 攻撃側の行を1に設定
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < 3; i++) {//ココ編集
 		board_off_def[i] = 1;
 	}
 	for (int i = 0; block_anim.size(); i++) {

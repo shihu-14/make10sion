@@ -48,7 +48,6 @@ private:
 	void InitBoardCoordinate();
 	void TakeOutBlock(Point pos);
 	void AddUsablePlace();
-	void ResetBoard();
 	void CalcRow();
 	void DrawBlock(Block block_on_board);
 	void BlockAnimation(Block moving_block, Point end_pos);
@@ -69,6 +68,7 @@ public:
 
 	//functions
 	void InitAll();
+	void Discard();
 	void Update(int32 idx, vector<int32> relics);
 	void SetStat();
 	std::pair<int32, int32> Confirm();

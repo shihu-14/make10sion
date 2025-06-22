@@ -15,8 +15,13 @@ Board::Board() :
 
 const Font font{ FontMethod::MSDF, 48, Typeface::Bold };
 
-//InitBoardCoordinate()は別で、ターン開始時に呼び出してもらう
 
+void Board::InitAll(){//毎ターン開始時に呼び出してもらう
+    InitBoardCoordinate();
+    used_blocks.clear();
+	block_hand_pos.clear();
+	block_anim.clear();
+}
 
 //ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
 void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:リザルト(マス解放時)
@@ -50,8 +55,6 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 
 		//以下、描画処理
 		DrawBoard();//Boardの描画
-
-		Array<Block> Deck_board;//Deck_boardがprivateになっているので、publicにしてもらうまで暫定的に
 
 		for (int i = 0; i < used_blocks.size(); i++) {//ボードに配置されているブロック
 			if (block_anim[i] == 0) {

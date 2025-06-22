@@ -171,14 +171,3 @@ void Board::PassBlock(const Block& selectedBlock, const Point hand_pos) {//ÈÅ∏Êä
     }
     is_block_selected = true;
 }
-
-/*
-void InitAll();
-
-void Board::InitAll(){
-    InitBoardCoordinate();
-    used_blocks.clear();
-	block_hand_pos.clear();
-	block_anim.clear();
-}
-*/

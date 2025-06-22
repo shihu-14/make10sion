@@ -68,6 +68,7 @@ public:
 	int32 num_of_used_card;
 
 	//functions
+	void InitAll();
 	void Update(int32 idx, vector<int32> relics);
 	void SetStat();
 	std::pair<int32, int32> Confirm();

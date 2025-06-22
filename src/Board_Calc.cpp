@@ -95,7 +95,6 @@ void Board::CalcRow() {
 			function.pop_back();
 		}
 		 result_of_calc[i] = Eval(function);
-
 	}
 }
 
@@ -112,6 +111,8 @@ std::pair<int, int> Board::Confirm() {
 			defense = result_of_calc[i];  
 		}
 	}
+	attack += add_damege;
+	defense += add_armor;
 	return { attack, defense };
 }  
 
@@ -138,8 +139,6 @@ void Board::ResetBoard() {
 	}
 	board_effect_front = board_effect_back;
 	board_effect_back.fill(0);
-	
-
 }
 
 
@@ -210,11 +209,11 @@ void Board::GetPieceNum(char content, int y, int x) {
 	}else if (content == '/') {
 		board_number[y][x] = 264; return; // 割り算
 	}else if (content == 'a') {
-		return;//未定
+		board_multiply_effect[y] = 1.0; return;
 	}else if (content == 'b') {
-		return;//未定
+		board_multiply_effect[y] = 1.5; return;
 	}else if (content == 'c') {
-		return;//未定
+		board_multiply_effect[y] = 2.0; return;//未定
 	}else if (content == 'd') {
 		return;//未定
 	}else if (content == 'e') {

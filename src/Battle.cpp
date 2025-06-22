@@ -46,9 +46,8 @@ Battle::Battle(const InitData& init)
     //     Deck_table.back().SetPos(300+i*50*deck_width, 600); // 手札の位置を設定
 	// }
     for (int i = 0; i < 15; ++i){
-        m_tehuda_hantei.emplace_back(300+i*30*15, 700, 15, 100); 
+        m_tehuda_hantei.emplace_back(300+i*30, 1000, 15, 100); 
     }
-
     updateCardDrawEffect();
 }
 
@@ -318,7 +317,7 @@ void Battle::updateCardDrawEffect()
         Deck_yama.pop_back(); // 山札から削除
         Deck_table.push_back(card); // 手札に追加
         Deck_table.back().SetStat(1); // 手札のステータスを1に設定
-        Deck_table.back().SetPos(300 + (i*30)*15, 700); //
+        Deck_table.back().SetPos(300 + i*15, 700); //
     }
     if (table_id < Deck_table.size())
 	{
@@ -346,7 +345,7 @@ void Battle::updateCardDrawEffect()
         yamahuda_angle -= Scene::DeltaTime()*5.5; // 山札の角度を徐々に戻す
         return;
     }
-    // m_board.InitAll();
+    m_board.InitAll();
     m_currentAnimState = BattleAnimationState::Idle;
     m_animeStopwatch.reset(); // ストップウォッチをリセット
     board_locked = false; // 盤面の操作をアンロック

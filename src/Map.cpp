@@ -394,15 +394,15 @@ Map::Map(const InitData& init) :
 	}
 	};
 	//抽選スタート！
-	if (getData().Layer%10 == 0){
+	if (getData().Layer % 10 == 0) {
 		map_nodes = map_nodes_source[Random(0, 5)]; // 0から5の範囲でランダムに選択
 		getData().selected_nodes = map_nodes; // 選択されたノードを保存
-	}else{
+	} else {
 		map_nodes = getData().selected_nodes;
 	}
 	//Map生成完了！！
 
-	banner.init(getData().money, getData().Layer); // バナーの初期化
+	banner.init(getData().money, getData().Layer, getData().leric); // バナーの初期化
 }
 
 // update() メソッドの実装
@@ -435,12 +435,15 @@ void Map::update() {
 			if (node.type == MapPointType::Shop) {
 				changeScene(State::Shop, 2s); // ショップに移動
 			} else if (node.type == MapPointType::Boss) {
+				getData().enemy = 2; // ボスの敵IDをセット
 				changeScene(State::Battle, 2s); // ボス戦に移動
 			} else if (node.type == MapPointType::Event) {
 				//changeScene(State::Event, 2s); // イベントに移動
 			} else if (node.type == MapPointType::Elite) {
+				getData().enemy = 1; // エリートの敵IDをセット
 				changeScene(State::Battle, 2s); // エリート戦に移動
 			} else if (node.type == MapPointType::Enemy) {
+				getData().enemy = 0; // 通常の敵IDをセット
 				changeScene(State::Battle, 2s); // 通常戦闘に移動
 			} else if (node.type == MapPointType::Treasure) {
 				//changeScene(State::Battle, 2s); // 宝箱を開けるための戦闘に移動
@@ -489,8 +492,8 @@ void Map::draw() const {
 				continue; // Noneの場合は何もしない
 			}
 			{
-				double node_alpha = (getData().Layer%10 < i) ? 0.0 : 0.6; // 現在の層より上の層は半透明
-				if ((node_alpha == 0.6) && (getData().Layer%10 == i) && (getData().Index == j)) {
+				double node_alpha = (getData().Layer % 10 < i) ? 0.0 : 0.6; // 現在の層より上の層は半透明
+				if ((node_alpha == 0.6) && (getData().Layer % 10 == i) && (getData().Index == j)) {
 					node_alpha = 0.0;
 				}
 				const ScopedColorMul2D colorMul{ ColorF{ 1.0 - node_alpha, 1.0 - node_alpha, 1.0 - node_alpha } };

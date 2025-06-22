@@ -5,6 +5,7 @@
 # include "common.hpp"
 # include "Board.hpp" // Board クラスの定義があるヘッダファイルをインクルード
 # include "Enemy.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
+# include "Banner.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
 
 // Data Manager の Deck を模倣したグローバル変数
 // 実際には Data Manager クラス (DataManager.hpp) で定義し、ここからインクルードするのが望ましい
@@ -23,6 +24,8 @@ class Battle : public App::Scene
 private:
 
 	Board m_board; // 盤面の状態を管理する Board クラスのインスタンス
+	Banner m_banner; // バナーの表示を管理する Banner クラスのインスタンス
+	bool is_result = false;
 	bool board_locked = false; // 盤面の操作がロックされているかどうか
 	bool flag_exit = false; // 敵が逃走するか
 	bool is_boss3 = false;
@@ -65,7 +68,6 @@ private:
 	Array<Block> Deck_board;
 
 
-
 	// Texture 
 	Texture m_backgroundTexture; // 背景画像
 	Texture m_myTexture; // カードのテクスチャ
@@ -77,7 +79,8 @@ private:
 	// HPBar ene_hpbar; // HPバーのインスタンス
 	Texture m_attackIcon;
 	Texture m_defenceIcon;
-
+	Rect m_button_hantei;
+	Array<Rect> m_tehuda_hantei;
 
 	double enemy_scale = 0.85;
 	double my_angle = 0.0;
@@ -89,6 +92,8 @@ private:
 	int32 my_effect_x = -1, my_effect_y = -1; // エフェクトの位置
 	int32 ene_effect_x = -1, ene_effect_y = -1; // エフェクトの位置
 
+
+	int32 flag_once_draw = 0;
 	double yamahuda_angle = 0.0;
 	double sutehuda_angle = 0.0;
 	int32 table_id = 0;

@@ -24,8 +24,10 @@ Battle::Battle(const InitData& init)
     m_defenceIcon = Texture(U"../image/icon_defence.png"); // 防御アイコンのテクスチャ
     m_button_hantei = Rect{1300, 400, 200, 100}; // ボタンの位置とサイズを設定
 
+
     // init
     m_banner.init(getData().money, getData().Layer, getData().leric); // バナーの初期化
+    m_board.InitAll();
 	// --- 戦う敵のセットアップ ---
 	setupEnemy();
 	// --- デッキの初期化 ---
@@ -339,6 +341,7 @@ void Battle::updateCardDrawEffect()
         yamahuda_angle -= Scene::DeltaTime()*5.5; // 山札の角度を徐々に戻す
         return;
     }
+    m_board.InitAll();
     m_currentAnimState = BattleAnimationState::Idle;
     m_animeStopwatch.reset(); // ストップウォッチをリセット
     board_locked = false; // 盤面の操作をアンロック
@@ -363,20 +366,20 @@ void Battle::update()
 	}
     if (KeyS.down() && !board_locked)
     {
-        // Edit here
-        // デッキの一覧を表示する。
-        // showDeck(Deck_gomi);
+        m_deck.draw();
         return;
     }
-    for (auto& block: m_tehuda_hantei)
+    for (int i = 0; i < Deck_table.size(); ++i)
     {
-        if (block.leftClicked() && !board_locked)
+        if (m_tehuda_hantei[i].leftClicked() && !board_locked)
         {
             // Edit here
-            // m_board.PassBlock(block);
+            m_board.PassBlock(Deck_table[i], {Deck_table[i].GetPos().first, Deck_table[i].GetPos().second}); // 手札のブロックを盤面に移動
+            return; // 一度のクリックで一つのブロックのみ処理する
         }
     }
-    m_board.Update(is_result);
+    m_deck.update(); // デッキの更新処理
+    m_board.Update(is_result, getData().leric.getLeric());
     m_banner.update(getData().Deck);
     // 現在の状態で処理を分岐
 	switch (m_currentAnimState)
@@ -434,7 +437,8 @@ void Battle::drawTableDeck() const
 void Battle::drawDefault() const
 {
     m_banner.draw();
-    // m_board.DrawBoard();
+    // 盤面の描画
+    // m_board.DrawBoard(); 
     // 盤面の背景を描画
     m_backgroundTexture.scaled(0.5).draw();
     // プレイヤーのキャラクターを描画
@@ -511,7 +515,7 @@ void Battle::draw() const
 		break;
 	case BattleAnimationState::WinEffect:
 		// TODO: 勝利演出の描画
-		drawWinEffect();
+		// drawWinEffect();
 		break;
 	}
 }

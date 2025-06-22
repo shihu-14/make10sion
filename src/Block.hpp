@@ -46,6 +46,7 @@ public:
 
 	Block& operator=(const Block& other);
 	Block& operator=(const std::string& value);
+	bool operator==(const Block& other) const;
 };
 
 #endif

@@ -334,11 +334,13 @@ const EnemyData& Enemy::getOneEnemy(bool is_boss) const
 	// 敵データの数を取得
     if (is_boss)
     {
-
-    }
-    else
-    {
-
+		// ボス敵のデータを取得
+		return m_enemies[Random(15, 20)]; // 通常敵は5体
+	}
+	else
+	{
+		// 通常敵のデータを取得
+		return m_enemies[Random(0, 14)]; // ボス敵は6体
     }
 }
 

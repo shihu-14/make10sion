@@ -359,6 +359,8 @@ void Battle::updateCardDrawEffect()
 void Battle::update()
 {
 
+    is_deck = m_deck.update();
+    if (is_deck) return;
 	// 「=」ボタンの代わりのデバッグ操作
 	if (m_button_hantei.leftClicked() && !board_locked)
 	{
@@ -381,7 +383,6 @@ void Battle::update()
     }
     my_hpbar.update(0.1);
     ene_hpbar.update(0.1);
-    m_deck.update(); // デッキの更新処理
     m_board.Update(is_result, getData().leric.getLeric());
     m_banner.update(getData().Deck);
     // 現在の状態で処理を分岐
@@ -498,6 +499,7 @@ void Battle::drawCardDrawEffect() const
 
 void Battle::draw() const
 {
+    if (is_deck) return;
 	// ... (背景や手札、山札などの基本描画)
     drawDefault();
 	// 現在の状態で描画処理を分岐

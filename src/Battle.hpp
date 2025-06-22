@@ -95,6 +95,7 @@ private:
 	int32 ene_effect_x = -1, ene_effect_y = -1; // エフェクトの位置
 
 
+	bool is_deck = false;
 	int32 flag_once_draw = 0;
 	double yamahuda_angle = 0.0;
 	double sutehuda_angle = 0.0;

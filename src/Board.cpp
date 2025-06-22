@@ -7,7 +7,8 @@ Board::Board() :
 	board_number(Size{ 7,6 }, 0),
 	board_effect_back(Size{ 7,6 }, 0),
 	board_effect_front(Size{ 7,6 }, 0),
-	board_coordinate(Size{ 7,6 },Point{ 0,0 })
+	board_coordinate(Size{ 7,6 },Point{ 0,0 }),
+	relics_old(19, 0)
 {
 	
 }
@@ -16,7 +17,7 @@ Board::Board() :
 
 
 //ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
-void Board::Update(int32 idx){//idx : 0:バトル中, 1:リザルト(マス解放時)
+void Board::Update(int32 idx, Leric relics){//idx : 0:バトル中, 1:リザルト(マス解放時)
 	if (idx == 0) {
 		if (is_board_active) {
 			if (is_block_selected) {//Blockをドラッグしているとき

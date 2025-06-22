@@ -435,6 +435,7 @@ void Battle::drawTableDeck() const
 {
     for (const auto& block: getData().Deck)
     {
+        Print << U"ブロックの状態: {}"_fmt(block.GetStat()); // デバッグ
         if (block.GetStat() == 1) // 手札の状態
         {
             Print << U"手札のブロックを描画"; // デバッグ

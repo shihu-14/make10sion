@@ -14,14 +14,14 @@ Battle::Battle(const InitData& init)
     table_size(getTableSize()), // 手札のサイズを取得
     m_currentAnimState(BattleAnimationState::Idle) // アニメーション状態を初期化
 {
-    m_backgroundTexture = Texture(U"../image/haikei_sentou.png"); // 背景画像のパスを指定
-    m_myTexture = Texture(U"../image/chara_player.png"); // 自分のカードのテクスチャ
-    m_yamahudaTexture = Texture(U"../image/yamahuda.png"); // 山札のテクスチャ
-    m_sutehudaTexture = Texture(U"../image/sutehuda.png"); // 捨て札のテクスチャ
-    m_buttonTexture = Texture(U"../image/bottun_equal.png"); // ボタンのテクスチャ
-    m_effectTexture = Texture(U"../image/effect_attack.png"); // エフェクトのテクスチャ
-    m_attackIcon = Texture(U"../image/icon_attack.png"); // 攻撃アイコンのテクスチャ
-    m_defenceIcon = Texture(U"../image/icon_defence.png"); // 防御アイコンのテクスチャ
+    m_backgroundTexture = Texture(U"../../image/haikei_sentou.png"); // 背景画像のパスを指定
+    m_myTexture = Texture(U"../../image/chara_player.png"); // 自分のカードのテクスチャ
+    m_yamahudaTexture = Texture(U"../../image/yamahuda.png"); // 山札のテクスチャ
+    m_sutehudaTexture = Texture(U"../../image/sutehuda.png"); // 捨て札のテクスチャ
+    m_buttonTexture = Texture(U"../../image/bottun_equal.png"); // ボタンのテクスチャ
+    m_effectTexture = Texture(U"../../image/effect_attack.png"); // エフェクトのテクスチャ
+    m_attackIcon = Texture(U"../../image/icon_attack.png"); // 攻撃アイコンのテクスチャ
+    m_defenceIcon = Texture(U"../../image/icon_defence.png"); // 防御アイコンのテクスチャ
     m_button_hantei = Rect{1300, 400, 200, 100}; // ボタンの位置とサイズを設定
 
 

@@ -3,9 +3,10 @@
 //# include "Title.hpp"
 //# include "Map.hpp"
 //# include "Battle.hpp"
-# include "Result.hpp"
+//# include "Result.hpp"
 //# include "Shop.hpp"
 //# include "Deck.hpp"
+#include "Event.hpp"
 
 using namespace std;
 
@@ -26,13 +27,14 @@ void Main()
 	//manager.add<Title>(State::Title);
 	//manager.add<Map>(State::Map);
 	//manager.add<Battle>(State::Battle);
-	manager.add<Result>(State::Result);
+	//manager.add<Result>(State::Result);
 	//manager.add<Shop>(State::Shop);
+	manager.add<Event>(State::Event);
 
 
 	//XXX:debug用
 	//開始シーンを指定する
-	manager.init(State::Result);
+	manager.init(State::Event);
 
 	while (System::Update() && manager.update()) {};
 }

@@ -11,7 +11,8 @@ m_endButtonTexture2(U"../../image/title_end_1.png"),
 m_startButtonRect(Arg::center = Vec2(Scene::Center().x+20 , Scene::Height() - 450), 420, 100, 20), // 修正: RoundRect の正しいコンストラクタを使用
 m_endButtonRect(Arg::center = Vec2(Scene::Center().x +20, Scene::Height()-250 ), 420, 100, 20), // 修正: RoundRect の正しいコンストラクタを使用
 m_font(30, Typeface::Bold),
-m_titleBGM(U"example/audio/game_bgm.mp3", Loop::Yes)
+m_titleBGM(U"example/audio/game_bgm.mp3", Loop::Yes),
+m_buttonSE(U"example/audio/game_bgm.mp3")
 {
         m_titleBGM.play();
     }
@@ -22,6 +23,7 @@ void Title::update() {
         Cursor::RequestStyle(CursorStyle::Hand);
         if (m_startButtonRect.leftClicked()) { // マウス左ボタンがクリックされた瞬間
             // マップシーンへ遷移
+			m_buttonSE.playOneShot(); // ボタンがクリックされたときに効果音を再生
             changeScene(State::Map, 0.5s);
         }
     }
@@ -29,7 +31,7 @@ void Title::update() {
     {
         Cursor::RequestStyle(CursorStyle::Hand);
         if (m_endButtonRect.leftClicked()) { // マウス左ボタンがクリックされた瞬間
-         
+			m_buttonSE.playOneShot(); // ボタンがクリックされたときに効果音を再生
             System::Exit();
         }
     }

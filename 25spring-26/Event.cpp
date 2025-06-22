@@ -13,8 +13,6 @@ event(U"map_event.png") // イベント画像のパスを指定
 		U"攻撃ゾーンと防御ゾーンの境界線を一個下にずらす"
 	};
 	size_t currentIndex = Random(0, static_cast<int>(sentences.size() - 1));
-	// size_t型とint型の混在に注意。Randomの引数はint型なのでキャストしています。
-	
 
 }
 

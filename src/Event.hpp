@@ -8,8 +8,9 @@ class Event : public App::Scene {
 	//Write private functions or variables here.
 		Texture m_background;  // 背景画像用のTextureオブジェクト
 		Texture event;
-		const Font font{ FontMethod::MSDF, 80,Typeface::Bold };
+		const Font font;
 		std::vector<String> sentences;
+		size_t currentIndex;
 public:
 	Event(const InitData& init);
 	//Write public functions here.

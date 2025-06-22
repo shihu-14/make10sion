@@ -121,38 +121,31 @@ void Board::InitBoardCoordinate(){//board_coordinateの初期化
 }
 
 void Board::DoRelic(vector<int32> relics){ //cf.) md
-    if(relics[3]-relics_old[3] > 0){
+    if(relics[3] > relics_old[3]){
         for(int i=0;i<6;i++){
             board_multiply[i] += 0.5;
         }
     }
-    if(relics[10]-relics_old[10] > 0){
-        for(int i=0;i<6;i++){
-            if(board_off_def[i] == 0){
-                board_off_def[i] = 1;
-                break;
-            }
+    int32 off_count = 3 + relics[10] - relics[11];
+    if(off_count != accumulate(board_off_def.begin(), board_off_def.end(), 0)){
+        for(int i=0;i<off_count;i++){
+            board_off_def[i] = 1;
+        }
+        for(int i=off_count;i<6;i++){
+            board_off_def[i] = 0;
         }
     }
-    if(relics[11]-relics_old[11] > 0){
-        for(int i=5;i>=0;i--){
-            if(board_off_def[i] == 1){
-                board_off_def[i] = 0;
-                break;
-            }
-        }
-    }
-    if(relics[13]-relics_old[13] > 0){
+    if(relics[13] > relics_old[13]){
         add_damage += (relics[13]-relics_old[13])*3;
     }
-    if(relics[14]-relics_old[14] > 0){
+    if(relics[14] > relics_old[14]){
         add_armor = relics[14]*3;
     }
-    if(relics[15]-relics_old[15] > 0){
-        //
-    }
+    
+    do_armor_raise = (relics[15] == 1);
+
     if(relics[16]-relics_old[16] > 0){
-        add_damage +=0;
+        add_damage_by_cards = relics[16];
     }
 }
 

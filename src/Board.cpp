@@ -48,8 +48,6 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 		DoRelic(relics);
 		relics_old = relics;
 
-		std::pair<int,int> 
-
 		//以下、描画処理
 		DrawBoard();//Boardの描画
 

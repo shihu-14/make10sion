@@ -3,7 +3,7 @@
 #include <array>
 using namespace std;
 
-
+const Font font{ FontMethod::MSDF, 48, Typeface::Bold };
 
 //public function
 void Board::DrawBoard(){//Boardの描画のみ

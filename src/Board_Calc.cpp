@@ -197,6 +197,7 @@ void Board::UpdateBoardNum(Point putAt){
 			GetPieceNum(content, putAt.y + i, putAt.x + j); // 数字の取得&マスの変更
 		}
 	}
+	CalcRow();
 }
 
 

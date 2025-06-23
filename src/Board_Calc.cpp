@@ -100,7 +100,7 @@ void Board::CalcRow() {
 
 
 std::pair<int, int> Board::Confirm() {  
-    SetStat();
+    is_board_active = !is_board_active;
 	CalcRow();
 	int attack=0, defense=0;
 	for (int i = 0; i < 6; i++) {
@@ -116,18 +116,6 @@ std::pair<int, int> Board::Confirm() {
 	}
 	return { attack, defense };
 }  
-
-
-
-void Board::SetStat() {//ボードの操作状態を設定する
-	if (is_board_active == true) {
-		is_board_active = false;
-	}
-	else {
-		is_board_active = true;
-	}
-}
-
 
 
 void Board::Discard() {

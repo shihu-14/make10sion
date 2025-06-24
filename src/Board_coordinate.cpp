@@ -14,7 +14,7 @@ double Board::CalcDist(Point a, Point b){//2点間の距離(の2乗)の計算
 //XXX:吸い込み失敗！
 Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)のピースのボード座標を返す
 
-    double rSquared = 100.0;//吸い込み半径(の2乗)
+    double rSquared = 10000.0;//吸い込み半径(の2乗)
     
     //Blockの左上のピースの絶対座標
     Point piece_pos;
@@ -62,8 +62,9 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)の�
     }
     if(!finish){//吸い込まれる
         int32 new_x = offset.x + putAt.x*cell_size + cell_size/2;
-        int32 new_y = offset.y + putAt.y*cell_size + cell_size/2;
+        int32 new_y = offset.y + putAt.y*cell_size + cell_size;
         block.SetPos(new_x, new_y);
+        used_blocks.back() = block;//手札のブロックを更新
     }
 
     return putAt;
@@ -124,7 +125,7 @@ void Board::TakeOutBlock(Point pos){//クリックしたBlockをボードから�
 
         CalcRow();
 
-        block = used_blocks[num - 1];
+        block = used_blocks.back();
         blockNum = num;
         is_block_selected = true;
     }

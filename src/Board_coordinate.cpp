@@ -11,7 +11,7 @@ using namespace std;
 double Board::CalcDist(Point a, Point b){//2点間の距離(の2乗)の計算
     return pow((a.x-b.x), 2)+pow((a.y-b.y), 2);
 }
-
+//XXX:吸い込み失敗！
 Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)のピースのボード座標を返す
 
     double rSquared = 100.0;//吸い込み半径(の2乗)
@@ -77,10 +77,10 @@ void Board::PutBlock(){//blockがドロップされたら、配置/手札に戻�
         int32 newx = offset.x + putAt.x*cell_size + cell_size/2 + block.GetPiece(0,0).x;
         int32 newy = offset.y + putAt.y*cell_size + cell_size/2 + block.GetPiece(0,0).y;
         block.SetPos(newx, newy);
-        block_anim[blockNum] = 0;
+        block_anim[blockNum-1] = 0;
     }
     else{
-        block_anim[blockNum] = 1;
+        block_anim[blockNum-1] = 1;
     }
 
     is_block_selected = false;
@@ -182,4 +182,5 @@ void Board::PassBlock(Block& selectedBlock, const Point hand_pos) {//選択さ�
         block_anim[blockNum - 1] = 3;
     }
     is_block_selected = true;
+    is_board_active = true; // Boardをアクティブにする
 }

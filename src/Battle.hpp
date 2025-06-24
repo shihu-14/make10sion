@@ -39,7 +39,7 @@ private:
 	int32 my_attack = 0;
 	int32 my_defense = 0;
 	int32 my_real_attack = 0;
-	int32 ene_attack = 0; 
+	int32 ene_attack = 0;
 	int32 ene_defense = 0;
 	int32 ene_real_attack = 0;
 	int32 global_id = 0;
@@ -58,17 +58,17 @@ private:
 	// 現在のアニメーション状態
 	BattleAnimationState m_currentAnimState = BattleAnimationState::Idle;
 
-    // アニメーションの再生、エフェクトの描画など 。
+	// アニメーションの再生、エフェクトの描画など 。
 	Stopwatch m_animeStopwatch; // 各アニメーションの時間を計測
 	Duration m_currentAnimDuration; // 現在のアニメーションの全体時間
 
-	
+
 	// Battle Sceneでは、Data ManagerのDeck(vector<Block>)をコピーして使用状況を管理する
-	Array<Block> Deck_yama;     // 山札 (元のGlobalDeckのコピー) 
-	Array<Block> Deck_table;   // 手札 
+	Array<int> Deck_yama;     // 山札 (元のGlobalDeckのコピー) 
+	Array<int> Deck_table;   // 手札 
 	Array<Block> Deck_gomi;     // 捨て札
 	Array<Block> Deck_board;
-	Array<Block> Deck;
+	//Array<Block> Deck;
 
 
 	// Texture 
@@ -111,7 +111,7 @@ private:
 	void updateTableDeck();
 	void attack();
 	// 各演出の更新関数 (private)
-    // これらはupdate()から呼ばれ、アニメーションの状態を更新し、完了時に次の状態へ遷移させる
+	// これらはupdate()から呼ばれ、アニメーションの状態を更新し、完了時に次の状態へ遷移させる
 	void updateCombatEnemyEffect();
 	void updateCombatMyEffect();
 	void updateDiscardEffect();
@@ -119,7 +119,7 @@ private:
 	void updateWinEffect();
 
 	// 各演出の描画関数 (private, const)
-    // これらはdraw()から呼ばれ、現在のアニメーション状態に基づいて描画を行う
+	// これらはdraw()から呼ばれ、現在のアニメーション状態に基づいて描画を行う
 	void drawTableDeck() const;
 	void drawDefault() const;
 	void drawCombatEnemyEffect() const;
@@ -130,13 +130,13 @@ private:
 
 
 public:
-	
+
 	Battle(const InitData& init);
-		
+
 	// ~Battle(); 
-	
+
 	void update() override;
-	
+
 	void draw() const override;
 };
 

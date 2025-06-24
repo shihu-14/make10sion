@@ -67,6 +67,8 @@ Block& Block::operator=(const string& value) {
 
 bool Block::operator==(const Block& other) const {
 	if (sizeX != other.sizeX || sizeY != other.sizeY) return false;
+	if (posX != other.posX || posY != other.posY) return false;
+	if (stat != other.stat) return false;
 	for (int y = 0; y < sizeY; y++) {
 		for (int x = 0; x < sizeX; x++) {
 			if (contents[x][y].content != other.contents[x][y].content) return false;
@@ -76,12 +78,13 @@ bool Block::operator==(const Block& other) const {
 }
 
 void Block::Rotate() {
-	vector<vector<Piece>> newContents(sizeX, vector<Piece>(sizeY));
+	vector<vector<Piece>> newContents(sizeY, vector<Piece>(sizeX));
 	for (int y = 0; y < sizeY; y++) {
 		for (int x = 0; x < sizeX; x++) {
-			newContents[x][sizeY - 1 - y] = contents[y][x];
-			newContents[x][sizeY - 1 - y].x = contents[y][x].y;
-			newContents[x][sizeY - 1 - y].y = -contents[y][x].x;
+			newContents[y][x].content = contents[x][sizeY - 1 - y].content; // 90度回転
+			newContents[y][x].x = contents[x][sizeY - 1 - y].y; // x座標とy座標を入れ替え
+			newContents[y][x].y = -contents[x][sizeY - 1 - y].x; // y座標を反転
+			newContents[y][x].stat = contents[x][sizeY - 1 - y].stat; // 状態はそのままコピー
 		}
 	}
 	contents = move(newContents);

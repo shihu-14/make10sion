@@ -81,7 +81,6 @@ public:
 	void Discard();
 	void Update(int32 idx, std::vector<int32> relics);
 	void DrawBoard(int32 idx) const;
-	void SetStat();
 	std::pair<int32, int32> Confirm();
 	void PassBlock(Block& selectedBlock, const Point hand_pos);
 };

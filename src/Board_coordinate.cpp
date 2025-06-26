@@ -18,12 +18,12 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)の�
     
     //Blockの左上のピースの絶対座標
     Point piece_pos;
-    piece_pos.x = block.GetPiece(0, 0).x+Cursor::Pos().x;
-    piece_pos.y = block.GetPiece(0, 0).y+Cursor::Pos().y;
+    piece_pos.x = Cursor::Pos().x + block.GetPiece(0, 0).x;
+    piece_pos.y = Cursor::Pos().y + block.GetPiece(0, 0).y;
 
-    //マスの中心同士を結んだ ボード座標' に変換
-    int32 bx = (piece_pos.x - offset.x + cell_size/2) / cell_size;
-    int32 by = (piece_pos.y - offset.y + cell_size/2) / cell_size;
+    //マスの中心同士を結んだ ボード座標' に変換　ボード座標' := マス(i, j)の左上の頂点を含む領域が座標(i, j)となる
+    int32 cell_x = (piece_pos.x - offset.x + cell_size/2) / cell_size;
+    int32 cell_y = (piece_pos.y - offset.y + cell_size/2) / cell_size;
 
     Point putAt = {-1, -1};
     double minDist = rSquared;
@@ -32,11 +32,11 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)の�
     array<int32, 4> dx = {-1, 0, -1, 0};
     array<int32, 4> dy = {-1, -1, 0, 0};
     for(int k=0;k<4;k++){
-        if(((0 <= by+dy[k]) && (by+dy[k] < 6)) && ((0 <= bx+dx[k]) && (bx+dx[k] < 7))){
-            double distSquared = CalcDist(board_coordinate[by+dy[k]][bx+dy[k]], piece_pos);
+        if((0 <= cell_y+dy[k] < 6) && (0 <= cell_x+dx[k] < 7)){
+            double distSquared = CalcDist(board_coordinate[cell_y+dy[k]][cell_x+dx[k]], piece_pos);
             if(distSquared < minDist){
                 minDist = distSquared;
-                putAt = Point{bx+dx[k], by+dy[k]};
+                putAt = Point{cell_x + dx[k], cell_y + dy[k]};
             }
         }
     }
@@ -61,8 +61,8 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)の�
         }
     }
     if(!finish){//吸い込まれる
-        int32 new_x = offset.x + putAt.x*cell_size + cell_size/2;
-        int32 new_y = offset.y + putAt.y*cell_size + cell_size;
+        int32 new_x = offset.x + putAt.x * cell_size + cell_size/2 - block.GetPiece(0, 0).x;
+        int32 new_y = offset.y + putAt.y * cell_size + cell_size/2 - block.GetPiece(0, 0).y;
         block.SetPos(new_x, new_y);
         used_blocks.back() = block;//手札のブロックを更新
     }
@@ -75,9 +75,9 @@ void Board::PutBlock(){//blockがドロップされたら、配置/手札に戻�
     Point putAt = PutBlockAt();
     if(putAt != Point{-1, -1}){
         UpdateBoardNum(putAt);
-        int32 newx = offset.x + putAt.x*cell_size + cell_size/2 + block.GetPiece(0,0).x;
-        int32 newy = offset.y + putAt.y*cell_size + cell_size/2 + block.GetPiece(0,0).y;
-        block.SetPos(newx, newy);
+        //int32 newx = offset.x + putAt.x * cell_size + cell_size/2 - block.GetPiece(0,0).x;//既に吸い込んであるから、不要かな
+        //int32 newy = offset.y + putAt.y * cell_size + cell_size/2 - block.GetPiece(0,0).y;
+        //block.SetPos(newx, newy);
         block_anim[blockNum-1] = 0;
     }
     else{

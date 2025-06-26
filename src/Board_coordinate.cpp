@@ -14,7 +14,7 @@ double Board::CalcDist(Point a, Point b){//2点間の距離(の2乗)の計算
 //XXX:吸い込み失敗！
 Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)のピースのボード座標を返す
 
-    double rSquared = 100.0;//吸い込み半径(の2乗)
+    double rSquared = 10000.0;//吸い込み半径(の2乗)
     
     //Blockの左上のピースの絶対座標
     Point piece_pos;
@@ -32,7 +32,7 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)の�
     array<int32, 4> dx = {-1, 0, -1, 0};
     array<int32, 4> dy = {-1, -1, 0, 0};
     for(int k=0;k<4;k++){
-        if((0 <= by+dy[k] < 6) && (0 <= bx+dx[k] < 7)){
+        if(((0 <= by+dy[k]) && (by+dy[k] < 6)) && ((0 <= bx+dx[k]) && (bx+dx[k] < 7))){
             double distSquared = CalcDist(board_coordinate[by+dy[k]][bx+dy[k]], piece_pos);
             if(distSquared < minDist){
                 minDist = distSquared;

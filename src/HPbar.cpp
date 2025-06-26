@@ -12,16 +12,16 @@ public:
         ColorF backgroundColor{ 0.0, 0.6 };
         
         /// @brief 遅延 HP の色
-        ColorF delayColor{ 0.9, 0.8, 0.3 };
+        ColorF delayColor{ 0.65, 0.35, 0.0 };
         
         /// @brief HP の色
-        ColorF hpColor{ 0.8, 0.2, 0.2 };
+        ColorF hpColor{ 1.0, 0.0, 0.0 };
         
         /// @brief 枠の色
         ColorF frameColor{ 0.1 };
         
         /// @brief 枠の太さ（ピクセル）
-        double frameThickness = 1.5;
+        double frameThickness = 1.9;
     };
     
     HPBar() = default;

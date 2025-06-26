@@ -62,8 +62,9 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)の�
     }
     if(!finish){//吸い込まれる
         int32 new_x = offset.x + putAt.x*cell_size + cell_size/2;
-        int32 new_y = offset.y + putAt.y*cell_size + cell_size/2;
+        int32 new_y = offset.y + putAt.y*cell_size + cell_size;
         block.SetPos(new_x, new_y);
+        used_blocks.back() = block;//手札のブロックを更新
     }
 
     return putAt;
@@ -124,7 +125,7 @@ void Board::TakeOutBlock(Point pos){//クリックしたBlockをボードから�
 
         CalcRow();
 
-        block = used_blocks[num - 1];
+        block = used_blocks.back();
         blockNum = num;
         is_block_selected = true;
     }

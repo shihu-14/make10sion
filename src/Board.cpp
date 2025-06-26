@@ -29,7 +29,7 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 			if (is_block_selected) {//Blockをドラッグしているとき
 				//この時点で、PassBlock()が実行されている
 				block.SetPos(Cursor::Pos().x, Cursor::Pos().y);
-				used_blocks[blockNum - 1] = block;//手札のブロックを更新
+				used_blocks.back() = block;//手札のブロックを更新
 
 				if (!block.IsDragging()) {
 					PutBlock();

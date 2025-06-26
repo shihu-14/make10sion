@@ -19,6 +19,7 @@ void Board::InitAll(){//毎ターン開始時に呼び出してもらう
     used_blocks.clear();
 	block_hand_pos.clear();
 	block_anim.clear();
+	blockNum = 0;
 }
 
 //ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
@@ -27,10 +28,8 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 		printf("Board::Update() called\n");
 		if (is_board_active) {
 			if (is_block_selected) {//Blockをドラッグしているとき
-				//この時点で、PassBlock()が実行されている
 				block.SetPos(Cursor::Pos().x, Cursor::Pos().y);
-				used_blocks.back() = block;//手札のブロックを更新
-
+				used_blocks[blockNum-1] = block;//used_blocksのブロックを更新
 				if (!block.IsDragging()) {
 					PutBlock();
 				}

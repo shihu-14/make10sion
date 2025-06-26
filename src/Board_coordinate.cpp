@@ -64,7 +64,7 @@ Point Board::PutBlockAt(){//blockの置ける場所を確認. blockの(0, 0)の�
         int32 new_x = offset.x + putAt.x * cell_size + cell_size/2 - block.GetPiece(0, 0).x;
         int32 new_y = offset.y + putAt.y * cell_size + cell_size/2 - block.GetPiece(0, 0).y;
         block.SetPos(new_x, new_y);
-        used_blocks.back() = block;//手札のブロックを更新
+        used_blocks[blockNum - 1] = block;//used_blocksのブロックを更新
     }
 
     return putAt;
@@ -126,7 +126,7 @@ void Board::TakeOutBlock(Point pos){//クリックしたBlockをボードから�
 
         CalcRow();
 
-        block = used_blocks.back();
+        block = used_blocks[num - 1];
         blockNum = num;
         is_block_selected = true;
     }
@@ -173,13 +173,13 @@ void Board::PassBlock(Block& selectedBlock, const Point hand_pos) {//選択さ�
     block = selectedBlock;
 
     auto itr = find(used_blocks.begin(), used_blocks.end(), block);
-    if(itr == used_blocks.end()){
+    if(itr == used_blocks.end()){//新出のブロックなら
         used_blocks.push_back(block);
         blockNum = used_blocks.size();//1-indexed
         block_hand_pos.push_back(hand_pos);//手札の位置を記録
         block_anim.push_back(3); 
     }
-    else{
+    else{//既出のブロックなら
         blockNum = distance(used_blocks.begin(), itr) + 1;//1-indexed
         block_anim[blockNum - 1] = 3;
     }

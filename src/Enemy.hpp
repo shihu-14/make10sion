@@ -1,3 +1,5 @@
+#ifndef ENEMY_HPP
+#define ENEMY_HPP
 #include <Siv3D.hpp>
 
 
@@ -15,7 +17,7 @@ struct EnemyData
 	String texturePath;
 	int32 maxHp = 0;
 	Array<EnemyAction> actionPattern; // ターンごとの行動パターン
-    bool isDefeated = false;
+	bool isDefeated = false;
 };
 
 // ゲームに登場するすべての敵データを管理するクラス
@@ -27,6 +29,7 @@ private:
 
 public:
 	Enemy();
-    void markAsDefeated(const String& enemyName); // 指定された敵を「倒した」状態にす
+	void markAsDefeated(const String& enemyName); // 指定された敵を「倒した」状態にす
 	const EnemyData& getOneEnemy(bool is_boss) const; // データベースからランダムな敵データを1体返す
 };
+#endif

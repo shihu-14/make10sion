@@ -2,34 +2,34 @@
 #include "Board.hpp"
 using namespace std;
 
-Board::Board() :  
+Board::Board() :
 	board_number(Size{ 7,6 }, 0),
 	board_effect_back(Size{ 7,6 }, 0),
 	board_effect_front(Size{ 7,6 }, 0),
-	board_coordinate(Size{ 7,6 },Point{ 0,0 }),
+	board_coordinate(Size{ 7,6 }, Point{ 0,0 }),
 	relics_old(19, 0)
 {
-	
+
 }
 
 
 
-void Board::InitAll(){//毎ターン開始時に呼び出してもらう
-    InitBoardCoordinate();
-    used_blocks.clear();
+void Board::InitAll() {//毎ターン開始時に呼び出してもらう
+	InitBoardCoordinate();
+	used_blocks.clear();
 	block_hand_pos.clear();
 	block_anim.clear();
 	blockNum = 0;
 }
 
 //ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
-void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:リザルト(マス解放時)
+void Board::Update(int32 idx, vector<int32> relics) {//idx : 0:バトル中, 1:リザルト(マス解放時)
 	if (idx == 0) {
 		printf("Board::Update() called\n");
 		if (is_board_active) {
 			if (is_block_selected) {//Blockをドラッグしているとき
 				block.SetPos(Cursor::Pos().x, Cursor::Pos().y);
-				used_blocks[blockNum-1] = block;//used_blocksのブロックを更新
+				used_blocks[blockNum - 1] = block;//used_blocksのブロックを更新
 				if (!block.IsDragging()) {
 					PutBlock();
 				}
@@ -37,10 +37,9 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 				if (MouseR.down()) {//blockの回転
 					block.Rotate();
 				}
-			}
-			else {
+			} else {
 				Point cell_pos = (Cursor::Pos() - offset) / cell_size;//ボードのどこのマスにあたるか
-				if ((0 <= cell_pos.x <= 7) && (0 <= cell_pos.y <= 6) && MouseL.down()) {//ボード内でクリックされたとき
+				if (((0 <= cell_pos.x) && (cell_pos.x <= 7)) && ((0 <= cell_pos.y) && (cell_pos.y <= 6)) && MouseL.down()) {//ボード内でクリックされたとき
 					TakeOutBlock(cell_pos);
 				}
 			}
@@ -63,9 +62,8 @@ void Board::Update(int32 idx, vector<int32> relics){//idx : 0:バトル中, 1:�
 		}
 
 
-	}
-	else if(idx == 1){
-		if(MouseL.down())AddUsablePlace();
+	} else if (idx == 1) {
+		if (MouseL.down())AddUsablePlace();
 	}
 }
 
@@ -91,8 +89,7 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 				font(result_of_calc[i]).drawAt(TextStyle::Outline(0.2, ColorF{ 0.0 }), 85, num, ColorF{ 0.5, 1.0, 1.0 });
 			}
 		}
-	}
-	else if(idx == 1){
+	} else if (idx == 1) {
 		DrawAddPlaceBoard();
 	}
 }

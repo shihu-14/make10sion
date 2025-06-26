@@ -3,7 +3,7 @@ using namespace std;
 
 Event::Event(const InitData& init) : IScene(init),
 m_background(U"../../image/haikei_sentou.png"), // 背景画像のパスを指定
-event(U"../../image/map_event.png") ,// イベント画像のパスを指定
+event(U"../../image/map_event.png"),// イベント画像のパスを指定
 sentences{ U"2マス追加",
 	U"攻撃ゾーンと防御ゾーンの \n 境界線を一個上にずらす",
 	U"攻撃ゾーンと防御ゾーンの \n 境界線を一個下にずらす" },
@@ -14,7 +14,7 @@ sentences{ U"2マス追加",
 }
 
 void Event::update() {
-	
+
 }
 
 void Event::draw() const {

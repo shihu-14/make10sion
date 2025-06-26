@@ -20,14 +20,14 @@ Battle::Battle(const InitData& init)
     m_effectTexture = Texture(U"../../image/effect_attack.png"); // エフェクトのテクスチャ
     m_attackIcon = Texture(U"../../image/icon_attack.png"); // 攻撃アイコンのテクスチャ
     m_defenceIcon = Texture(U"../../image/icon_defence.png"); // 防御アイコンのテクスチャ
-    m_button_hantei = Rect{1600, 750, 175, 100 }; // ボタンの位置とサイズを設定
+    m_button_hantei = Rect{ 1600, 750, 175, 100 }; // ボタンの位置とサイズを設定
 
     // init
     m_banner.init(getData().money, getData().Layer, getData().leric); // バナーの初期化
     m_board.InitAll();
     table_max_size = getTableSize();
-    setupEnemy(getData().Layer >= 15); 
-    
+    setupEnemy(getData().Layer >= 15);
+
     // --- デッキの初期化 ---
     for (int i = 0; i < deck_size; i++) {
         getData().Deck[i].SetStat(0);
@@ -130,10 +130,10 @@ void Battle::attack()
             m_enemy.hp += my_real_attack;
         }
         // attack effectの演出のための制御変数を設定
-        my_per_real_attack = my_real_attack / damage_effect_width; 
-        my_res_real_attack = my_real_attack % damage_effect_width; 
-        ene_per_real_attack = ene_real_attack / damage_effect_width; 
-        ene_res_real_attack = ene_real_attack % damage_effect_width; 
+        my_per_real_attack = my_real_attack / damage_effect_width;
+        my_res_real_attack = my_real_attack % damage_effect_width;
+        ene_per_real_attack = ene_real_attack / damage_effect_width;
+        ene_res_real_attack = ene_real_attack % damage_effect_width;
         ene_damage_effect_cnt = 0;
         ene_damage_max_cnt = my_real_attack / damage_effect_width;
         my_damage_max_cnt = ene_real_attack / damage_effect_width;
@@ -146,11 +146,9 @@ void Battle::attack()
 void Battle::updateCombatEnemyEffect()
 {
     // damage_effectを表示するための制御
-    if (ene_damage_effect_cnt < ene_damage_max_cnt)
-    {
-        if (m_animeStopwatch.sF() > 0.20 * ene_damage_effect_cnt)
-        {
-            if (ene_damage_effect_cnt == 0) ene_hpbar.damage(my_per_real_attack+my_res_real_attack); // 敵のHPバーを減らす
+    if (ene_damage_effect_cnt < ene_damage_max_cnt) {
+        if (m_animeStopwatch.sF() > 0.20 * ene_damage_effect_cnt) {
+            if (ene_damage_effect_cnt == 0) ene_hpbar.damage(my_per_real_attack + my_res_real_attack); // 敵のHPバーを減らす
             else  ene_hpbar.damage(my_per_real_attack); // 敵のHPバーを減らす
             ene_effect_x = Random(1350, 1600); // エフェクトのX座標をランダムに設定
             ene_effect_y = Random(200, 450); // エフェクトのY座標をランダムに設定
@@ -161,8 +159,7 @@ void Battle::updateCombatEnemyEffect()
     }
     // 敵を倒したかの判定
     bool isWin = m_enemy.hp <= 0;
-    if (isWin)
-    {
+    if (isWin) {
         is_result = true;
         m_currentAnimState = BattleAnimationState::WinEffect;
         m_animeStopwatch.restart();
@@ -177,16 +174,13 @@ void Battle::updateCombatEnemyEffect()
 // 戦闘演出の更新処理
 void Battle::updateCombatMyEffect()
 {
-    if (m_animeStopwatch.sF() < 0.8)
-    {
+    if (m_animeStopwatch.sF() < 0.8) {
         return;
     }
     // damage_effectを表示するための制御
-    if (my_damage_effect_cnt < my_damage_max_cnt)
-    {
-        if ((m_animeStopwatch.sF()-0.8) > 0.20 * my_damage_effect_cnt)
-        {
-            if (my_damage_effect_cnt == 0) my_hpbar.damage(ene_per_real_attack+ene_res_real_attack); // 自分のHPバーを減らす
+    if (my_damage_effect_cnt < my_damage_max_cnt) {
+        if ((m_animeStopwatch.sF() - 0.8) > 0.20 * my_damage_effect_cnt) {
+            if (my_damage_effect_cnt == 0) my_hpbar.damage(ene_per_real_attack + ene_res_real_attack); // 自分のHPバーを減らす
             else my_hpbar.damage(ene_per_real_attack); // 自分のHPバーを減らす
             my_effect_x = Random(150, 300); // エフェクトのX座標をランダムに設定
             my_effect_y = Random(130, 230); // エフェクトのY座標をランダムに設定
@@ -206,7 +200,7 @@ void Battle::updateCombatMyEffect()
         m_animeStopwatch.restart();
         return;
     }
-    table_id = Deck_table.size()-1;
+    table_id = Deck_table.size() - 1;
     my_angle = 0.0;
     m_currentAnimState = BattleAnimationState::DiscardEffect;
     m_animeStopwatch.restart();
@@ -215,24 +209,17 @@ void Battle::updateCombatMyEffect()
 // 捨て札アニメーション(盤面, 手札 -> 捨て札)の更新処理
 void Battle::updateDiscardEffect()
 {
-    if (table_id >= 0)
-    {
-        
-        if (sutehuda_angle > -90_deg)
-        {
-            table_id = Deck_table.size()-1;
-            sutehuda_angle -= Scene::DeltaTime()*4.0; 
+    if (table_id >= 0) {
+
+        if (sutehuda_angle > -90_deg) {
+            table_id = Deck_table.size() - 1;
+            sutehuda_angle -= Scene::DeltaTime() * 4.0;
             m_animeStopwatch.restart();
-        }
-        else
-        {
-            if (getData().Deck[Deck_table[table_id]].GetStat() != 1)
-            {
+        } else {
+            if (getData().Deck[Deck_table[table_id]].GetStat() != 1) {
                 table_id--;
                 return;
-            }
-            else
-            {
+            } else {
                 getData().Deck[Deck_table[table_id]].SetStat(-1);
                 Deck_gomi.emplace_back(Deck_table[table_id]);
                 Deck_table.erase(Deck_table.begin() + table_id); // 盤面から削除
@@ -243,11 +230,11 @@ void Battle::updateDiscardEffect()
             }
             sutehuda_angle = -90_deg;
             tehuda_rate = Min(1.0, m_animeStopwatch.sF() / 0.15); // 捨て札の位置を徐々に変える
-            Vec2 from{200+table_id*100, 900};
-            Vec2 to{1600, 1100};
+            Vec2 from{ 200 + table_id * 100, 900 };
+            Vec2 to{ 1600, 1100 };
             Vec2 pos = from.lerp(to, tehuda_rate);
             getData().Deck[Deck_table[table_id]].SetPos(pos.x, pos.y); // 手札
-            if (tehuda_rate > 0.999999){
+            if (tehuda_rate > 0.999999) {
                 Deck_gomi.emplace_back(Deck_table[table_id]);
                 getData().Deck[Deck_table[table_id]].SetStat(-1);
                 table_id--;
@@ -273,8 +260,7 @@ void Battle::updateDiscardEffect()
 void Battle::updateCardDrawEffect()
 {
     // 山札から手札へ移動する。
-    while(Deck_yama.size() && (int32)Deck_table.size() < table_max_size)
-    {
+    while (Deck_yama.size() && (int32)Deck_table.size() < table_max_size) {
         int id = Deck_yama.back();
         Deck_yama.pop_back();
         Deck_table.push_back(id);
@@ -284,18 +270,15 @@ void Battle::updateCardDrawEffect()
 
     if (table_id < Deck_table.size()) // 手札のカードを山札から引く
     {
-        if (yamahuda_angle < 90_deg) 
-        {
+        if (yamahuda_angle < 90_deg) {
             table_id = 0;
             m_animeStopwatch.restart();
             yamahuda_angle += Scene::DeltaTime() * 4.0;
-        } 
-        else
-        {
+        } else {
             yamahuda_angle = 90_deg;
             tehuda_rate = Min(1.0, m_animeStopwatch.sF() / 0.3);
-            Vec2 from{50, 900};
-            Vec2 to{350+table_id*75, 900};
+            Vec2 from{ 50, 900 };
+            Vec2 to{ 350 + table_id * 75, 900 };
             Vec2 pos = from.lerp(to, tehuda_rate);
             getData().Deck[Deck_table[table_id]].SetPos(pos.x, pos.y); // 手札
             if (tehuda_rate > 0.99) {
@@ -306,8 +289,7 @@ void Battle::updateCardDrawEffect()
         }
         return;
     }
-    if (yamahuda_angle > 0.01)
-    {
+    if (yamahuda_angle > 0.01) {
         yamahuda_angle -= Scene::DeltaTime() * 6.0; // 山札の角度を徐々に戻す
         return;
     }
@@ -331,23 +313,19 @@ void Battle::update()
 {
     is_deck = m_banner.update(getData().Deck);
     if (is_deck) return;
-    if (m_button_hantei.mouseOver())
-    {
+    if (m_button_hantei.mouseOver()) {
         Cursor::RequestStyle(CursorStyle::Hand);
     }
-    if (m_button_hantei.leftClicked() && !is_board_locked)
-    {
+    if (m_button_hantei.leftClicked() && !is_board_locked) {
         attack();
         return;
     }
     for (int i = 0; i < Deck_table.size(); ++i) {
-        if (getData().Deck.at(Deck_table[i]).IsDragging() && !is_board_locked)
-        {
+        if (getData().Deck.at(Deck_table[i]).IsDragging() && !is_board_locked) {
             m_board.PassBlock(getData().Deck[i], { getData().Deck[i].GetPos().first, getData().Deck[i].GetPos().second });
             return;
         }
-        if (getData().Deck.at(Deck_table[i]).IsHovered() && !is_board_locked)
-        {
+        if (getData().Deck.at(Deck_table[i]).IsHovered() && !is_board_locked) {
             Cursor::RequestStyle(CursorStyle::Hand);
         }
     }
@@ -438,7 +416,7 @@ void Battle::drawCombatMyEffect() const
 // 戦闘後、余った手札を捨て札に移動するアニメーションの描画
 void Battle::drawDiscardEffect() const
 {
-    if (flag_once_draw == 0){
+    if (flag_once_draw == 0) {
         // 修正
         // m_board.Discard();
     }

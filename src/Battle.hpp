@@ -64,7 +64,7 @@ private:
 	BattleAnimationState m_currentAnimState = BattleAnimationState::Idle;
 
 	// アニメーションの時間を制御するための変数
-	Stopwatch m_animeStopwatch; 
+	Stopwatch m_animeStopwatch;
 	Duration m_currentAnimDuration;
 
 

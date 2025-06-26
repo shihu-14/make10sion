@@ -4,13 +4,13 @@
 #include "common.hpp"
 
 class Event : public App::Scene {
-	private:
+private:
 	//Write private functions or variables here.
-		Texture m_background;  // 背景画像用のTextureオブジェクト
-		Texture event;
-		const Font font;
-		std::vector<String> sentences;
-		size_t currentIndex;
+	Texture m_background;  // 背景画像用のTextureオブジェクト
+	Texture event;
+	const Font font;
+	std::vector<String> sentences;
+	size_t currentIndex;
 public:
 	Event(const InitData& init);
 	//Write public functions here.

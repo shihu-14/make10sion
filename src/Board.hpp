@@ -8,16 +8,16 @@
 #include "Block.hpp"
 #include "leric.hpp"
 
-class Board{
+class Board {
 private:
 
 	//variables
-	Grid<int32> board_usage={{-1,-1,-1,-1,-1,-1,-1},
+	Grid<int32> board_usage = { {-1,-1,-1,-1,-1,-1,-1},
 							 {-1,-1,-2,-2,-2,-1,-1},
 							 {-1,-2, 0, 0, 0,-2,-1},
 							 {-1,-2, 0, 0, 0,-2,-1},
 							 {-1,-1,-2,-2,-2,-1,-1},
-							 {-1,-1,-1,-1,-1,-1,-1}};
+							 {-1,-1,-1,-1,-1,-1,-1} };
 	Grid<int32> board_number;
 	Grid<int32> board_effect_back;
 	Grid<int32> board_effect_front;
@@ -26,15 +26,15 @@ private:
 	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };
 	Array<double> board_multiply_effect = { 0,0,0,0,0,0 };
 	Array<int32> board_off_def = { 1,1,1,0,0,0 };//攻1守0
-	Array<int32> result_of_calc= { 0,0,0,0,0,0 };
+	Array<int32> result_of_calc = { 0,0,0,0,0,0 };
 	bool is_block_selected = false;
 	int32 blockNum;
 	Block block;
-	const Point offset = {600,170};//Boardの左上の絶対座標(バトル時)
+	const Point offset = { 600,170 };//Boardの左上の絶対座標(バトル時)
 	//const Point offset_u = {0,0};//Boardの左上の絶対座標(アンロック時)(使わないかも)
 	const double img_scale = 1.8;
 	const int32 cell_size = int(50 * img_scale);
-	const Texture board_img{U"../../image/banmen_kuuhaku.png"};
+	const Texture board_img{ U"../../image/banmen_kuuhaku.png" };
 	const Texture chosed_board_img{ U"../../image/special_n.png" };
 	const Texture chosable_board_img{ U"../../image/tile_kokodayo.png" };
 	const Texture board_frame_img{ U"../../image/tile_flame.png" };
@@ -65,8 +65,8 @@ private:
 	void DoRelic(std::vector<int32> relics);
 
 	double CalcDist(Point a, Point b);
-	
-	
+
+
 public:
 
 	Board();

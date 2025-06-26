@@ -4,9 +4,9 @@
 #include "common.hpp"
 #include <vector>
 
-class Deck{
+class Deck {
 private:
-	std::vector<std::pair<int,int>> card_pos; //カードの位置
+	std::vector<std::pair<int, int>> card_pos; //カードの位置
 	std::vector<double> card_fade; //カードのsize,alpha
 	double max_y = 0;
 	double now_y = 0; //現在のy座標

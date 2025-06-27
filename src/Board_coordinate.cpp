@@ -6,15 +6,14 @@
 using namespace std;
 
 //private variables
-//XXX:吸い込み失敗！
 Point Board::PutBlockAt() {//blockの置ける場所を確認. blockの(0, 0)のピースのボード座標を返す
 
     double minDist = 10000.0;//吸い込み半径(の2乗)
 
     //Blockの左上のピースの絶対座標
     Point piece_pos;
-    piece_pos.x = Cursor::Pos().x + block.GetPiece(0, 0).x;
-    piece_pos.y = Cursor::Pos().y + block.GetPiece(0, 0).y;
+    piece_pos.x = Cursor::Pos().x + used_blocks.at(block_number)->GetPiece(0, 0).x;
+    piece_pos.y = Cursor::Pos().y + used_blocks.at(block_number)->GetPiece(0, 0).y;
 
     //マスの中心同士を結んだ ボード座標' に変換　ボード座標' := マス(i, j)の左上の頂点を含む領域が座標(i, j)となる
     int32 cell_x = (piece_pos.x - offset.x + cell_size / 2) / cell_size;
@@ -40,9 +39,9 @@ Point Board::PutBlockAt() {//blockの置ける場所を確認. blockの(0, 0)の
 
     //置けるかどうかの確認
     bool finish = false;
-    for (int i = 0;i < block.Size().second;i++) {
-        for (int j = 0;j < block.Size().first;j++) {
-            char content = block.GetPiece(j, i).content;
+    for (int i = 0;i < used_blocks.at(block_number)->Size().second;i++) {
+        for (int j = 0;j < used_blocks.at(block_number)->Size().first;j++) {
+            char content = used_blocks.at(block_number)->GetPiece(j, i).content;
             if ((content != '$') && (board_usage[putAt.y + i][putAt.x + j] != 0)) {
                 putAt = { -1, -1 };
                 finish = true;
@@ -54,10 +53,9 @@ Point Board::PutBlockAt() {//blockの置ける場所を確認. blockの(0, 0)の
         }
     }
     if (!finish) {//吸い込まれる
-        int32 new_x = offset.x + putAt.x * cell_size + cell_size / 2 - block.GetPiece(0, 0).x;
-        int32 new_y = offset.y + putAt.y * cell_size + cell_size / 2 - block.GetPiece(0, 0).y;
-        block.SetPos(new_x, new_y);
-        used_blocks[blockNum - 1] = block;//used_blocksのブロックを更新
+        int32 new_x = offset.x + putAt.x * cell_size + cell_size / 2 - used_blocks.at(block_number)->GetPiece(0, 0).x;
+        int32 new_y = offset.y + putAt.y * cell_size + cell_size / 2 - used_blocks.at(block_number)->GetPiece(0, 0).y;
+        used_blocks.at(block_number)->SetPos(new_x, new_y);
     }
 
     return putAt;
@@ -117,7 +115,7 @@ void Board::TakeOutBlock(Point pos) {//クリックしたBlockをボードから
 
         CalcRow();
 
-        block = used_blocks[num - 1];
+        //block = *used_blocks[num - 1];
         blockNum = num;
         is_block_selected = true;
     }
@@ -161,17 +159,17 @@ void Board::DoRelic(vector<int32> relics) { //cf.) md
 
 //public　functions
 void Board::PassBlock(Block& selectedBlock, const Point hand_pos) {//選択されているBlockとその手札座標が渡される
-    block = selectedBlock;
-
-    auto itr = find(used_blocks.begin(), used_blocks.end(), block);
+    auto itr = find(used_blocks.begin(), used_blocks.end(), &selectedBlock);
     if (itr == used_blocks.end()) {//新出のブロックなら
-        used_blocks.push_back(block);
+        used_blocks.push_back(&selectedBlock);
         blockNum = (int)used_blocks.size();//1-indexed
         block_hand_pos.push_back(hand_pos);//手札の位置を記録
         block_anim.push_back(3);
+        block_number = used_blocks.size() - 1; //ブロックの番号を更新
     } else {//既出のブロックなら
         blockNum = distance(used_blocks.begin(), itr) + 1;//1-indexed
         block_anim[blockNum - 1] = 3;
+        block_number = blockNum - 1; //ブロックの番号を更新
     }
     is_block_selected = true;
     is_board_active = true; // Boardをアクティブにする

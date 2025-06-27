@@ -28,7 +28,7 @@ private:
 	Array<int32> board_off_def = { 1,1,1,0,0,0 };//攻1守0
 	Array<int32> result_of_calc = { 0,0,0,0,0,0 };
 	int32 blockNum;
-	Block block;
+	int block_number = 0;
 	const Point offset = { 600,170 };//Boardの左上の絶対座標(バトル時)
 	//const Point offset_u = {0,0};//Boardの左上の絶対座標(アンロック時)(使わないかも)
 	const double img_scale = 1.8;
@@ -38,7 +38,7 @@ private:
 	const Texture chosable_board_img{ U"../../image/tile_kokodayo.png" };
 	const Texture board_frame_img{ U"../../image/tile_flame.png" };
 	const Font font{ FontMethod::MSDF, 48, Typeface::Bold };
-	Array<Block> used_blocks;//盤面に出てきたブロックの配列. blockNumは「このインデックス+1」とする. ターン毎に初期化
+	Array<Block*> used_blocks;//盤面に出てきたブロックの配列. blockNumは「このインデックス+1」とする. ターン毎に初期化
 	Array<Point> block_hand_pos;//各ブロックの手札上の位置を保存
 	Array<int32> block_anim;//実質描画順	-1:盤面上に無い, 0:ボード上, 1:手札へ, 2:捨札へ, 3:アニメーション無し
 	int32 add_damage = 0;
@@ -60,7 +60,7 @@ private:
 	void CalcRow();
 	void DrawOnlyBoard() const;
 	void DrawBlock(Block block_on_board);
-	void BlockAnimation(Block moving_block, Point end_pos, int32 anim_num);
+	void BlockAnimation(Block *moving_block, Point end_pos, int32 anim_num);
 	void DrawAddPlaceBoard() const;
 	void DoRelic(std::vector<int32> relics);
 
@@ -73,8 +73,8 @@ public:
 		board_effect_back(Size{ 7,6 }, 0),
 		board_effect_front(Size{ 7,6 }, 0),
 		board_coordinate(Size{ 7,6 }, Point{ 0,0 }),
-		relics_old(19, 0) {
-	};
+		relics_old(19, 0)
+		{};
 
 	//variables
 	int32 unlocked_num = 6;

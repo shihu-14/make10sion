@@ -33,9 +33,9 @@ void Board::DrawOnlyBoard() const {//Boardの描画のみ
 }
 
 //private function
-void Board::BlockAnimation(Block moving_block, Point end_pos, int32 anim_num){//アニメーション. 移動速度が時間経過に反比例します(log的な)
-
-    Point curr_pos = {moving_block.GetPos().first, moving_block.GetPos().second};
+void Board::BlockAnimation(Block *moving_block, Point end_pos, int32 anim_num){//アニメーション. 移動速度が時間経過に反比例します(log的な)
+ 
+    Point curr_pos = {moving_block->GetPos().first, moving_block->GetPos().second};
 
     auto itr = find(used_blocks.begin(), used_blocks.end(), moving_block);
     int32 idx = distance(used_blocks.begin(), itr);
@@ -43,16 +43,16 @@ void Board::BlockAnimation(Block moving_block, Point end_pos, int32 anim_num){//
     if(CalcDist(end_pos, curr_pos) > 10000.0){
         int32 new_x = (curr_pos.x*29 + end_pos.x)/30;
         int32 new_y = (curr_pos.y*29 + end_pos.y)/30;
-        moving_block.SetPos(new_x, new_y);
+        moving_block->SetPos(new_x, new_y);
     }
     else{
-        moving_block.SetPos(end_pos.x, end_pos.y);
+        moving_block->SetPos(end_pos.x, end_pos.y);
         block_anim[idx] = -1;
 		if(anim_num == 1){//手札
-			moving_block.SetStat(1);
+			moving_block->SetStat(1);
 		}
 		else if(anim_num == 2){//捨札
-			moving_block.SetStat(-1);
+			moving_block->SetStat(-1);
 		}
     }
 }

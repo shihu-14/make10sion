@@ -180,9 +180,9 @@ void Board::AddUsablePlace(){
 
 
 void Board::UpdateBoardNum(Point putAt){
-	for (int i = 0; i < block.Size().second; i++) {
-		for (int j = 0; j < block.Size().first; j++) {
-			char content = block.GetPiece(j, i).content;
+	for (int i = 0; i < used_blocks.at(block_number)->Size().second; i++) {
+		for (int j = 0; j < used_blocks.at(block_number)->Size().first; j++) {
+			char content = used_blocks.at(block_number)->GetPiece(j, i).content;
 			if (content == '$')continue; // $は無視
 			board_usage[putAt.y + i][putAt.x + j] = blockNum;
 			GetPieceNum(content, putAt.y + i, putAt.x + j); // 数字の取得&マスの変更

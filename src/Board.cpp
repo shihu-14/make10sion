@@ -15,14 +15,13 @@ void Board::Update(int32 idx, vector<int32> relics) {//idx : 0:バトル中, 1:�
 	if (idx == 0) {
 		if (is_board_active) {
 			if (is_block_selected) {//Blockをドラッグしているとき
-				block.SetPos(Cursor::Pos().x, Cursor::Pos().y);
-				used_blocks[blockNum - 1] = block;//used_blocksのブロックを更新
-				if (!block.IsDragging()) {
+				used_blocks.at(block_number)->SetPos(Cursor::Pos().x, Cursor::Pos().y);
+				if (!used_blocks.at(block_number)->IsDragging()) {
 					PutBlock();
 				}
 
 				if (MouseR.down()) {//blockの回転
-					block.Rotate();
+					used_blocks.at(block_number)->Rotate();
 				}
 			} else {
 				Point cell_pos = (Cursor::Pos() - offset) / cell_size;//ボードのどこのマスにあたるか
@@ -37,13 +36,12 @@ void Board::Update(int32 idx, vector<int32> relics) {//idx : 0:バトル中, 1:�
 		relics_old = relics;
 
 		//アニメーション
-		for (int i = 0; i < used_blocks.size(); i++) {//手札へ移動するブロック
+		for (int i = 0; i < used_blocks.size(); i++) {
 			if (block_anim[i] == 1) {
+				//手札へ移動するブロック
 				BlockAnimation(used_blocks[i], block_hand_pos[i], block_anim[i]);
-			}
-		}
-		for (int i = 0; i < used_blocks.size(); i++) {//捨札へ移動するブロック
-			if (block_anim[i] == 2) {
+			} else if (block_anim[i] == 2) {
+				//捨札へ移動するブロック
 				BlockAnimation(used_blocks[i], Point{ 1600, 880 }, block_anim[i]);//捨て札の座標を指定
 			}
 		}
@@ -61,7 +59,7 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 
 		for (int i = 0; i < used_blocks.size(); i++) {//ブロックの描画
 			if (block_anim[i] >= 0) {
-				used_blocks[i].Draw(used_blocks[i].GetPos(), img_scale, 0.0, 1.0);
+				used_blocks[i]->Draw(used_blocks[i]->GetPos(), img_scale, 0.0, 1.0);
 			}
 		}
 		Array<int32> dy = { 10,10, 10, -10,-10,-10 };

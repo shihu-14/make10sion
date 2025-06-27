@@ -2,18 +2,6 @@
 #include "Board.hpp"
 using namespace std;
 
-Board::Board() :
-	board_number(Size{ 7,6 }, 0),
-	board_effect_back(Size{ 7,6 }, 0),
-	board_effect_front(Size{ 7,6 }, 0),
-	board_coordinate(Size{ 7,6 }, Point{ 0,0 }),
-	relics_old(19, 0)
-{
-
-}
-
-
-
 void Board::InitAll() {//毎ターン開始時に呼び出してもらう
 	InitBoardCoordinate();
 	used_blocks.clear();
@@ -25,7 +13,6 @@ void Board::InitAll() {//毎ターン開始時に呼び出してもらう
 //ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
 void Board::Update(int32 idx, vector<int32> relics) {//idx : 0:バトル中, 1:リザルト(マス解放時)
 	if (idx == 0) {
-		printf("Board::Update() called\n");
 		if (is_board_active) {
 			if (is_block_selected) {//Blockをドラッグしているとき
 				block.SetPos(Cursor::Pos().x, Cursor::Pos().y);

@@ -35,6 +35,9 @@ Battle::Battle(const InitData& init)
     }
     Deck_yama = Deck_id; // 山札の初期化
     Deck_yama.shuffle();
+
+    //音楽再生！
+    battle_bgm.play(); // 音楽を再生
 }
 
 
@@ -154,6 +157,8 @@ void Battle::updateCombatEnemyEffect()
             ene_effect_y = Random(200, 450); // エフェクトのY座標をランダムに設定
             ene_damage_effect_cnt++;
             enemy_scale = 0.7;
+            // SE再生
+            attack_se.playOneShot();
         }
         return;
     }
@@ -274,8 +279,13 @@ void Battle::updateCardDrawEffect()
             table_id = 0;
             m_animeStopwatch.restart();
             yamahuda_angle += Scene::DeltaTime() * 4.0;
+            tehuda_rate = 0;
         } else {
             yamahuda_angle = 90_deg;
+            if (tehuda_rate == 0.0) {
+                //効果音
+                draw_card_se.playOneShot(); // カードドローの効果音を再生
+            }
             tehuda_rate = Min(1.0, m_animeStopwatch.sF() / 0.3);
             Vec2 from{ 50, 900 };
             Vec2 to{ 350 + table_id * 75, 900 };
@@ -320,13 +330,17 @@ void Battle::update()
         attack();
         return;
     }
-    for (int i = 0; i < Deck_table.size(); ++i) {
-        if (getData().Deck.at(Deck_table[i]).IsDragging() && !is_board_locked) {
-            m_board.PassBlock(getData().Deck[i], { getData().Deck[i].GetPos().first, getData().Deck[i].GetPos().second });
-            return;
-        }
-        if (getData().Deck.at(Deck_table[i]).IsHovered() && !is_board_locked) {
-            Cursor::RequestStyle(CursorStyle::Hand);
+    if (!m_board.is_block_selected) {
+        for (int i = 0; i < Deck_table.size(); ++i) {
+            if ((getData().Deck.at(Deck_table[i]).GetStat() != 2) && getData().Deck.at(Deck_table[i]).IsDragging() && !is_board_locked) {
+                m_board.PassBlock(getData().Deck[Deck_table[i]], { getData().Deck[Deck_table[i]].GetPos().first, getData().Deck[Deck_table[i]].GetPos().second });
+                getData().Deck.at(Deck_table[i]).SetStat(2); // 盤面の状態に変更
+                drag_card_se.playOneShot(); // ドラッグの効果音を再生
+                return;
+            }
+            if (getData().Deck.at(Deck_table[i]).IsHovered() && !is_board_locked) {
+                Cursor::RequestStyle(CursorStyle::Hand);
+            }
         }
     }
     my_hpbar.update(0.2);

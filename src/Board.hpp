@@ -27,7 +27,6 @@ private:
 	Array<double> board_multiply_effect = { 0,0,0,0,0,0 };
 	Array<int32> board_off_def = { 1,1,1,0,0,0 };//攻1守0
 	Array<int32> result_of_calc = { 0,0,0,0,0,0 };
-	bool is_block_selected = false;
 	int32 blockNum;
 	Block block;
 	const Point offset = { 600,170 };//Boardの左上の絶対座標(バトル時)
@@ -48,6 +47,7 @@ private:
 	bool do_armor_raise = false;
 	int32 add_damage_by_cards = 0;
 	int32 off_count = 3;
+	bool is_board_active = false;
 
 	//function
 	Point PutBlockAt();
@@ -64,17 +64,21 @@ private:
 	void DrawAddPlaceBoard() const;
 	void DoRelic(std::vector<int32> relics);
 
-	double CalcDist(Point a, Point b);
+	double inline CalcDist(Point a, Point b) { return pow((a.x - b.x), 2) + pow((a.y - b.y), 2); };
 
 
 public:
 
-	Board();
+	Board() :board_number(Size{ 7,6 }, 0),
+		board_effect_back(Size{ 7,6 }, 0),
+		board_effect_front(Size{ 7,6 }, 0),
+		board_coordinate(Size{ 7,6 }, Point{ 0,0 }),
+		relics_old(19, 0) {
+	};
 
 	//variables
-	bool is_board_active = false;
 	int32 unlocked_num = 6;
-	int32 num_of_used_card;
+	bool is_block_selected = false;
 
 	//functions
 	void InitAll();

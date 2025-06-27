@@ -6,15 +6,10 @@
 using namespace std;
 
 //private variables
-
-//private functions
-double Board::CalcDist(Point a, Point b) {//2点間の距離(の2乗)の計算
-    return pow((a.x - b.x), 2) + pow((a.y - b.y), 2);
-}
 //XXX:吸い込み失敗！
 Point Board::PutBlockAt() {//blockの置ける場所を確認. blockの(0, 0)のピースのボード座標を返す
 
-    double rSquared = 10000.0;//吸い込み半径(の2乗)
+    double minDist = 10000.0;//吸い込み半径(の2乗)
 
     //Blockの左上のピースの絶対座標
     Point piece_pos;
@@ -26,7 +21,6 @@ Point Board::PutBlockAt() {//blockの置ける場所を確認. blockの(0, 0)の
     int32 cell_y = (piece_pos.y - offset.y + cell_size / 2) / cell_size;
 
     Point putAt = { -1, -1 };
-    double minDist = rSquared;
 
     //最寄りのマスの探索
     array<int32, 4> dx = { -1, 0, -1, 0 };
@@ -41,9 +35,8 @@ Point Board::PutBlockAt() {//blockの置ける場所を確認. blockの(0, 0)の
         }
     }
 
-    if (putAt == Point{ -1, -1 }) {//まだ近くにマスが無い場合
+    if (putAt == Point{ -1, -1 }) //まだ近くにマスが無い場合
         return putAt;
-    }
 
     //置けるかどうかの確認
     bool finish = false;

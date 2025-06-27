@@ -89,6 +89,10 @@ private:
 	Rect m_button_hantei; // =ボタンの判定
 	// Array<Rect> m_tehuda_hantei; // 手札の判定
 
+	const Audio battle_bgm{ U"../../audio/battle_bgm.wav" , Loop::Yes };
+	const Audio draw_card_se{ U"../../audio/draw_card.mp3" , Loop::No };
+	const Audio drag_card_se{ U"../../audio/drag_card.mp3" , Loop::No };
+	const Audio attack_se{ U"../../audio/attack.mp3" , Loop::No };
 
 	double enemy_scale = 0.85;
 	double my_angle = 0.0;

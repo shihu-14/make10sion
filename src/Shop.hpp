@@ -38,6 +38,8 @@ private:
 	const Texture background_img{ U"../../image/UI_shop.png" };
 	const Texture loading_icon{ U"../../image/gamenseni_loadtyuu.png" };
 
+	const Audio buy_se{ U"../../audio/shop_buy.mp3" };
+
 	const Font fontBitMap{ 48 };
 public:
 	Shop(const InitData& init);

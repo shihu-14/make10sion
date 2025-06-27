@@ -87,6 +87,7 @@ void Board::TakeOutBlock(Point pos) {//クリックしたBlockをボードから
                 if (board_usage[y][x] == num) {//同じブロックのマスなら
                     if (board_number[y][x] < 100) {//数字マスなら
                         auto itr = find(num_on_board.begin(), num_on_board.end(), board_number[y][x]);
+                        //TODO: ここで範囲外アクセスが発生している！
                         num_on_board.erase(itr);
                     }
                     //防御、攻撃マスが含まれているときの処理

@@ -29,6 +29,11 @@ class Map : public App::Scene {
 
 	Texture loading_icon = Texture{ U"../../image/gamenseni_loadtyuu.png" };
 
+	const Audio shop_se{ U"../../audio/map_shop.mp3" };
+	const Audio event_se{ U"../../audio/map_event.mp3" };
+	const Audio battle_se{ U"../../audio/map_battle.mp3" };
+	const Audio treasure_se{ U"../../audio/map_treasure.mp3" };
+
 	//Map情報
 	std::vector<std::vector<Node>> map_nodes; // 各地点の情報を保持するノードの配列
 	//Map情報(抽選用)

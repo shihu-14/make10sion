@@ -36,6 +36,7 @@ void Shop::update() {
         //カードの購入処理
         if (isHovered_normal_1 && MouseL.down()) {
             if (getData().money >= discount * 50) {
+                buy_se.play(); // 購入音を再生
                 getData().Deck.push_back(normal_1);
                 getData().money -= discount * 50;
                 //Shopのカードを更新
@@ -62,6 +63,7 @@ void Shop::update() {
         //カードの購入処理
         if (isHovered_normal_2 && MouseL.down()) {
             if (getData().money >= discount * 50) {
+                buy_se.play(); // 購入音を再生
                 getData().Deck.push_back(normal_2);
                 getData().money -= discount * 50;
                 //Shopのカードを更新
@@ -87,6 +89,7 @@ void Shop::update() {
         //カードの購入処理
         if (isHovered_uncommon && MouseL.down()) {
             if (getData().money >= discount * 100) {
+                buy_se.play(); // 購入音を再生
                 getData().Deck.push_back(uncommon);
                 getData().money -= discount * 100;
                 //Shopのカードを更新
@@ -111,6 +114,7 @@ void Shop::update() {
         if (isHovered_rare)Cursor::RequestStyle(CursorStyle::Hand);
         if (isHovered_rare && MouseL.down()) {
             if (getData().money >= discount * 150) {
+                buy_se.play(); // 購入音を再生
                 getData().Deck.push_back(rare);
                 getData().money -= discount * 150;
                 //Shopのカードを更新
@@ -137,6 +141,7 @@ void Shop::update() {
             //レリックの購入処理
             if (isHovered_leric && MouseL.down()) {
                 if (getData().money >= discount * 150) {
+                    buy_se.play(); // 購入音を再生
                     getData().leric.getLeric().at(leric_index[i])++;
                     getData().money -= discount * 150;
                     //Shopのカードを更新

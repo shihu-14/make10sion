@@ -433,28 +433,36 @@ void Map::update() {
 			getData().Layer++; // 次の層に移動
 			getData().Index = index; // インデックスをセット
 			if (node.type == MapPointType::Shop) {
+				shop_se.play(); // ショップのSEを再生
 				changeScene(State::Shop, 2s); // ショップに移動
 			} else if (node.type == MapPointType::Boss) {
+				battle_se.play(); // ボス戦のSEを再生
 				getData().enemy = 2; // ボスの敵IDをセット
 				changeScene(State::Battle, 2s); // ボス戦に移動
 			} else if (node.type == MapPointType::Event) {
 				int rnd = Random<int>(0, 3);
 				if (rnd == 0) {
 					getData().enemy = 0;
+					event_se.play(); // イベントのSEを再生
 					changeScene(State::Battle, 2s); // イベントに移動
-				}else if (rnd == 1) {
+				} else if (rnd == 1) {
 					getData().enemy = 1;
+					battle_se.play(); // イベントのSEを再生
 					changeScene(State::Battle, 2s); // イベントに移動
-				}else{
+				} else {
+					shop_se.play(); // イベントのSEを再生
 					changeScene(State::Shop, 2s); // イベントに移動
 				}
 			} else if (node.type == MapPointType::Elite) {
+				battle_se.play(); // エリート戦のSEを再生
 				getData().enemy = 1; // エリートの敵IDをセット
 				changeScene(State::Battle, 2s); // エリート戦に移動
 			} else if (node.type == MapPointType::Enemy) {
+				battle_se.play(); // 通常戦闘のSEを再生
 				getData().enemy = 0; // 通常の敵IDをセット
 				changeScene(State::Battle, 2s); // 通常戦闘に移動
 			} else if (node.type == MapPointType::Treasure) {
+				treasure_se.play(); // 宝箱のSEを再生
 				changeScene(State::Shop, 2s); // 宝箱を開けるための戦闘に移動
 			}
 		}

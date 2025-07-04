@@ -87,7 +87,7 @@ void Board::TakeOutBlock(Point pos) {//クリックしたBlockをボードから
                 if (board_usage[y][x] == num) {//同じブロックのマスなら
                     if (board_number[y][x] < 100) {//数字マスなら
                         auto itr = find(num_on_board.begin(), num_on_board.end(), board_number[y][x]);
-                        //TODO: ここで範囲外アクセスが発生している！
+                        //FIXME: ここで範囲外アクセスが発生している！
                         num_on_board.erase(itr);
                     }
                     //防御、攻撃マスが含まれているときの処理
@@ -127,7 +127,7 @@ void Board::InitBoardCoordinate() {//board_coordinateの初期化
         for (int j = 0;j < 7;j++) {
             Point cord;
             cord.x = offset.x + cell_size * j + cell_size / 2;
-            cord.y = offset.y + cell_size * i + cell_size / 2;
+            cord.y = offset.y + cell_size * i + cell_size / 4;
             board_coordinate[i][j] = cord;
         }
     }

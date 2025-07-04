@@ -7,6 +7,7 @@ void Board::InitAll() {//毎ターン開始時に呼び出してもらう
 	used_blocks.clear();
 	block_hand_pos.clear();
 	block_anim.clear();
+	for (auto& usage : board_usage) if (usage > 0) usage = 0;
 	blockNum = 0;
 }
 

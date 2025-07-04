@@ -116,8 +116,8 @@ void Battle::attack()
         }
         // ------------------
         // 敵->プレイヤーの攻撃力を計算
-        my_attack = 50; // for debug
-        my_defense = 0; // for debug
+        //my_attack = 50; // for debug
+        //my_defense = 0; // for debug
         my_real_attack = Max(0, my_attack - ene_defense); // プレイヤーの攻撃力から敵の防御力を引く
         m_enemy.hp -= my_real_attack; // プレイヤーのHPを減らす
 

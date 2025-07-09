@@ -53,6 +53,7 @@ Point Board::PutBlockAt() {//blockの置ける場所を確認. blockの(0, 0)の
         }
     }
     if (!finish) {//吸い込まれる
+        //FIXME: 回転時に座標がずれている
         int32 new_x = offset.x + putAt.x * cell_size + cell_size / 2 - used_blocks.at(block_number)->GetPiece(0, 0).x;
         int32 new_y = offset.y + putAt.y * cell_size + cell_size / 2 - used_blocks.at(block_number)->GetPiece(0, 0).y;
         used_blocks.at(block_number)->SetPos(new_x, new_y);

@@ -15,8 +15,10 @@ void Enemy::loadEnemies()
 		{
 			.name = U"enemy_1",
 			.texturePath = U"../../image/enemy_1.png",
+			.type = 0,
+			.layer = 0,
 			.maxHp = 20,
-			.actionPattern = {
+			.actionPattern = { 
 				{.attack = 8, .defense = 2 },
 				{.attack = 8, .defense = 2 },
 				{.attack = 8, .defense = 2 },
@@ -29,8 +31,10 @@ void Enemy::loadEnemies()
 		{
 			.name = U"enemy_2",
 			.texturePath = U"../../image/enemy_2.png",
+			.type = 0,
+			.layer = 0,
 			.maxHp = 30,
-			.actionPattern = {
+			.actionPattern = { 
 				{.attack = 0, .defense = 0 },
 				{.attack = 9, .defense = 2 },
 				{.attack = 10, .defense = 2 },
@@ -43,6 +47,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"enemy_3",
 			.texturePath = U"../../image/enemy_3.png",
+			.type = 0,
+			.layer = 0,
 			.maxHp = 30,
 			.actionPattern = {
 				{.attack = 14, .defense = 0 },
@@ -60,6 +66,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"enemy_4",
 			.texturePath = U"../../image/enemy_4.png",
+			.type = 0,
+			.layer = 1,
 			.maxHp = 60,
 			.actionPattern = {
 				{.attack = 0,  .defense = 15 },
@@ -74,6 +82,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"enemy_5",
 			.texturePath = U"../../image/enemy_5.png",
+			.type = 0,
+			.layer = 1,
 			.maxHp = 60,
 			.actionPattern = {
 				{.attack = 0,   .defense = 20 },
@@ -88,6 +98,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"enemy_6",
 			.texturePath = U"../../image/enemy_6.png",
+			.type = 0,
+			.layer = 1,
 			.maxHp = 70,
 			.actionPattern = {
 				{.attack = 16, .defense = 10 },
@@ -105,6 +117,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"enemy_7",
 			.texturePath = U"../../image/enemy_7.png",
+			.type = 0,
+			.layer = 2,
 			.maxHp = 90,
 			.actionPattern = {
 				{.attack = 20, .defense = 15 },
@@ -119,6 +133,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"enemy_8",
 			.texturePath = U"../../image/enemy_8.png",
+			.type = 0,
+			.layer = 2,
 			.maxHp = 80,
 			.actionPattern = {
 				{.attack = 60, .defense = 12 },
@@ -133,6 +149,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"enemy_9",
 			.texturePath = U"../../image/enemy_9.png",
+			.type = 0,
+			.layer = 2,
 			.maxHp = 90,
 			.actionPattern = {
 				{.attack = 60, .defense = 8 },
@@ -150,6 +168,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"enemy_10",
 			.texturePath = U"../../image/enemy_10.png",
+			.type = 1,
+			.layer = 0,
 			.maxHp = 60,
 			.actionPattern = {
 				{.attack = -10, .defense = 3 }, // 3+2*N
@@ -164,6 +184,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"enemy_11",
 			.texturePath = U"../../image/enemy_11.png",
+			.type = 1,
+			.layer = 0,
 			.maxHp = 70,
 			.actionPattern = {
 				{.attack = 0,   .defense = 10 },
@@ -181,6 +203,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"enemy_12",
 			.texturePath = U"../../image/enemy_12.png",
+			.type = 1,
+			.layer = 1,
 			.maxHp = 100,
 			.actionPattern = {
 				{.attack = -12, .defense = 15 }, // 60-4*N
@@ -195,6 +219,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"enemy_13",
 			.texturePath = U"../../image/enemy_13.png",
+			.type = 1,
+			.layer = 1,
 			.maxHp = 80,
 			.actionPattern = {
 				{.attack = -13, .defense = 15 }, // 40 + 30マネー強奪
@@ -209,6 +235,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"enemy_14",
 			.texturePath = U"../../image/enemy_14.png",
+			.type = 1,
+			.layer = 2,
 			.maxHp = 150,
 			.actionPattern = {
 				{.attack = -15, .defense = 14 }, // 10+14*N
@@ -223,6 +251,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"enemy_15",
 			.texturePath = U"../../image/enemy_15.png",
+			.type = 1,
+			.layer = 2,
 			.maxHp = 160,
 			.actionPattern = {
 				{.attack = 120, .defense = 0 },
@@ -240,6 +270,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"boss_1",
 			.texturePath = U"../../image/boss_1.png",
+			.type = 2,
+			.layer = 0,
 			.maxHp = 100,
 			.actionPattern = {
 				{.attack = 30, .defense = 0 },
@@ -258,6 +290,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"boss_2",
 			.texturePath = U"../../image/boss_2.png",
+			.type = 2,
+			.layer = 0,
 			.maxHp = 100,
 			.actionPattern = {
 				{.attack = 6, .defense = 15 },
@@ -272,6 +306,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"boss_3",
 			.texturePath = U"../../image/boss_3.png",
+			.type = 2,
+			.layer = 1,
 			.maxHp = 200,
 			.actionPattern = {
 				{.attack = 40, .defense = 15 },
@@ -285,6 +321,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"boss_4",
 			.texturePath = U"../../image/boss_4.png",
+			.type = 2,
+			.layer = 1,
 			.maxHp = 200,
 			.actionPattern = {
 				{.attack = 60, .defense = 0 },
@@ -303,6 +341,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"boss_5",
 			.texturePath = U"../../image/boss_5.png",
+			.type = 2,
+			.layer = 2,
 			.maxHp = 300,
 			.actionPattern = {
 				{.attack = 12, .defense = 30 },
@@ -317,6 +357,8 @@ void Enemy::loadEnemies()
 		{
 			.name = U"boss_6",
 			.texturePath = U"../../image/boss_6.png",
+			.type = 2,
+			.layer = 2,
 			.maxHp = 300,
 			.actionPattern = {
 				{.attack = 60, .defense = 20 },
@@ -329,15 +371,24 @@ void Enemy::loadEnemies()
 }
 
 // データベースからランダムに1体の敵を選ぶ
-const EnemyData& Enemy::getOneEnemy(bool is_boss) const
+const EnemyData& Enemy::getOneEnemy(int32 type, int32 layer) const
 {
 	// 敵データの数を取得
-	if (is_boss) {
+	if (type == 0) {
 		// ボス敵のデータを取得
-		return m_enemies[Random(15, 20)]; // 通常敵は5体
-	} else {
-		// 通常敵のデータを取得
-		return m_enemies[Random(0, 14)]; // ボス敵は6体
+		if (1 <= layer && layer < 10) return m_enemies[Random(0, 2)]; 
+		else if (10 <= layer && layer < 20) return m_enemies[Random(3, 5)];
+		else return m_enemies[Random(6, 8)]; 
+	} 
+	else if (type == 1){
+		if (1 <= layer && layer < 10) return m_enemies[Random(9, 10)]; 
+		else if (10 <= layer && layer < 20) return m_enemies[Random(11, 12)];
+		else return m_enemies[Random(13, 14)];
+	}
+	else{
+		if (1 <= layer && layer < 10) return m_enemies[Random(15, 16)]; 
+		else if (10 <= layer && layer < 20) return m_enemies[Random(17, 18)];
+		else return m_enemies[Random(19, 20)];
 	}
 }
 

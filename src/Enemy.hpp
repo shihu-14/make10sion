@@ -15,6 +15,8 @@ struct EnemyData
 {
 	String name;
 	String texturePath;
+	int32 type; // 敵の種類（通常敵0、エリート敵1、ボス敵2）
+	int32 layer; // 序盤0、中盤1、終盤2
 	int32 maxHp = 0;
 	Array<EnemyAction> actionPattern; // ターンごとの行動パターン
 	bool isDefeated = false;
@@ -30,6 +32,6 @@ private:
 public:
 	Enemy();
 	void markAsDefeated(const String& enemyName); // 指定された敵を「倒した」状態にす
-	const EnemyData& getOneEnemy(bool is_boss) const; // データベースからランダムな敵データを1体返す
+	const EnemyData& getOneEnemy(int32 type, int32 layer) const; // データベースからランダムな敵データを1体返す
 };
 #endif

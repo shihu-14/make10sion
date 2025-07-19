@@ -161,7 +161,9 @@ void Battle::attack()
         my_attack_icon_end = Vec2{1270, 760};
         ene_attack_icon_start = Vec2{1330, 640};
         ene_attack_icon_end = Vec2{460, 760};
-        my_attack_type = 0;
+        my_attack_icon_pos = my_attack_icon_start; // 自分の攻撃アイコンの位置を初期化
+        ene_attack_icon_pos = ene_attack_icon_start; // 敵の攻撃アイコン
+        my_attack_type = -1;
         ene_attack_type = 0;
         flag_once_draw = 0;
         //
@@ -173,6 +175,14 @@ void Battle::attack()
 // 戦闘演出の更新処理
 void Battle::updateCombatEnemyEffect()
 {
+    // 遅延のため
+    if (my_attack_type == -1 && m_animeStopwatch.sF() < 0.4) {
+        return;
+    }
+    if (my_attack_type == -1){
+        my_attack_type = 0;
+        m_animeStopwatch.restart();
+    }
     // 自分の攻撃アイコン->敵の防御アイコンへ移動させる演出
     if (my_attack_type == 0 && m_animeStopwatch.sF() < 0.4) {
         my_attack_icon_pos = Math::Lerp(my_attack_icon_start, my_attack_icon_end, m_animeStopwatch.sF()/0.4);
@@ -319,7 +329,13 @@ void Battle::updateDiscardEffect()
             m_animeStopwatch.restart();
         } else {
             // 盤面にあるなら飛ばす
-            if (getData().Deck[Deck_table[table_id]].GetStat() != 1) {
+            if (getData().Deck[Deck_table[table_id]].GetStat() != 1){
+                // board側で、stateを盤面(2)->捨て札(-1)に変更しているなら不要な処理
+                if (getData().Deck[Deck_table[table_id]].GetStat() == 2)
+                {
+                    getData().Deck[Deck_table[table_id]].SetStat(-1);
+                }
+                Deck_gomi.emplace_back(Deck_table[table_id]);
                 table_id--;
                 return;
             }
@@ -610,7 +626,7 @@ bool Battle::drawDefault() const
 // 戦闘演出の描画
 void Battle::drawCombatEnemyEffect() const
 {
-    if (my_attack_type == 0 || my_attack_type == 2)
+    if (my_attack_type == -1 || my_attack_type == 0 || my_attack_type == 2)
     {
         m_attackIcon.scaled(1.6).draw(my_attack_icon_pos);
         m_numFont(U"{}"_fmt(my_attack)).draw(my_attack_icon_pos+Vec2{80, 0}, Palette::Black);

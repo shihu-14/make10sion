@@ -1,5 +1,6 @@
 #ifndef Block_HPP
 #define Block_HPP
+#include <Siv3D.hpp>
 #include <string>
 #include <vector>
 #include <iterator>

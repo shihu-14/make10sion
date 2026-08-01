@@ -363,7 +363,9 @@
     <ClInclude Include="..\src\Board.hpp" />
     <ClInclude Include="..\src\common.hpp" />
     <ClInclude Include="..\src\Deck.hpp" />
+    <ClInclude Include="..\src\Enemy.hpp" />
     <ClInclude Include="..\src\Event.hpp" />
+    <ClInclude Include="..\src\HPBar.hpp" />
     <ClInclude Include="..\src\leric.hpp" />
     <ClInclude Include="..\src\Map.hpp" />
     <ClInclude Include="..\src\Result.hpp" />

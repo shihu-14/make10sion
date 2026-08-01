@@ -6,7 +6,7 @@
 # include "Board.hpp" // Board クラスの定義があるヘッダファイルをインクルード
 # include "Enemy.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
 # include "Banner.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
-# include "HPbar.cpp" // Enemy クラスの定義があるヘッダファイルをインクルード
+#include "HPBar.hpp"
 
 // Data Manager の Deck を模倣したグローバル変数
 // 実際には Data Manager クラス (DataManager.hpp) で定義し、ここからインクルードするのが望ましい

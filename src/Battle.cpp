@@ -73,9 +73,10 @@ int32 Battle::getTableSize() const
 void Battle::updateTableDeck()
 {
     // グローバルのDeckのstate変数を見て、盤面か手札かを参照し、Deck_tableとDeck_boardを更新する。
+    Deck_board.clear();
     for (int i = 0; i < deck_size; i++) {
         // 手札のブロックが盤面に移動している場合、盤面に追加する
-        if (getData().Deck[i].GetStat() == 2 && Deck_board.includes(i) == false) {
+        if (getData().Deck[i].GetStat() == 2) {
             Deck_board.push_back(i);
         }
         // 盤面のブロックが手札に移動している場合、手札に追加する
@@ -466,7 +467,7 @@ void Battle::update()
     if (!is_board_locked){ // 今のターンの敵の攻撃・防御を計算する。
         getEnemyInfo();
     }
-    if (m_button_hantei.leftClicked() && !is_board_locked) { // 「=」ボタンがクリックされた場合
+    if (m_button_hantei.leftClicked() && !is_board_locked && !m_board.IsBusy()) { // 「=」ボタンがクリックされた場合
         attack();
         return;
     }
@@ -477,15 +478,19 @@ void Battle::update()
             getData().Deck[id].SetStat(0); // 山札の状態に戻す
         }
     }
-    if (!m_board.is_block_selected){
-        for (int i = 0; i < Deck_table.size(); ++i) {
-            if ((getData().Deck.at(Deck_table[i]).GetStat() != 2) && getData().Deck.at(Deck_table[i]).IsDragging() && !is_board_locked) {
-                m_board.PassBlock(getData().Deck[Deck_table[i]], { getData().Deck[Deck_table[i]].GetPos().first, getData().Deck[Deck_table[i]].GetPos().second });
-                getData().Deck.at(Deck_table[i]).SetStat(2); // 盤面の状態に変更
-                drag_card_se.playOneShot(); // ドラッグの効果音を再生
-                return;
+    if (!m_board.IsBusy()){
+        for (int32 i = 0; i < static_cast<int32>(Deck_table.size()); ++i) {
+            const int32 deck_index = Deck_table[i];
+            if ((deck_index < 0) || (static_cast<int32>(getData().Deck.size()) <= deck_index)) continue;
+            Block& block = getData().Deck[deck_index];
+            if ((block.GetStat() == 1) && block.IsDragging() && !is_board_locked) {
+                const Point hand_pos = { block.GetPos().first, block.GetPos().second };
+                if (m_board.PassBlock(block, deck_index, hand_pos)) {
+                    drag_card_se.playOneShot(); // ドラッグの効果音を再生
+                    return;
+                }
             }
-            if (getData().Deck.at(Deck_table[i]).IsHovered() && !is_board_locked) {
+            if (block.IsHovered() && !is_board_locked) {
                 Cursor::RequestStyle(CursorStyle::Hand);
             }
         }
@@ -530,8 +535,9 @@ bool Battle::drawDefault() const
             const ScopedRenderTarget2D target(m_combatSceneBuffer);
             m_backgroundTexture.scaled(0.5).draw();
             m_banner.draw();
-            for (const auto& block : getData().Deck) {
-                if (block.GetStat() == 1) // 手札の状態
+            for (int32 i = 0; i < static_cast<int32>(getData().Deck.size()); i++) {
+                const Block& block = getData().Deck[i];
+                if ((block.GetStat() == 1) && !m_board.IsDraggingDeck(i)) // 手札の状態
                 {
                     block.Draw(block.GetPos());
                 }
@@ -579,8 +585,9 @@ bool Battle::drawDefault() const
         m_backgroundTexture.scaled(0.5).draw();
         m_banner.draw();
         if (is_deck) return true;
-        for (const auto& block : getData().Deck) {
-            if (block.GetStat() == 1) // 手札の状態
+        for (int32 i = 0; i < static_cast<int32>(getData().Deck.size()); i++) {
+            const Block& block = getData().Deck[i];
+            if ((block.GetStat() == 1) && !m_board.IsDraggingDeck(i)) // 手札の状態
             {
                 block.Draw(block.GetPos());
             }
@@ -741,4 +748,3 @@ void Battle::draw() const
         break;
     }
 }
-

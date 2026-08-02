@@ -33,12 +33,12 @@ void Board::DrawOnlyBoard() const {//Boardの描画のみ
 }
 
 //private function
-void Board::BlockAnimation(Block *moving_block, Point end_pos, int32 anim_num){//アニメーション. 移動速度が時間経過に反比例します(log的な)
- 
+void Board::BlockAnimation(int32 index, Point end_pos){//アニメーション. 移動速度が時間経過に反比例します(log的な)
+    if (!IsBoardBlockIndexValid(index)) return;
+    BoardBlockState& state = board_blocks[index];
+    Block* moving_block = state.block;
+    const int32 anim_num = state.animation;
     Point curr_pos = {moving_block->GetPos().first, moving_block->GetPos().second};
-
-    auto itr = find(used_blocks.begin(), used_blocks.end(), moving_block);
-    int32 idx = distance(used_blocks.begin(), itr);
     
     if(CalcDist(end_pos, curr_pos) > 10000.0){
         int32 new_x = (curr_pos.x*29 + end_pos.x)/30;
@@ -47,9 +47,9 @@ void Board::BlockAnimation(Block *moving_block, Point end_pos, int32 anim_num){/
     }
     else{
         moving_block->SetPos(end_pos.x, end_pos.y);
-        block_anim[idx] = -1;
-		if(anim_num == 1){//手札
-			moving_block->SetStat(1);
+		state.animation = -1;
+			if(anim_num == 1){//手札
+				moving_block->SetStat(1);
 		}
 		else if(anim_num == 2){//捨札
 			moving_block->SetStat(-1);

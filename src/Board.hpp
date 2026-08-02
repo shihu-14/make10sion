@@ -10,6 +10,39 @@
 
 class Board {
 private:
+	struct BoardBlockState {
+		Block* block = nullptr;
+		int32 deck_index = -1;
+		Point hand_pos = { -1,-1 };
+		Point board_anchor = { -1,-1 };
+		int32 rotation = 0;
+		int32 animation = -1;
+	};
+
+	struct DragContext {
+		bool active = false;
+		int32 board_block_index = -1;
+		int32 deck_index = -1;
+		bool from_board = false;
+		int32 start_stat = 0;
+		Point hand_pos = { -1,-1 };
+		Point board_anchor = { -1,-1 };
+		int32 start_rotation = 0;
+		int32 rotation_count = 0;
+	};
+
+	enum class DropType {
+		Invalid,
+		Place,
+		HandBoardSwap,
+		BoardBoardSwap,
+	};
+
+	struct DropPlan {
+		DropType type = DropType::Invalid;
+		Point anchor = { -1,-1 };
+		int32 target_block_index = -1;
+	};
 
 	//variables
 	Grid<int32> board_usage = { {-1,-1,-1,-1,-1,-1,-1},
@@ -28,10 +61,6 @@ private:
 	Array<double> board_multiply_effect = { 0,0,0,0,0,0 };
 	Array<int32> board_off_def = { 1,1,1,0,0,0 };//攻1守0
 	Array<int32> result_of_calc = { 0,0,0,0,0,0 };
-	int block_number = 0;
-	Point original_put_at = { -1,-1 };
-	int32 block_rotation_count = 0;
-	bool was_block_on_board = false;
 	const Point offset = { 600,170 };//Boardの左上の絶対座標(バトル時)
 	//const Point offset_u = {0,0};//Boardの左上の絶対座標(アンロック時)(使わないかも)
 	const double img_scale = 1.8;
@@ -41,9 +70,8 @@ private:
 	const Texture chosable_board_img{ U"../../image/tile_kokodayo.png" };
 	const Texture board_frame_img{ U"../../image/tile_flame.png" };
 	const Font font{ FontMethod::MSDF, 48, Typeface::Bold };
-	Array<Block*> used_blocks;//盤面に出てきたブロックの配列. 盤面上では「このインデックス+1」を番号とする. ターン毎に初期化
-	Array<Point> block_hand_pos;//各ブロックの手札上の位置を保存
-	Array<int32> block_anim;//実質描画順	-1:盤面上に無い, 0:ボード上, 1:手札へ, 2:捨札へ, 3:アニメーション無し
+	Array<BoardBlockState> board_blocks;//盤面上では「このインデックス+1」を番号とする. ターン毎に初期化
+	DragContext drag_context;
 	int32 add_damage = 0;
 	int32 add_armor = 0;
 	std::vector<int32> relics_old;
@@ -53,9 +81,22 @@ private:
 	bool is_board_active = false;
 
 	//function
-	Point PutBlockAt();
+	int32 FindBoardBlockIndex(int32 deck_index) const;
+	bool IsBoardBlockIndexValid(int32 index) const;
+	bool IsDragContextValid() const;
+	bool GetBlockCells(const Block& block, Point anchor, Array<Point>& cells) const;
+	bool IsBoardBlockPlaced(int32 index) const;
+	bool CanPlaceBlock(int32 index, Point anchor, int32 ignored_index_1, int32 ignored_index_2 = -1) const;
+	bool BlocksOverlap(int32 index_1, Point anchor_1, int32 index_2, Point anchor_2) const;
+	Point PutBlockAt() const;
+	DropPlan AnalyzeDrop(Point candidate_anchor) const;
 	void PutBlock();
-	void UpdateBoardNum(Point putAt);
+	void ClearBoardBlock(int32 index);
+	void UpdateBoardNum(int32 index, Point putAt);
+	void SetBoardBlockPosition(int32 index, Point anchor);
+	void SetBlockRotation(int32 index, int32 rotation);
+	void RestoreDrag();
+	void ClearDrag();
 	void GetPieceNum(char content, int y, int x);
 	void InitBoardCoordinate();
 	void TakeOutBlock(Point pos);
@@ -64,11 +105,11 @@ private:
 	void CalcRow();
 	void DrawOnlyBoard() const;
 	void DrawBlock(Block block_on_board);
-	void BlockAnimation(Block *moving_block, Point end_pos, int32 anim_num);
+	void BlockAnimation(int32 index, Point end_pos);
 	void DrawAddPlaceBoard() const;
 	void DoRelic(std::vector<int32> relics);
 
-	double inline CalcDist(Point a, Point b) { return pow((a.x - b.x), 2) + pow((a.y - b.y), 2); };
+	double inline CalcDist(Point a, Point b) const { return pow((a.x - b.x), 2) + pow((a.y - b.y), 2); };
 
 
 public:
@@ -83,7 +124,6 @@ public:
 
 	//variables
 	int32 unlocked_num = 6;
-	bool is_block_selected = false;
 
 	//functions
 	void InitAll();
@@ -91,7 +131,9 @@ public:
 	void Update(int32 idx, std::vector<int32> relics);
 	void DrawBoard(int32 idx) const;
 	std::pair<int32, int32> Confirm();
-	void PassBlock(Block& selectedBlock, const Point hand_pos);
+	bool PassBlock(Block& selectedBlock, int32 deck_index, const Point hand_pos);
+	bool IsBusy() const;
+	bool IsDraggingDeck(int32 deck_index) const;
 };
 
 #endif

@@ -134,7 +134,7 @@ std::pair<int, int> Board::Confirm() {
 			defense += result_of_calc[i] * (board_multiply[i] + board_multiply_effect[i]);
 		}
 	}
-	attack += add_damage_by_cards * used_blocks.size();
+	attack += add_damage_by_cards * board_blocks.size();
 	if (do_armor_raise) {
 		if (defense < 6)defense = 6;
 	}
@@ -147,8 +147,8 @@ void Board::Discard() {
 	board_content.fill('\0');
 	num_on_board.clear();
 	result_of_calc.fill(0);
-	for (int i = 0; i < block_anim.size(); i++) {
-		block_anim[i] = 2;
+	for (auto& state : board_blocks) {
+		if (state.board_anchor != Point{ -1,-1 }) state.animation = 2;
 	}
 	board_effect_front = board_effect_back;
 	board_effect_back.fill(0);
@@ -200,16 +200,19 @@ void Board::AddUsablePlace() {
 
 
 
-void Board::UpdateBoardNum(Point putAt) {
-	for (int i = 0; i < used_blocks.at(block_number)->Size().second; i++) {
-		for (int j = 0; j < used_blocks.at(block_number)->Size().first; j++) {
-			char content = used_blocks.at(block_number)->GetPiece(j, i).content;
+void Board::UpdateBoardNum(int32 index, Point putAt) {
+	if (!IsBoardBlockIndexValid(index)) return;
+	Block* block = board_blocks[index].block;
+	Array<Point> cells;
+	if (!GetBlockCells(*block, putAt, cells)) return;
+	for (int i = 0; i < block->Size().second; i++) {
+		for (int j = 0; j < block->Size().first; j++) {
+			char content = block->GetPiece(j, i).content;
 			if (content == '$')continue; // $は無視
-			board_usage[putAt.y + i][putAt.x + j] = block_number + 1;
+			board_usage[putAt.y + i][putAt.x + j] = index + 1;
 			GetPieceNum(content, putAt.y + i, putAt.x + j); // 数字の取得&マスの変更
 		}
 	}
-	CalcRow();
 }
 
 
@@ -272,4 +275,3 @@ void Board::GetPieceNum(char content, int y, int x) {
 	} else board_number[y][x] = content - '0';
 	return;
 }
-

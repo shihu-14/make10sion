@@ -6,27 +6,27 @@ void Board::InitAll() {//毎ターン開始時に呼び出してもらう
 	InitBoardCoordinate();
 	for (auto& usage : board_usage) if (usage > 0) usage = 0;
 	Discard();
-	used_blocks.clear();
-	block_hand_pos.clear();
-	block_anim.clear();
-	block_number = 0;
-	original_put_at = { -1,-1 };
-	block_rotation_count = 0;
-	was_block_on_board = false;
-	is_block_selected = false;
+	board_blocks.clear();
+	drag_context = {};
 }
 
 //ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
 void Board::Update(int32 idx, vector<int32> relics) {//idx : 0:バトル中, 1:リザルト(マス解放時)
 	if (idx == 0) {
 		if (is_board_active) {
-			if (is_block_selected) {//Blockをドラッグしているとき
+			if (drag_context.active) {//Blockをドラッグしているとき
+				if (!IsDragContextValid()) {
+					ClearDrag();
+					return;
+				}
+				BoardBlockState& selected = board_blocks[drag_context.board_block_index];
 				if (MouseL.pressed()) {
-					used_blocks.at(block_number)->SetPos(Cursor::Pos().x, Cursor::Pos().y);
+					selected.block->SetPos(Cursor::Pos().x, Cursor::Pos().y);
 
 					if (MouseR.down()) {//blockの回転
-						used_blocks.at(block_number)->Rotate();
-						block_rotation_count = (block_rotation_count + 1) % 4;
+						selected.block->Rotate();
+						selected.rotation = (selected.rotation + 1) % 4;
+						drag_context.rotation_count = (drag_context.rotation_count + 1) % 4;
 					}
 				} else {
 					PutBlock();
@@ -49,13 +49,13 @@ void Board::Update(int32 idx, vector<int32> relics) {//idx : 0:バトル中, 1:�
 		relics_old = relics;
 
 		//アニメーション
-		for (int i = 0; i < used_blocks.size(); i++) {
-			if (block_anim[i] == 1) {
+		for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {
+			if (board_blocks[i].animation == 1) {
 				//手札へ移動するブロック
-				BlockAnimation(used_blocks[i], block_hand_pos[i], block_anim[i]);
-			} else if (block_anim[i] == 2) {
+				BlockAnimation(i, board_blocks[i].hand_pos);
+			} else if (board_blocks[i].animation == 2) {
 				//捨札へ移動するブロック
-				BlockAnimation(used_blocks[i], Point{ 1600, 880 }, block_anim[i]);//捨て札の座標を指定
+				BlockAnimation(i, Point{ 1600, 880 });//捨て札の座標を指定
 			}
 		}
 
@@ -70,9 +70,9 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 
 		DrawOnlyBoard();//Boardの描画
 
-		for (int i = 0; i < used_blocks.size(); i++) {//ブロックの描画
-			if (block_anim[i] >= 0) {
-				used_blocks[i]->Draw(used_blocks[i]->GetPos(), img_scale, 0.0, 1.0);
+		for (const auto& state : board_blocks) {//ブロックの描画
+			if ((state.animation >= 0) && state.block) {
+				state.block->Draw(state.block->GetPos(), img_scale, 0.0, 1.0);
 			}
 		}
 		Array<int32> dy = { 10,10, 10, -10,-10,-10 };
@@ -90,4 +90,16 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 	} else if (idx == 1) {
 		DrawAddPlaceBoard();
 	}
+}
+
+bool Board::IsBusy() const {
+	if (drag_context.active) return true;
+	for (const auto& state : board_blocks) {
+		if (state.animation > 0) return true;
+	}
+	return false;
+}
+
+bool Board::IsDraggingDeck(int32 deck_index) const {
+	return IsDragContextValid() && (drag_context.deck_index == deck_index);
 }

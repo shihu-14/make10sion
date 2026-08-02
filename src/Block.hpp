@@ -38,6 +38,7 @@ public:
 	std::pair<int, int> GetPos() const { return { posX, posY }; }
 	void SetPos(int x, int y) { posX = x; posY = y; }
 	Piece& GetPiece(int x, int y) { return contents[x][y]; }
+	const Piece& GetPiece(int x, int y) const { return contents[x][y]; }
 	void Rotate();
 	int GetStat() const { return stat; }
 	void SetStat(int newStat) { stat = newStat; }

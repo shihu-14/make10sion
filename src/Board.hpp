@@ -21,6 +21,7 @@ private:
 	Grid<int32> board_number;
 	Grid<int32> board_effect_back;
 	Grid<int32> board_effect_front;
+	Grid<char> board_content;
 	Grid<Point> board_coordinate;
 	Array<int32> num_on_board;
 	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };
@@ -59,6 +60,7 @@ private:
 	void InitBoardCoordinate();
 	void TakeOutBlock(Point pos);
 	void AddUsablePlace();
+	void RebuildBoardDerivedState();
 	void CalcRow();
 	void DrawOnlyBoard() const;
 	void DrawBlock(Block block_on_board);
@@ -74,6 +76,7 @@ public:
 	Board() :board_number(Size{ 7,6 }, 0),
 		board_effect_back(Size{ 7,6 }, 0),
 		board_effect_front(Size{ 7,6 }, 0),
+		board_content(Size{ 7,6 }, '\0'),
 		board_coordinate(Size{ 7,6 }, Point{ 0,0 }),
 		relics_old(19, 0)
 		{};

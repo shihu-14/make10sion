@@ -4,10 +4,11 @@ using namespace std;
 
 void Board::InitAll() {//毎ターン開始時に呼び出してもらう
 	InitBoardCoordinate();
+	for (auto& usage : board_usage) if (usage > 0) usage = 0;
+	Discard();
 	used_blocks.clear();
 	block_hand_pos.clear();
 	block_anim.clear();
-	for (auto& usage : board_usage) if (usage > 0) usage = 0;
 	block_number = 0;
 	original_put_at = { -1,-1 };
 	block_rotation_count = 0;

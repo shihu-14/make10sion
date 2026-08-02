@@ -143,26 +143,10 @@ void Board::TakeOutBlock(Point pos) {//クリックしたBlockをボードから
         for (int y = 0;y < board_height;y++) {
             for (int x = 0;x < board_width;x++) {
                 if (board_usage[y][x] == num) {//同じブロックのマスなら
-                    //防御、攻撃マスが含まれているときの処理
-                    if (board_number[y][x] == 16777217) {//攻
-                        board_number[y][x] = 0;
-                        if ([&]()->bool {
-                            for (int i = 0; i < board_width; i++) {
-                                if (board_number[y][i] == 16777217)return false;
-                            }return true;
-                            }())board_off_def[y] = 0;
-                    } else if (board_number[y][x] == 16777218) {//防
-                        board_number[y][x] = 0;
-                        if ([&]()->bool {
-                            for (int i = 0; i < board_width; i++) {
-                                if (board_number[y][i] == 16777218)return false;
-                            }return true;
-                            }())board_off_def[y] = 1;
-                    }
-
                     board_usage[y][x] = 0;
                     board_number[y][x] = 0;
                     board_effect_back[y][x] = 0;
+                    board_content[y][x] = '\0';
                 }
             }
         }
@@ -192,7 +176,11 @@ void Board::DoRelic(vector<int32> relics) { //cf.) md
             board_multiply[i] += 0.5;
         }
     }
-    off_count = 3 + relics[10] - relics[11];//攻防の範囲の動かす数を記録
+    const int32 new_off_count = 3 + relics[10] - relics[11];//攻防の範囲の動かす数を記録
+    if (off_count != new_off_count) {
+        off_count = new_off_count;
+        RebuildBoardDerivedState();
+    }
     if (relics[13] > relics_old[13]) {
         add_damage += (relics[13] - relics_old[13]) * 3;
     }

@@ -2,7 +2,39 @@
 #include "Board.hpp"
 #include <Siv3D.hpp>
 
+void Board::RebuildBoardDerivedState() {
+	board_multiply_effect.fill(0);
+	board_off_def.fill(0);
+	const int32 board_width = Min(static_cast<int32>(board_usage.width()), static_cast<int32>(board_content.width()));
+	const int32 grid_height = Min(static_cast<int32>(board_usage.height()), static_cast<int32>(board_content.height()));
+	const int32 state_height = Min(static_cast<int32>(board_multiply_effect.size()), static_cast<int32>(board_off_def.size()));
+	const int32 board_height = Min(grid_height, state_height);
+	const int32 attack_row_count = Min(Max(off_count, 0), board_height);
+	for (int y = 0; y < attack_row_count; y++) {
+		board_off_def[y] = 1;
+	}
+
+	for (int y = 0; y < board_height; y++) {
+		for (int x = 0; x < board_width; x++) {
+			if (board_usage[y][x] <= 0) continue;
+			const char content = board_content[y][x];
+			if (content == 'a') {
+				board_multiply_effect[y] = 1.0;
+			} else if (content == 'b') {
+				board_multiply_effect[y] = 1.5;
+			} else if (content == 'c') {
+				board_multiply_effect[y] = 2.0;
+			} else if (content == 'f') {
+				board_off_def[y] = 0;
+			} else if (content == 'i') {
+				board_off_def[y] = 1;
+			}
+		}
+	}
+}
+
 void Board::CalcRow() {
+	RebuildBoardDerivedState();
 	num_on_board.clear();
 	result_of_calc.fill(0);
 	const int32 board_width = static_cast<int32>(board_usage.width());
@@ -70,11 +102,7 @@ void Board::CalcRow() {
 			}
 
 			else if (board_number[i][j] & (1 << 24)) { // null扱いのブロックのビットが立っているかどうか
-				if ((board_number[i][j] & (1 << 0))) {//攻なら
-					board_off_def[i] = 1;//ラインを攻に設定
-				} else if (board_number[i][j] & (1 << 1)) {//守
-					board_off_def[i] = 0;//ラインを守に設定
-				}
+				continue;
 			}
 
 			else {
@@ -116,18 +144,15 @@ std::pair<int, int> Board::Confirm() {
 
 void Board::Discard() {
 	board_number.fill(0);
+	board_content.fill('\0');
 	num_on_board.clear();
 	result_of_calc.fill(0);
-	board_off_def.fill(0); // 初期化: 攻撃側の行を1に設定
-	for (int i = 0; i < off_count; i++) {
-		board_off_def[i] = 1;
-	}
 	for (int i = 0; i < block_anim.size(); i++) {
 		block_anim[i] = 2;
 	}
 	board_effect_front = board_effect_back;
 	board_effect_back.fill(0);
-	board_multiply_effect.fill(0);
+	RebuildBoardDerivedState();
 }
 
 
@@ -190,6 +215,9 @@ void Board::UpdateBoardNum(Point putAt) {
 
 
 void Board::GetPieceNum(char content, int y, int x) {
+	board_number[y][x] = 0;
+	board_effect_back[y][x] = 0;
+	board_content[y][x] = content;
 	if (content == '+') {
 		board_number[y][x] = 257; return; // 足し算
 	} else if (content == '-') {
@@ -199,11 +227,11 @@ void Board::GetPieceNum(char content, int y, int x) {
 	} else if (content == '/') {
 		board_number[y][x] = 264; return; // 割り算
 	} else if (content == 'a') {
-		board_multiply_effect[y] = 1.0; return;
+		return;
 	} else if (content == 'b') {
-		board_multiply_effect[y] = 1.5; return;
+		return;
 	} else if (content == 'c') {
-		board_multiply_effect[y] = 2.0; return;//未定
+		return;//未定
 	} else if (content == 'd') {
 		return;//未定
 	} else if (content == 'e') {
@@ -244,6 +272,4 @@ void Board::GetPieceNum(char content, int y, int x) {
 	} else board_number[y][x] = content - '0';
 	return;
 }
-
-
 

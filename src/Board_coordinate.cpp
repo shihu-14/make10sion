@@ -9,6 +9,8 @@ using namespace std;
 Point Board::PutBlockAt() {//blockの置ける場所を確認. blockの(0, 0)のピースのボード座標を返す
 
     double minDist = 10000.0;//吸い込み半径(の2乗)
+    const int32 board_width = static_cast<int32>(board_usage.width());
+    const int32 board_height = static_cast<int32>(board_usage.height());
 
     //Blockの左上のピースの絶対座標
     Point piece_pos;
@@ -25,7 +27,7 @@ Point Board::PutBlockAt() {//blockの置ける場所を確認. blockの(0, 0)の
     array<int32, 4> dx = { -1, 0, -1, 0 };
     array<int32, 4> dy = { -1, -1, 0, 0 };
     for (int k = 0;k < 4;k++) {
-        if (((0 <= cell_y + dy[k]) && (cell_y + dy[k] < 6)) && ((0 <= cell_x + dx[k]) && (cell_x + dx[k] < 7))) {
+        if (((0 <= cell_y + dy[k]) && (cell_y + dy[k] < board_height)) && ((0 <= cell_x + dx[k]) && (cell_x + dx[k] < board_width))) {
             double distSquared = CalcDist(board_coordinate[cell_y + dy[k]][cell_x + dx[k]], piece_pos);
             if (distSquared < minDist) {
                 minDist = distSquared;
@@ -42,7 +44,12 @@ Point Board::PutBlockAt() {//blockの置ける場所を確認. blockの(0, 0)の
     for (int i = 0;i < used_blocks.at(block_number)->Size().second;i++) {
         for (int j = 0;j < used_blocks.at(block_number)->Size().first;j++) {
             char content = used_blocks.at(block_number)->GetPiece(j, i).content;
-            if ((content != '$') && (board_usage[putAt.y + i][putAt.x + j] != 0)) {
+            if (content == '$') continue;
+            const int32 board_x = putAt.x + j;
+            const int32 board_y = putAt.y + i;
+            if ((board_x < 0) || (board_width <= board_x)
+                || (board_y < 0) || (board_height <= board_y)
+                || (board_usage[board_y][board_x] != 0)) {
                 putAt = { -1, -1 };
                 finish = true;
                 break;
@@ -70,39 +77,84 @@ void Board::PutBlock() {//blockがドロップされたら、配置/手札に戻
         //int32 newx = offset.x + putAt.x * cell_size + cell_size/2 - block.GetPiece(0,0).x;//既に吸い込んであるから、不要かな
         //int32 newy = offset.y + putAt.y * cell_size + cell_size/2 - block.GetPiece(0,0).y;
         //block.SetPos(newx, newy);
-        block_anim[blockNum - 1] = 0;
+        block_anim[block_number] = 0;
     } else {
-        block_anim[blockNum - 1] = 1;
+        const int32 rotations_to_restore = (4 - block_rotation_count) % 4;
+        for (int32 i = 0; i < rotations_to_restore; i++) {
+            used_blocks.at(block_number)->Rotate();
+        }
+        if (was_block_on_board) {
+            int32 new_x = offset.x + original_put_at.x * cell_size + cell_size / 2 - used_blocks.at(block_number)->GetPiece(0, 0).x;
+            int32 new_y = offset.y + original_put_at.y * cell_size + cell_size / 2 - used_blocks.at(block_number)->GetPiece(0, 0).y;
+            used_blocks.at(block_number)->SetPos(new_x, new_y);
+            UpdateBoardNum(original_put_at);
+            block_anim[block_number] = 0;
+        } else {
+            block_anim[block_number] = 1;
+        }
     }
 
     is_block_selected = false;
+    original_put_at = { -1,-1 };
+    block_rotation_count = 0;
+    was_block_on_board = false;
 }
 
 void Board::TakeOutBlock(Point pos) {//クリックしたBlockをボードから外す
+    const int32 board_width = static_cast<int32>(board_usage.width());
+    const int32 board_height = static_cast<int32>(board_usage.height());
+    if ((pos.x < 0) || (board_width <= pos.x) || (pos.y < 0) || (board_height <= pos.y)) return;
 
     int32 num = board_usage[pos.y][pos.x];
 
     if (num > 0) {
-        for (int y = 0;y < 6;y++) {
-            for (int x = 0;x < 7;x++) {
+        const int32 selected_block_number = num - 1;
+        if ((selected_block_number < 0)
+            || (static_cast<int32>(used_blocks.size()) <= selected_block_number)
+            || (static_cast<int32>(block_anim.size()) <= selected_block_number)) return;
+
+        block_number = selected_block_number;
+        Block* selected_block = used_blocks.at(block_number);
+        const Point selected_block_pos = { selected_block->GetPos().first, selected_block->GetPos().second };
+        const Point first_piece_pos = selected_block_pos + Point{ selected_block->GetPiece(0, 0).x, selected_block->GetPiece(0, 0).y };
+        original_put_at = {
+            (first_piece_pos.x - offset.x - cell_size / 2) / cell_size,
+            (first_piece_pos.y - offset.y - cell_size / 2) / cell_size
+        };
+        if ((original_put_at.x < 0) || (board_width <= original_put_at.x)
+            || (original_put_at.y < 0) || (board_height <= original_put_at.y)) {
+            original_put_at = { -1,-1 };
+            return;
+        }
+        for (int y = 0; y < selected_block->Size().second; y++) {
+            for (int x = 0; x < selected_block->Size().first; x++) {
+                if (selected_block->GetPiece(x, y).content == '$') continue;
+                const int32 board_x = original_put_at.x + x;
+                const int32 board_y = original_put_at.y + y;
+                if ((board_x < 0) || (board_width <= board_x)
+                    || (board_y < 0) || (board_height <= board_y)
+                    || (board_usage[board_y][board_x] != num)) {
+                    original_put_at = { -1,-1 };
+                    return;
+                }
+            }
+        }
+
+        for (int y = 0;y < board_height;y++) {
+            for (int x = 0;x < board_width;x++) {
                 if (board_usage[y][x] == num) {//同じブロックのマスなら
-                    if (board_number[y][x] < 100) {//数字マスなら
-                        auto itr = find(num_on_board.begin(), num_on_board.end(), board_number[y][x]);
-                        //FIXME: ここで範囲外アクセスが発生している！
-                        num_on_board.erase(itr);
-                    }
                     //防御、攻撃マスが含まれているときの処理
-                    else if (board_number[y][x] == 16777217) {//攻
+                    if (board_number[y][x] == 16777217) {//攻
                         board_number[y][x] = 0;
                         if ([&]()->bool {
-                            for (int i = 0; i < 7; i++) {
+                            for (int i = 0; i < board_width; i++) {
                                 if (board_number[y][i] == 16777217)return false;
                             }return true;
                             }())board_off_def[y] = 0;
                     } else if (board_number[y][x] == 16777218) {//防
                         board_number[y][x] = 0;
                         if ([&]()->bool {
-                            for (int i = 0; i < 7; i++) {
+                            for (int i = 0; i < board_width; i++) {
                                 if (board_number[y][i] == 16777218)return false;
                             }return true;
                             }())board_off_def[y] = 1;
@@ -117,8 +169,8 @@ void Board::TakeOutBlock(Point pos) {//クリックしたBlockをボードから
 
         CalcRow();
 
-        //block = *used_blocks[num - 1];
-        blockNum = num;
+        block_rotation_count = 0;
+        was_block_on_board = true;
         is_block_selected = true;
     }
 }
@@ -164,15 +216,16 @@ void Board::PassBlock(Block& selectedBlock, const Point hand_pos) {//選択さ�
     auto itr = find(used_blocks.begin(), used_blocks.end(), &selectedBlock);
     if (itr == used_blocks.end()) {//新出のブロックなら
         used_blocks.push_back(&selectedBlock);
-        blockNum = (int)used_blocks.size();//1-indexed
         block_hand_pos.push_back(hand_pos);//手札の位置を記録
         block_anim.push_back(3);
-        block_number = used_blocks.size() - 1; //ブロックの番号を更新
+        block_number = static_cast<int>(used_blocks.size()) - 1; //ブロックの番号を更新
     } else {//既出のブロックなら
-        blockNum = distance(used_blocks.begin(), itr) + 1;//1-indexed
-        block_anim[blockNum - 1] = 3;
-        block_number = blockNum - 1; //ブロックの番号を更新
+        block_number = static_cast<int>(distance(used_blocks.begin(), itr)); //ブロックの番号を更新
+        block_anim[block_number] = 3;
     }
+    original_put_at = { -1,-1 };
+    block_rotation_count = 0;
+    was_block_on_board = false;
     is_block_selected = true;
     is_board_active = true; // Boardをアクティブにする
 }

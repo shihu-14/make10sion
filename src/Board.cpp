@@ -8,7 +8,11 @@ void Board::InitAll() {//毎ターン開始時に呼び出してもらう
 	block_hand_pos.clear();
 	block_anim.clear();
 	for (auto& usage : board_usage) if (usage > 0) usage = 0;
-	blockNum = 0;
+	block_number = 0;
+	original_put_at = { -1,-1 };
+	block_rotation_count = 0;
+	was_block_on_board = false;
+	is_block_selected = false;
 }
 
 //ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
@@ -16,17 +20,24 @@ void Board::Update(int32 idx, vector<int32> relics) {//idx : 0:バトル中, 1:�
 	if (idx == 0) {
 		if (is_board_active) {
 			if (is_block_selected) {//Blockをドラッグしているとき
-				used_blocks.at(block_number)->SetPos(Cursor::Pos().x, Cursor::Pos().y);
-				if (!used_blocks.at(block_number)->IsDragging()) {
+				if (MouseL.pressed()) {
+					used_blocks.at(block_number)->SetPos(Cursor::Pos().x, Cursor::Pos().y);
+
+					if (MouseR.down()) {//blockの回転
+						used_blocks.at(block_number)->Rotate();
+						block_rotation_count = (block_rotation_count + 1) % 4;
+					}
+				} else {
 					PutBlock();
 				}
-
-				if (MouseR.down()) {//blockの回転
-					used_blocks.at(block_number)->Rotate();
-				}
 			} else {
-				Point cell_pos = (Cursor::Pos() - offset) / cell_size;//ボードのどこのマスにあたるか
-				if (((0 <= cell_pos.x) && (cell_pos.x <= 7)) && ((0 <= cell_pos.y) && (cell_pos.y <= 6)) && MouseL.down()) {//ボード内でクリックされたとき
+				const Point cursor_on_board = Cursor::Pos() - offset;
+				const int32 board_width = static_cast<int32>(board_usage.width());
+				const int32 board_height = static_cast<int32>(board_usage.height());
+				if (MouseL.down()
+					&& (0 <= cursor_on_board.x) && (cursor_on_board.x < board_width * cell_size)
+					&& (0 <= cursor_on_board.y) && (cursor_on_board.y < board_height * cell_size)) {//ボード内でクリックされたとき
+					Point cell_pos = cursor_on_board / cell_size;//ボードのどこのマスにあたるか
 					TakeOutBlock(cell_pos);
 				}
 			}

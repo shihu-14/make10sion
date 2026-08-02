@@ -92,18 +92,13 @@ void Block::Rotate() {
 }
 
 bool Block::IsDragging() {
-	for (int y = 0; y < sizeY; y++) {
-		for (int x = 0; x < sizeX; x++) {
-			RectF rect{ Arg::center(contents[x][y].x + posX, contents[x][y].y + posY), 50, 50 };
-			if (rect.mouseOver() && MouseL.pressed())return true;
-		}
-	}
-	return false;
+	return MouseL.down() && IsHovered();
 }
 
 bool Block::IsHovered() {
 	for (int y = 0; y < sizeY; y++) {
 		for (int x = 0; x < sizeX; x++) {
+			if (contents[x][y].content == '$')continue;
 			RectF rect{ Arg::center(contents[x][y].x + posX, contents[x][y].y + posY), 50, 50 };
 			if (rect.mouseOver())return true;
 		}

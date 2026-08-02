@@ -3,15 +3,18 @@
 #include <Siv3D.hpp>
 
 void Board::CalcRow() {
+	num_on_board.clear();
+	result_of_calc.fill(0);
+	const int32 board_width = static_cast<int32>(board_usage.width());
+	const int32 board_height = static_cast<int32>(board_usage.height());
 
 	//数字の集計
-	for (int i = 0; i < 6; i++) {
-		for (int j = 0; j < 7; j++) {
+	for (int i = 0; i < board_height; i++) {
+		for (int j = 0; j < board_width; j++) {
 			if (board_usage[i][j] <= 0) continue; // 使用されていないブロックはスキップ
 			if (board_number[i][j] == 0)continue;
 			if ((board_number[i][j] & (1 << 8)) == 0 && (board_number[i][j] & (1 << 16)) == 0 && (board_number[i][j] & (1 << 24)) == 0) {//数字であるか
-				board_number[i][j] += board_effect_front[i][j]; // 効果を加える
-				num_on_board.push_back(board_number[i][j]); // 数字部分を取り出す
+				num_on_board.push_back(board_number[i][j] + board_effect_front[i][j]); // 数字部分を取り出す
 			}
 
 		}
@@ -19,14 +22,14 @@ void Board::CalcRow() {
 	std::sort(num_on_board.begin(), num_on_board.end());
 
 	//構文解析するためにボード上の文字列を圧縮 
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < board_height; i++) {
 
 		//初期化
 		bool before_was_number = false; // 前に見た記号が数字かどうか判断する  
 		bool before_was_operator = false; // 前に見た記号が演算子かどうか判断する  
 		String function;
 
-		for (int j = 0; j < 7; j++) {
+		for (int j = 0; j < board_width; j++) {
 			//FIXME: board_usage[i][j] != 1 でスキップしているが、これが正しいか確認する必要がある
 			if (board_usage[i][j] <= 0) continue;// 使用されていないブロックはスキップ
 			if (board_number[i][j] == 0) continue;// 数字が0のブロックはスキップ
@@ -49,7 +52,7 @@ void Board::CalcRow() {
 			}
 
 			else if (board_number[i][j] & (1 << 16)) { // Max, Min, Aveのとき  
-				if (before_was_number == true) continue;
+				if (before_was_number == true || num_on_board.isEmpty()) continue;
 				before_was_number = true;
 				if (board_number[i][j] & (1 << 0)) { // Max  
 					function += Format(num_on_board.back()); // 修正: int を String に変換  
@@ -78,7 +81,7 @@ void Board::CalcRow() {
 				if (before_was_number == true) continue; // 前が数字ならスキップ
 				before_was_number = true;
 				before_was_operator = false;
-				function += Format(board_number[i][j]);
+				function += Format(board_number[i][j] + board_effect_front[i][j]);
 			}
 
 		}
@@ -177,7 +180,7 @@ void Board::UpdateBoardNum(Point putAt) {
 		for (int j = 0; j < used_blocks.at(block_number)->Size().first; j++) {
 			char content = used_blocks.at(block_number)->GetPiece(j, i).content;
 			if (content == '$')continue; // $は無視
-			board_usage[putAt.y + i][putAt.x + j] = blockNum;
+			board_usage[putAt.y + i][putAt.x + j] = block_number + 1;
 			GetPieceNum(content, putAt.y + i, putAt.x + j); // 数字の取得&マスの変更
 		}
 	}
@@ -241,7 +244,6 @@ void Board::GetPieceNum(char content, int y, int x) {
 	} else board_number[y][x] = content - '0';
 	return;
 }
-
 
 
 

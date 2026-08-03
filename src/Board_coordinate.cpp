@@ -1,7 +1,8 @@
 #include <Siv3D.hpp>
 #include "common.hpp"
 #include "Board.hpp"
-#include <array>
+#include <cassert>
+#include <cmath>
 #include <vector>
 using namespace std;
 
@@ -10,6 +11,19 @@ int32 Board::FindBoardBlockIndex(int32 deck_index) const {
     for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {
         if (board_blocks[i].deck_index == deck_index) return i;
     }
+    return -1;
+}
+
+int32 Board::ResolveDragBlockIndex() const {
+    if (!drag_context.active || (drag_context.block == nullptr)) return -1;
+    const int32 selected_index = drag_context.board_block_index;
+    if (IsBoardBlockIndexValid(selected_index)
+        && (board_blocks[selected_index].deck_index == drag_context.deck_index)
+        && (board_blocks[selected_index].block == drag_context.block)) return selected_index;
+
+    const int32 resolved_index = FindBoardBlockIndex(drag_context.deck_index);
+    if (IsBoardBlockIndexValid(resolved_index)
+        && (board_blocks[resolved_index].block == drag_context.block)) return resolved_index;
     return -1;
 }
 
@@ -22,8 +36,53 @@ bool Board::IsBoardBlockIndexValid(int32 index) const {
 
 bool Board::IsDragContextValid() const {
     return drag_context.active
-        && IsBoardBlockIndexValid(drag_context.board_block_index)
-        && (board_blocks[drag_context.board_block_index].deck_index == drag_context.deck_index);
+        && (ResolveDragBlockIndex() == drag_context.board_block_index);
+}
+
+Point Board::GetBoardCellCenter(Point cell) const {
+    return offset + Point{
+        cell.x * cell_size + cell_size / 2,
+        cell.y * cell_size + cell_size / 2
+    };
+}
+
+Point Board::GetScaledPieceOffset(const Piece& piece) const {
+    return {
+        static_cast<int32>(std::lround(piece.x * img_scale)),
+        static_cast<int32>(std::lround(piece.y * img_scale))
+    };
+}
+
+Point Board::GetBoardBlockScreenPosition(const Block& block, Point anchor) const {
+    if ((block.Size().first <= 0) || (block.Size().second <= 0)) return { -1,-1 };
+    return GetBoardCellCenter(anchor) - GetScaledPieceOffset(block.GetPiece(0, 0));
+}
+
+Point Board::ScreenToBoardCell(Point screen_pos) const {
+    const Point relative_pos = screen_pos - offset;
+    const int32 board_width = static_cast<int32>(board_usage.width());
+    const int32 board_height = static_cast<int32>(board_usage.height());
+    if ((relative_pos.x < 0) || (board_width * cell_size <= relative_pos.x)
+        || (relative_pos.y < 0) || (board_height * cell_size <= relative_pos.y)) return { -1,-1 };
+    return relative_pos / cell_size;
+}
+
+Point Board::GetBoardAnchorFromScreenPosition(const Block& block, Point screen_pos) const {
+    if ((block.Size().first <= 0) || (block.Size().second <= 0)) return { -1,-1 };
+    const Point first_piece_pos = screen_pos + GetScaledPieceOffset(block.GetPiece(0, 0));
+    double min_dist = 10000.0;
+    Point anchor = { -1,-1 };
+    for (int32 y = 0; y < static_cast<int32>(board_usage.height()); y++) {
+        for (int32 x = 0; x < static_cast<int32>(board_usage.width()); x++) {
+            const Point cell = { x,y };
+            const double distance = CalcDist(GetBoardCellCenter(cell), first_piece_pos);
+            if (distance < min_dist) {
+                min_dist = distance;
+                anchor = cell;
+            }
+        }
+    }
+    return anchor;
 }
 
 bool Board::GetBlockCells(const Block& block, Point anchor, Array<Point>& cells) const {
@@ -85,78 +144,151 @@ bool Board::BlocksOverlap(int32 index_1, Point anchor_1, int32 index_2, Point an
     return false;
 }
 
+void Board::CaptureBoardBlockSnapshots() {
+    drag_context.board_block_snapshots.clear();
+#ifndef NDEBUG
+    drag_context.board_block_snapshots.reserve(board_blocks.size());
+    for (const auto& state : board_blocks) {
+        BoardBlockSnapshot snapshot;
+        snapshot.block = state.block;
+        snapshot.deck_index = state.deck_index;
+        snapshot.board_anchor = state.board_anchor;
+        snapshot.rotation = state.rotation;
+        snapshot.animation = state.animation;
+        if (state.block) {
+            snapshot.screen_pos = { state.block->GetPos().first, state.block->GetPos().second };
+            snapshot.stat = state.block->GetStat();
+        }
+        drag_context.board_block_snapshots.push_back(snapshot);
+    }
+#endif
+}
+
+bool Board::ValidateBoardState(int32 allowed_target_index) const {
+    for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {
+        if (!IsBoardBlockIndexValid(i)) return false;
+        for (int32 j = 0; j < i; j++) {
+            if ((board_blocks[i].deck_index == board_blocks[j].deck_index)
+                || (board_blocks[i].block == board_blocks[j].block)) return false;
+        }
+    }
+
+    for (const auto& usage : board_usage) {
+        if (usage <= 0) continue;
+        const int32 index = usage - 1;
+        if (!IsBoardBlockIndexValid(index) || (board_blocks[index].block->GetStat() != 2)) return false;
+    }
+
+    for (int32 index = 0; index < static_cast<int32>(board_blocks.size()); index++) {
+        const BoardBlockState& state = board_blocks[index];
+        size_t occupied_count = 0;
+        for (const auto& usage : board_usage) {
+            if (usage == index + 1) occupied_count++;
+        }
+
+        if (state.block->GetStat() == 1) {
+            if ((state.board_anchor != Point{ -1,-1 }) || (state.animation != -1) || (occupied_count != 0)) return false;
+            continue;
+        }
+        if (state.block->GetStat() != 2) {
+            if (occupied_count != 0) return false;
+            continue;
+        }
+        Array<Point> expected_cells;
+        if ((state.animation != 0)
+            || !GetBlockCells(*state.block, state.board_anchor, expected_cells)
+            || (occupied_count != expected_cells.size())
+            || !IsBoardBlockPlaced(index)) return false;
+        const Point screen_pos = { state.block->GetPos().first, state.block->GetPos().second };
+        if (screen_pos != GetBoardBlockScreenPosition(*state.block, state.board_anchor)) return false;
+        for (int32 y = 0; y < state.block->Size().second; y++) {
+            for (int32 x = 0; x < state.block->Size().first; x++) {
+                const Piece& piece = state.block->GetPiece(x, y);
+                if (piece.content == '$') continue;
+                const Point piece_screen_pos = screen_pos + GetScaledPieceOffset(piece);
+                if (piece_screen_pos != GetBoardCellCenter(state.board_anchor + Point{ x,y })) return false;
+            }
+        }
+    }
+
+#ifndef NDEBUG
+    int32 allowed_target_deck_index = -1;
+    if (IsBoardBlockIndexValid(allowed_target_index)) {
+        allowed_target_deck_index = board_blocks[allowed_target_index].deck_index;
+    }
+    for (const auto& snapshot : drag_context.board_block_snapshots) {
+        if ((snapshot.deck_index == drag_context.deck_index)
+            || (snapshot.deck_index == allowed_target_deck_index)) continue;
+        const int32 index = FindBoardBlockIndex(snapshot.deck_index);
+        if (!IsBoardBlockIndexValid(index)) return false;
+        const BoardBlockState& state = board_blocks[index];
+        const Point screen_pos = { state.block->GetPos().first, state.block->GetPos().second };
+        if ((state.block != snapshot.block)
+            || (screen_pos != snapshot.screen_pos)
+            || (state.board_anchor != snapshot.board_anchor)
+            || (state.rotation != snapshot.rotation)
+            || (state.block->GetStat() != snapshot.stat)
+            || (state.animation != snapshot.animation)) return false;
+    }
+#else
+    (void)allowed_target_index;
+#endif
+    return true;
+}
+
+void Board::AssertBoardState(int32 allowed_target_index) const {
+#ifndef NDEBUG
+    assert(ValidateBoardState(allowed_target_index));
+#else
+    (void)allowed_target_index;
+#endif
+}
+
 Point Board::PutBlockAt() const {//blockの置ける場所を確認. blockの(0, 0)のピースのボード座標を返す
     if (!IsDragContextValid()) return { -1,-1 };
     const Block& block = *board_blocks[drag_context.board_block_index].block;
-    const int32 board_width = static_cast<int32>(board_usage.width());
-    const int32 board_height = static_cast<int32>(board_usage.height());
-    const Point piece_pos = Cursor::Pos() + Point{ block.GetPiece(0, 0).x, block.GetPiece(0, 0).y };
-    const int32 cell_x = (piece_pos.x - offset.x + cell_size / 2) / cell_size;
-    const int32 cell_y = (piece_pos.y - offset.y + cell_size / 2) / cell_size;
-    const array<int32, 4> dx = { -1, 0, -1, 0 };
-    const array<int32, 4> dy = { -1, -1, 0, 0 };
-    double min_dist = 10000.0;
-    Point put_at = { -1,-1 };
-    for (int32 i = 0; i < 4; i++) {
-        const Point candidate = { cell_x + dx[i], cell_y + dy[i] };
-        if ((candidate.x < 0) || (board_width <= candidate.x)
-            || (candidate.y < 0) || (board_height <= candidate.y)) continue;
-        const double distance = CalcDist(board_coordinate[candidate.y][candidate.x], piece_pos);
-        if (distance < min_dist) {
-            min_dist = distance;
-            put_at = candidate;
-        }
-    }
-    return put_at;
+    const Point screen_pos = { block.GetPos().first, block.GetPos().second };
+    return GetBoardAnchorFromScreenPosition(block, screen_pos);
 }
 
 Board::DropPlan Board::AnalyzeDrop(Point candidate_anchor) const {
     DropPlan plan;
     if (!IsDragContextValid()) return plan;
     const int32 selected_index = drag_context.board_block_index;
+    const Point drop_cell = ScreenToBoardCell(Cursor::Pos());
+    if (drop_cell != Point{ -1,-1 }) {
+        const int32 usage = board_usage[drop_cell.y][drop_cell.x];
+        if (usage > 0) {
+            const int32 target_index = usage - 1;
+            if (target_index != selected_index) {
+                if (!IsBoardBlockPlaced(target_index)) return plan;
+                const Point target_anchor = board_blocks[target_index].board_anchor;
+                if (!drag_context.from_board) {
+                    if (CanPlaceBlock(selected_index, target_anchor, selected_index, target_index)) {
+                        plan.type = DropType::HandBoardSwap;
+                        plan.anchor = target_anchor;
+                        plan.target_block_index = target_index;
+                    }
+                    return plan;
+                }
+
+                const Point selected_anchor = drag_context.board_anchor;
+                if (CanPlaceBlock(selected_index, target_anchor, selected_index, target_index)
+                    && CanPlaceBlock(target_index, selected_anchor, selected_index, target_index)
+                    && !BlocksOverlap(selected_index, target_anchor, target_index, selected_anchor)) {
+                    plan.type = DropType::BoardBoardSwap;
+                    plan.anchor = target_anchor;
+                    plan.target_block_index = target_index;
+                }
+                return plan;
+            }
+        }
+    }
+
     if (candidate_anchor == Point{ -1,-1 }) return plan;
-    Array<Point> candidate_cells;
-    if (!GetBlockCells(*board_blocks[selected_index].block, candidate_anchor, candidate_cells)) return plan;
-
-    Array<int32> overlapped_blocks;
-    for (const auto& cell : candidate_cells) {
-        const int32 usage = board_usage[cell.y][cell.x];
-        if (usage < 0) return plan;
-        if (usage == 0) continue;
-        const int32 occupied_index = usage - 1;
-        if (occupied_index == selected_index) continue;
-        if (!IsBoardBlockIndexValid(occupied_index)) return plan;
-        if (!overlapped_blocks.includes(occupied_index)) overlapped_blocks.push_back(occupied_index);
-    }
-
-    if (overlapped_blocks.isEmpty()) {
-        if (CanPlaceBlock(selected_index, candidate_anchor, selected_index)) {
-            plan.type = DropType::Place;
-            plan.anchor = candidate_anchor;
-        }
-        return plan;
-    }
-    if (overlapped_blocks.size() != 1) return plan;
-
-    const int32 target_index = overlapped_blocks.front();
-    if (!IsBoardBlockPlaced(target_index)) return plan;
-    const Point target_anchor = board_blocks[target_index].board_anchor;
-    if (!drag_context.from_board) {
-        if (CanPlaceBlock(selected_index, target_anchor, selected_index, target_index)) {
-            plan.type = DropType::HandBoardSwap;
-            plan.anchor = target_anchor;
-            plan.target_block_index = target_index;
-        }
-        return plan;
-    }
-
-    const Point selected_anchor = drag_context.board_anchor;
-    if (CanPlaceBlock(selected_index, target_anchor, selected_index, target_index)
-        && CanPlaceBlock(target_index, selected_anchor, selected_index, target_index)
-        && !BlocksOverlap(selected_index, target_anchor, target_index, selected_anchor)) {
-        plan.type = DropType::BoardBoardSwap;
-        plan.anchor = target_anchor;
-        plan.target_block_index = target_index;
+    if (CanPlaceBlock(selected_index, candidate_anchor, selected_index)) {
+        plan.type = DropType::Place;
+        plan.anchor = candidate_anchor;
     }
     return plan;
 }
@@ -178,10 +310,8 @@ void Board::ClearBoardBlock(int32 index) {
 void Board::SetBoardBlockPosition(int32 index, Point anchor) {
     if (!IsBoardBlockIndexValid(index)) return;
     BoardBlockState& state = board_blocks[index];
-    const Piece& first_piece = state.block->GetPiece(0, 0);
-    const int32 x = offset.x + anchor.x * cell_size + cell_size / 2 - first_piece.x;
-    const int32 y = offset.y + anchor.y * cell_size + cell_size / 2 - first_piece.y;
-    state.block->SetPos(x, y);
+    const Point screen_pos = GetBoardBlockScreenPosition(*state.block, anchor);
+    state.block->SetPos(screen_pos.x, screen_pos.y);
     state.board_anchor = anchor;
 }
 
@@ -195,20 +325,27 @@ void Board::SetBlockRotation(int32 index, int32 rotation) {
     }
 }
 
-void Board::RestoreDrag() {
-    if (!IsDragContextValid()) return;
-    BoardBlockState& selected = board_blocks[drag_context.board_block_index];
-    SetBlockRotation(drag_context.board_block_index, drag_context.start_rotation);
-    selected.block->SetStat(drag_context.start_stat);
+bool Board::RestoreDrag() {
+    if (!drag_context.active || (drag_context.block == nullptr)) return false;
+    for (int32 i = 0; i < (4 - drag_context.rotation_count) % 4; i++) {
+        drag_context.block->Rotate();
+    }
+    drag_context.block->SetPos(drag_context.start_screen_pos.x, drag_context.start_screen_pos.y);
+    drag_context.block->SetStat(drag_context.start_stat);
+
+    const int32 selected_index = ResolveDragBlockIndex();
+    if (!IsBoardBlockIndexValid(selected_index)) return false;
+    BoardBlockState& selected = board_blocks[selected_index];
+    selected.rotation = drag_context.start_rotation;
+    selected.hand_pos = drag_context.hand_pos;
     if (drag_context.from_board) {
-        SetBoardBlockPosition(drag_context.board_block_index, drag_context.board_anchor);
+        selected.board_anchor = drag_context.board_anchor;
         selected.animation = 0;
     } else {
-        selected.block->SetPos(drag_context.hand_pos.x, drag_context.hand_pos.y);
-        selected.hand_pos = drag_context.hand_pos;
         selected.board_anchor = { -1,-1 };
         selected.animation = -1;
     }
+    return true;
 }
 
 void Board::ClearDrag() {
@@ -217,6 +354,10 @@ void Board::ClearDrag() {
 
 void Board::PutBlock() {//blockがドロップされたら、配置/交換/元の場所への復元を行う
     if (!IsDragContextValid()) {
+        const bool restored = RestoreDrag();
+        assert(restored);
+        CalcRow();
+        AssertBoardState();
         ClearDrag();
         return;
     }
@@ -224,8 +365,10 @@ void Board::PutBlock() {//blockがドロップされたら、配置/交換/元�
     const int32 selected_index = drag_context.board_block_index;
     BoardBlockState& selected = board_blocks[selected_index];
     if (plan.type == DropType::Invalid) {
-        RestoreDrag();
+        const bool restored = RestoreDrag();
+        assert(restored);
         CalcRow();
+        AssertBoardState();
         ClearDrag();
         return;
     }
@@ -265,6 +408,7 @@ void Board::PutBlock() {//blockがドロップされたら、配置/交換/元�
         target.block->SetStat(2);
     }
     CalcRow();
+    AssertBoardState(plan.target_block_index);
     ClearDrag();
 }
 
@@ -276,6 +420,7 @@ void Board::TakeOutBlock(Point pos) {//クリックしたBlockのドラッグを
         || (pos.y < 0) || (board_height <= pos.y)) return;
     const int32 usage = board_usage[pos.y][pos.x];
     if (usage <= 0) return;
+    AssertBoardState();
     const int32 selected_index = usage - 1;
     if (!IsBoardBlockPlaced(selected_index)) return;
     BoardBlockState& selected = board_blocks[selected_index];
@@ -283,22 +428,22 @@ void Board::TakeOutBlock(Point pos) {//クリックしたBlockのドラッグを
     drag_context.active = true;
     drag_context.board_block_index = selected_index;
     drag_context.deck_index = selected.deck_index;
+    drag_context.block = selected.block;
     drag_context.from_board = true;
     drag_context.start_stat = selected.block->GetStat();
+    drag_context.start_screen_pos = { selected.block->GetPos().first, selected.block->GetPos().second };
     drag_context.hand_pos = selected.hand_pos;
     drag_context.board_anchor = selected.board_anchor;
     drag_context.start_rotation = selected.rotation;
     drag_context.rotation_count = 0;
     selected.animation = 0;
+    CaptureBoardBlockSnapshots();
 }
 
 void Board::InitBoardCoordinate() {//board_coordinateの初期化
     for (int i = 0;i < 6;i++) {
         for (int j = 0;j < 7;j++) {
-            Point cord;
-            cord.x = offset.x + cell_size * j + cell_size / 2;
-            cord.y = offset.y + cell_size * i + cell_size / 4;
-            board_coordinate[i][j] = cord;
+            board_coordinate[i][j] = GetBoardCellCenter({ j,i });
         }
     }
 }
@@ -335,6 +480,7 @@ void Board::DoRelic(vector<int32> relics) { //cf.) md
 //public　functions
 bool Board::PassBlock(Block& selectedBlock, int32 deck_index, const Point hand_pos) {//選択されているBlockとそのDeck番号、手札座標が渡される
     if (drag_context.active || (deck_index < 0) || (selectedBlock.GetStat() != 1)) return false;
+    AssertBoardState();
     int32 selected_index = FindBoardBlockIndex(deck_index);
     if (selected_index < 0) {//新出のブロックなら
         for (const auto& state : board_blocks) {
@@ -359,12 +505,15 @@ bool Board::PassBlock(Block& selectedBlock, int32 deck_index, const Point hand_p
     drag_context.active = true;
     drag_context.board_block_index = selected_index;
     drag_context.deck_index = deck_index;
+    drag_context.block = &selectedBlock;
     drag_context.from_board = false;
     drag_context.start_stat = selectedBlock.GetStat();
+    drag_context.start_screen_pos = hand_pos;
     drag_context.hand_pos = hand_pos;
     drag_context.board_anchor = { -1,-1 };
     drag_context.start_rotation = selected.rotation;
     drag_context.rotation_count = 0;
+    CaptureBoardBlockSnapshots();
     is_board_active = true; // Boardをアクティブにする
     return true;
 }

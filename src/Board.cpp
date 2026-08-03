@@ -1,5 +1,6 @@
 #include "Battle.hpp"
 #include "Board.hpp"
+#include <cassert>
 using namespace std;
 
 void Board::InitAll() {//毎ターン開始時に呼び出してもらう
@@ -16,6 +17,10 @@ void Board::Update(int32 idx, vector<int32> relics) {//idx : 0:バトル中, 1:�
 		if (is_board_active) {
 			if (drag_context.active) {//Blockをドラッグしているとき
 				if (!IsDragContextValid()) {
+					const bool restored = RestoreDrag();
+					assert(restored);
+					CalcRow();
+					AssertBoardState();
 					ClearDrag();
 					return;
 				}
@@ -32,14 +37,9 @@ void Board::Update(int32 idx, vector<int32> relics) {//idx : 0:バトル中, 1:�
 					PutBlock();
 				}
 			} else {
-				const Point cursor_on_board = Cursor::Pos() - offset;
-				const int32 board_width = static_cast<int32>(board_usage.width());
-				const int32 board_height = static_cast<int32>(board_usage.height());
-				if (MouseL.down()
-					&& (0 <= cursor_on_board.x) && (cursor_on_board.x < board_width * cell_size)
-					&& (0 <= cursor_on_board.y) && (cursor_on_board.y < board_height * cell_size)) {//ボード内でクリックされたとき
-					Point cell_pos = cursor_on_board / cell_size;//ボードのどこのマスにあたるか
-					TakeOutBlock(cell_pos);
+				if (MouseL.down()) {//ボード内でクリックされたとき
+					const Point cell_pos = ScreenToBoardCell(Cursor::Pos());
+					if (cell_pos != Point{ -1,-1 }) TakeOutBlock(cell_pos);
 				}
 			}
 		}

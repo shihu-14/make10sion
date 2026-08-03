@@ -19,16 +19,29 @@ private:
 		int32 animation = -1;
 	};
 
+	struct BoardBlockSnapshot {
+		Block* block = nullptr;
+		int32 deck_index = -1;
+		Point screen_pos = { -1,-1 };
+		Point board_anchor = { -1,-1 };
+		int32 rotation = 0;
+		int32 stat = 0;
+		int32 animation = -1;
+	};
+
 	struct DragContext {
 		bool active = false;
 		int32 board_block_index = -1;
 		int32 deck_index = -1;
+		Block* block = nullptr;
 		bool from_board = false;
 		int32 start_stat = 0;
+		Point start_screen_pos = { -1,-1 };
 		Point hand_pos = { -1,-1 };
 		Point board_anchor = { -1,-1 };
 		int32 start_rotation = 0;
 		int32 rotation_count = 0;
+		Array<BoardBlockSnapshot> board_block_snapshots;
 	};
 
 	enum class DropType {
@@ -82,12 +95,21 @@ private:
 
 	//function
 	int32 FindBoardBlockIndex(int32 deck_index) const;
+	int32 ResolveDragBlockIndex() const;
 	bool IsBoardBlockIndexValid(int32 index) const;
 	bool IsDragContextValid() const;
+	Point GetBoardCellCenter(Point cell) const;
+	Point GetScaledPieceOffset(const Piece& piece) const;
+	Point GetBoardBlockScreenPosition(const Block& block, Point anchor) const;
+	Point ScreenToBoardCell(Point screen_pos) const;
+	Point GetBoardAnchorFromScreenPosition(const Block& block, Point screen_pos) const;
 	bool GetBlockCells(const Block& block, Point anchor, Array<Point>& cells) const;
 	bool IsBoardBlockPlaced(int32 index) const;
 	bool CanPlaceBlock(int32 index, Point anchor, int32 ignored_index_1, int32 ignored_index_2 = -1) const;
 	bool BlocksOverlap(int32 index_1, Point anchor_1, int32 index_2, Point anchor_2) const;
+	void CaptureBoardBlockSnapshots();
+	bool ValidateBoardState(int32 allowed_target_index = -1) const;
+	void AssertBoardState(int32 allowed_target_index = -1) const;
 	Point PutBlockAt() const;
 	DropPlan AnalyzeDrop(Point candidate_anchor) const;
 	void PutBlock();
@@ -95,7 +117,7 @@ private:
 	void UpdateBoardNum(int32 index, Point putAt);
 	void SetBoardBlockPosition(int32 index, Point anchor);
 	void SetBlockRotation(int32 index, int32 rotation);
-	void RestoreDrag();
+	bool RestoreDrag();
 	void ClearDrag();
 	void GetPieceNum(char content, int y, int x);
 	void InitBoardCoordinate();

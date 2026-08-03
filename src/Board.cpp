@@ -17,11 +17,8 @@ void Board::Update(int32 idx, vector<int32> relics) {//idx : 0:バトル中, 1:�
 		if (is_board_active) {
 			if (drag_context.active) {//Blockをドラッグしているとき
 				if (!IsDragContextValid()) {
-					const bool restored = RestoreDrag();
-					assert(restored);
-					CalcRow();
-					AssertBoardState();
-					ClearDrag();
+					const bool returned_to_hand = ReturnDraggedBlockToHand();
+					assert(returned_to_hand);
 					return;
 				}
 				BoardBlockState& selected = board_blocks[drag_context.board_block_index];
@@ -31,7 +28,6 @@ void Board::Update(int32 idx, vector<int32> relics) {//idx : 0:バトル中, 1:�
 					if (MouseR.down()) {//blockの回転
 						selected.block->Rotate();
 						selected.rotation = (selected.rotation + 1) % 4;
-						drag_context.rotation_count = (drag_context.rotation_count + 1) % 4;
 					}
 				} else {
 					PutBlock();

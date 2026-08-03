@@ -265,7 +265,7 @@ Board::DropPlan Board::AnalyzeDrop(Point candidate_anchor) const {
                 const Point target_anchor = board_blocks[target_index].board_anchor;
                 if (!drag_context.from_board) {
                     if (CanPlaceBlock(selected_index, target_anchor, selected_index, target_index)) {
-                        plan.type = DropType::HandBoardSwap;
+                        plan.type = DropType::Swap;
                         plan.anchor = target_anchor;
                         plan.target_block_index = target_index;
                     }
@@ -276,7 +276,7 @@ Board::DropPlan Board::AnalyzeDrop(Point candidate_anchor) const {
                 if (CanPlaceBlock(selected_index, target_anchor, selected_index, target_index)
                     && CanPlaceBlock(target_index, selected_anchor, selected_index, target_index)
                     && !BlocksOverlap(selected_index, target_anchor, target_index, selected_anchor)) {
-                    plan.type = DropType::BoardBoardSwap;
+                    plan.type = DropType::Swap;
                     plan.anchor = target_anchor;
                     plan.target_block_index = target_index;
                 }
@@ -285,6 +285,7 @@ Board::DropPlan Board::AnalyzeDrop(Point candidate_anchor) const {
         }
     }
 
+    if ((drop_cell == Point{ -1,-1 }) || (board_usage[drop_cell.y][drop_cell.x] != 0)) return plan;
     if (candidate_anchor == Point{ -1,-1 }) return plan;
     if (CanPlaceBlock(selected_index, candidate_anchor, selected_index)) {
         plan.type = DropType::Place;
@@ -325,26 +326,21 @@ void Board::SetBlockRotation(int32 index, int32 rotation) {
     }
 }
 
-bool Board::RestoreDrag() {
+bool Board::ReturnDraggedBlockToHand() {
     if (!drag_context.active || (drag_context.block == nullptr)) return false;
-    for (int32 i = 0; i < (4 - drag_context.rotation_count) % 4; i++) {
-        drag_context.block->Rotate();
-    }
-    drag_context.block->SetPos(drag_context.start_screen_pos.x, drag_context.start_screen_pos.y);
-    drag_context.block->SetStat(drag_context.start_stat);
-
     const int32 selected_index = ResolveDragBlockIndex();
     if (!IsBoardBlockIndexValid(selected_index)) return false;
     BoardBlockState& selected = board_blocks[selected_index];
-    selected.rotation = drag_context.start_rotation;
-    selected.hand_pos = drag_context.hand_pos;
-    if (drag_context.from_board) {
-        selected.board_anchor = drag_context.board_anchor;
-        selected.animation = 0;
-    } else {
-        selected.board_anchor = { -1,-1 };
-        selected.animation = -1;
-    }
+    ClearBoardBlock(selected_index);
+    SetBlockRotation(selected_index, 0);
+    selected.hand_pos = drag_context.from_board ? drag_context.hand_pos : drag_context.start_screen_pos;
+    selected.block->SetPos(selected.hand_pos.x, selected.hand_pos.y);
+    selected.board_anchor = { -1,-1 };
+    selected.block->SetStat(1);
+    selected.animation = -1;
+    CalcRow();
+    AssertBoardState();
+    ClearDrag();
     return true;
 }
 
@@ -352,24 +348,18 @@ void Board::ClearDrag() {
     drag_context = {};
 }
 
-void Board::PutBlock() {//blockがドロップされたら、配置/交換/元の場所への復元を行う
+void Board::PutBlock() {//blockがドロップされたら、配置/交換/手札への復帰を行う
     if (!IsDragContextValid()) {
-        const bool restored = RestoreDrag();
-        assert(restored);
-        CalcRow();
-        AssertBoardState();
-        ClearDrag();
+        const bool returned_to_hand = ReturnDraggedBlockToHand();
+        assert(returned_to_hand);
         return;
     }
     const DropPlan plan = AnalyzeDrop(PutBlockAt());
     const int32 selected_index = drag_context.board_block_index;
     BoardBlockState& selected = board_blocks[selected_index];
-    if (plan.type == DropType::Invalid) {
-        const bool restored = RestoreDrag();
-        assert(restored);
-        CalcRow();
-        AssertBoardState();
-        ClearDrag();
+    if (plan.type == DropType::ReturnToHand) {
+        const bool returned_to_hand = ReturnDraggedBlockToHand();
+        assert(returned_to_hand);
         return;
     }
 
@@ -379,7 +369,7 @@ void Board::PutBlock() {//blockがドロップされたら、配置/交換/元�
         SetBoardBlockPosition(selected_index, plan.anchor);
         selected.animation = 0;
         selected.block->SetStat(2);
-    } else if (plan.type == DropType::HandBoardSwap) {
+    } else if ((plan.type == DropType::Swap) && !drag_context.from_board) {
         const int32 target_index = plan.target_block_index;
         BoardBlockState& target = board_blocks[target_index];
         ClearBoardBlock(target_index);
@@ -392,7 +382,7 @@ void Board::PutBlock() {//blockがドロップされたら、配置/交換/元�
         target.block->SetPos(target.hand_pos.x, target.hand_pos.y);
         target.animation = -1;
         target.block->SetStat(1);
-    } else if (plan.type == DropType::BoardBoardSwap) {
+    } else if (plan.type == DropType::Swap) {
         const int32 target_index = plan.target_block_index;
         const Point selected_anchor = drag_context.board_anchor;
         BoardBlockState& target = board_blocks[target_index];
@@ -430,12 +420,9 @@ void Board::TakeOutBlock(Point pos) {//クリックしたBlockのドラッグを
     drag_context.deck_index = selected.deck_index;
     drag_context.block = selected.block;
     drag_context.from_board = true;
-    drag_context.start_stat = selected.block->GetStat();
     drag_context.start_screen_pos = { selected.block->GetPos().first, selected.block->GetPos().second };
     drag_context.hand_pos = selected.hand_pos;
     drag_context.board_anchor = selected.board_anchor;
-    drag_context.start_rotation = selected.rotation;
-    drag_context.rotation_count = 0;
     selected.animation = 0;
     CaptureBoardBlockSnapshots();
 }
@@ -501,18 +488,14 @@ bool Board::PassBlock(Block& selectedBlock, int32 deck_index, const Point hand_p
         state.hand_pos = hand_pos;
         state.animation = 0;
     }
-    const BoardBlockState& selected = board_blocks[selected_index];
     drag_context.active = true;
     drag_context.board_block_index = selected_index;
     drag_context.deck_index = deck_index;
     drag_context.block = &selectedBlock;
     drag_context.from_board = false;
-    drag_context.start_stat = selectedBlock.GetStat();
     drag_context.start_screen_pos = hand_pos;
     drag_context.hand_pos = hand_pos;
     drag_context.board_anchor = { -1,-1 };
-    drag_context.start_rotation = selected.rotation;
-    drag_context.rotation_count = 0;
     CaptureBoardBlockSnapshots();
     is_board_active = true; // Boardをアクティブにする
     return true;

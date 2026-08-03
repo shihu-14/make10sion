@@ -35,24 +35,20 @@ private:
 		int32 deck_index = -1;
 		Block* block = nullptr;
 		bool from_board = false;
-		int32 start_stat = 0;
 		Point start_screen_pos = { -1,-1 };
 		Point hand_pos = { -1,-1 };
 		Point board_anchor = { -1,-1 };
-		int32 start_rotation = 0;
-		int32 rotation_count = 0;
 		Array<BoardBlockSnapshot> board_block_snapshots;
 	};
 
 	enum class DropType {
-		Invalid,
+		ReturnToHand,
 		Place,
-		HandBoardSwap,
-		BoardBoardSwap,
+		Swap,
 	};
 
 	struct DropPlan {
-		DropType type = DropType::Invalid;
+		DropType type = DropType::ReturnToHand;
 		Point anchor = { -1,-1 };
 		int32 target_block_index = -1;
 	};
@@ -117,7 +113,7 @@ private:
 	void UpdateBoardNum(int32 index, Point putAt);
 	void SetBoardBlockPosition(int32 index, Point anchor);
 	void SetBlockRotation(int32 index, int32 rotation);
-	bool RestoreDrag();
+	bool ReturnDraggedBlockToHand();
 	void ClearDrag();
 	void GetPieceNum(char content, int y, int x);
 	void InitBoardCoordinate();

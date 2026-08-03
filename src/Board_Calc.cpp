@@ -134,7 +134,11 @@ std::pair<int, int> Board::Confirm() {
 			defense += result_of_calc[i] * (board_multiply[i] + board_multiply_effect[i]);
 		}
 	}
-	attack += add_damage_by_cards * board_blocks.size();
+	int32 placed_block_count = 0;
+	for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {
+		if (IsBoardBlockPlaced(i)) placed_block_count++;
+	}
+	attack += add_damage_by_cards * placed_block_count;
 	if (do_armor_raise) {
 		if (defense < 6)defense = 6;
 	}

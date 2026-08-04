@@ -23,6 +23,7 @@ private:
 		Block* block = nullptr;
 		int32 deck_index = -1;
 		Point screen_pos = { -1,-1 };
+		Point hand_pos = { -1,-1 };
 		Point board_anchor = { -1,-1 };
 		int32 rotation = 0;
 		int32 stat = 0;
@@ -38,11 +39,15 @@ private:
 		Point start_screen_pos = { -1,-1 };
 		Point hand_pos = { -1,-1 };
 		Point board_anchor = { -1,-1 };
+		Point cursor_offset = { 0,0 };
+		int32 start_rotation = 0;
+		int32 rotation_steps = 0;
 		Array<BoardBlockSnapshot> board_block_snapshots;
 	};
 
 	enum class DropType {
 		ReturnToHand,
+		RestoreToBoard,
 		Place,
 		Swap,
 	};
@@ -102,7 +107,6 @@ private:
 	bool GetBlockCells(const Block& block, Point anchor, Array<Point>& cells) const;
 	bool IsBoardBlockPlaced(int32 index) const;
 	bool CanPlaceBlock(int32 index, Point anchor, int32 ignored_index_1, int32 ignored_index_2 = -1) const;
-	bool BlocksOverlap(int32 index_1, Point anchor_1, int32 index_2, Point anchor_2) const;
 	void CaptureBoardBlockSnapshots();
 	bool ValidateBoardState(int32 allowed_target_index = -1) const;
 	void AssertBoardState(int32 allowed_target_index = -1) const;
@@ -114,6 +118,7 @@ private:
 	void SetBoardBlockPosition(int32 index, Point anchor);
 	void SetBlockRotation(int32 index, int32 rotation);
 	bool ReturnDraggedBlockToHand();
+	bool RestoreDraggedBlockToBoard();
 	void ClearDrag();
 	void GetPieceNum(char content, int y, int x);
 	void InitBoardCoordinate();
@@ -146,8 +151,9 @@ public:
 	//functions
 	void InitAll();
 	void Discard();
-	void Update(int32 idx, std::vector<int32> relics);
+	void Update(int32 idx, std::vector<int32> relics, bool allow_input = true);
 	void DrawBoard(int32 idx) const;
+	void DrawDraggedBlock() const;
 	std::pair<int32, int32> Confirm();
 	bool PassBlock(Block& selectedBlock, int32 deck_index, const Point hand_pos);
 	bool IsBusy() const;

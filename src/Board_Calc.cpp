@@ -162,38 +162,32 @@ void Board::Discard() {
 
 
 void Board::AddUsablePlace() {
-	int32 px = Cursor::Pos().x;
-	int32 py = Cursor::Pos().y;
-	//マスの中心同士を結んだ マス座標 に変換
-	int32 bx = (px - offset.x + cell_size / 2) / cell_size;
-	int32 by = (py - offset.y + cell_size / 2) / cell_size;
-	if (by < 0 || by >= 6 || bx < 0 || bx >= 7)return; //範囲外なら終了
+	const int32 board_width = static_cast<int32>(board_usage.width());
+	const int32 board_height = static_cast<int32>(board_usage.height());
+	const Point cell = ScreenToBoardCell(Cursor::Pos());
+	if (cell == Point{ -1,-1 }) return;
+	const int32 bx = cell.x;
+	const int32 by = cell.y;
 	if (board_usage[by][bx] != -2)return;
 
 	board_usage[by][bx] = 0;
-	for (int i = 0; i < 6; i++) {//使用不可の所の初期化
-		for (int j = 0; j < 7; j++) {
+	for (int i = 0; i < board_height; i++) {//使用不可の所の初期化
+		for (int j = 0; j < board_width; j++) {
 			if (board_usage[i][j] != 0)board_usage[i][j] = -1;
 		}
 	}
 	//ここ以降で使用可能に隣接する使用不可の所の計算を行う
-	for (int i = 0; i < 2; i++) {
-		for (int j = 0; j < 7; j++) {
+	for (int i = 0; i < board_height; i++) {
+		for (int j = 0; j < board_width; j++) {
 			if (board_usage[i][j] != -1)continue;
-			if (board_usage[i + 1][j] == 0)board_usage[i][j] = -2;
-		}
-	}
-	for (int i = 2; i < 4; i++) {
-		for (int j = 0; j < 7; j++) {
-			if (board_usage[i][j] != -1)continue;
-			if (board_usage[i][j + 1] == 0)board_usage[i][j] = -2;
-			if (board_usage[i][j - 1] == 0)board_usage[i][j] = -2;
-		}
-	}
-	for (int i = 4; i < 6; i++) {
-		for (int j = 0; j < 7; j++) {
-			if (board_usage[i][j] != -1)continue;
-			if (board_usage[i - 1][j] == 0)board_usage[i][j] = -2;
+			if (i < 2) {
+				if ((i + 1 < board_height) && (board_usage[i + 1][j] == 0)) board_usage[i][j] = -2;
+			} else if (i < 4) {
+				if ((j + 1 < board_width) && (board_usage[i][j + 1] == 0)) board_usage[i][j] = -2;
+				if ((0 < j) && (board_usage[i][j - 1] == 0)) board_usage[i][j] = -2;
+			} else {
+				if ((0 < i) && (board_usage[i - 1][j] == 0)) board_usage[i][j] = -2;
+			}
 		}
 	}
 	//ココまで

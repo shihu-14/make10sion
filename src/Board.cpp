@@ -1,6 +1,5 @@
 #include "Battle.hpp"
 #include "Board.hpp"
-#include <cassert>
 using namespace std;
 
 void Board::InitAll() {//毎ターン開始時に呼び出してもらう
@@ -12,27 +11,29 @@ void Board::InitAll() {//毎ターン開始時に呼び出してもらう
 }
 
 //ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
-void Board::Update(int32 idx, vector<int32> relics) {//idx : 0:バトル中, 1:リザルト(マス解放時)
+void Board::Update(int32 idx, vector<int32> relics, bool allow_input) {//idx : 0:バトル中, 1:リザルト(マス解放時)
 	if (idx == 0) {
 		if (is_board_active) {
 			if (drag_context.active) {//Blockをドラッグしているとき
-				if (!IsDragContextValid()) {
-					const bool returned_to_hand = ReturnDraggedBlockToHand();
-					assert(returned_to_hand);
-					return;
-				}
-				BoardBlockState& selected = board_blocks[drag_context.board_block_index];
-				if (MouseL.pressed()) {
-					selected.block->SetPos(Cursor::Pos().x, Cursor::Pos().y);
-
-					if (MouseR.down()) {//blockの回転
-						selected.block->Rotate();
-						selected.rotation = (selected.rotation + 1) % 4;
-					}
+				if (!allow_input || !IsDragContextValid()) {
+					if (drag_context.from_board) RestoreDraggedBlockToBoard();
+					else ReturnDraggedBlockToHand();
 				} else {
-					PutBlock();
+					BoardBlockState& selected = board_blocks[drag_context.board_block_index];
+					if (MouseL.pressed()) {
+						const Point drag_pos = Cursor::Pos() + drag_context.cursor_offset;
+						selected.block->SetPos(drag_pos.x, drag_pos.y);
+
+						if (MouseR.down()) {//blockの回転
+							selected.block->Rotate();
+							selected.rotation = (selected.rotation + 1) % 4;
+							drag_context.rotation_steps = (drag_context.rotation_steps + 1) % 4;
+						}
+					} else {
+						PutBlock();
+					}
 				}
-			} else {
+			} else if (allow_input) {
 				if (MouseL.down()) {//ボード内でクリックされたとき
 					const Point cell_pos = ScreenToBoardCell(Cursor::Pos());
 					if (cell_pos != Point{ -1,-1 }) TakeOutBlock(cell_pos);
@@ -57,7 +58,7 @@ void Board::Update(int32 idx, vector<int32> relics) {//idx : 0:バトル中, 1:�
 
 
 	} else if (idx == 1) {
-		if (MouseL.down())AddUsablePlace();
+		if (allow_input && MouseL.down())AddUsablePlace();
 	}
 }
 
@@ -66,8 +67,10 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 
 		DrawOnlyBoard();//Boardの描画
 
-		for (const auto& state : board_blocks) {//ブロックの描画
-			if ((state.animation >= 0) && state.block) {
+		const int32 dragged_index = drag_context.active ? ResolveDragBlockIndex() : -1;
+		for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {//ブロックの描画
+			const BoardBlockState& state = board_blocks[i];
+			if ((i != dragged_index) && (state.animation >= 0) && state.block) {
 				state.block->Draw(state.block->GetPos(), img_scale, 0.0, 1.0);
 			}
 		}
@@ -88,6 +91,16 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 	}
 }
 
+void Board::DrawDraggedBlock() const {
+	if (!drag_context.active) return;
+	const int32 dragged_index = ResolveDragBlockIndex();
+	if (!IsBoardBlockIndexValid(dragged_index)) return;
+	const BoardBlockState& dragged = board_blocks[dragged_index];
+	if ((dragged.animation >= 0) && dragged.block) {
+		dragged.block->Draw(dragged.block->GetPos(), img_scale, 0.0, 1.0);
+	}
+}
+
 bool Board::IsBusy() const {
 	if (drag_context.active) return true;
 	for (const auto& state : board_blocks) {
@@ -97,5 +110,5 @@ bool Board::IsBusy() const {
 }
 
 bool Board::IsDraggingDeck(int32 deck_index) const {
-	return IsDragContextValid() && (drag_context.deck_index == deck_index);
+	return drag_context.active && (drag_context.deck_index == deck_index);
 }

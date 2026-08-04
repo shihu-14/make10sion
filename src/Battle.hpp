@@ -32,6 +32,7 @@ private:
 	bool is_board_locked = false; // 盤面の操作がロックされているかどうか
 	bool is_exit = false; // 敵が逃走するか
 	bool is_boss3 = false;
+	bool is_scene_transition_started = false;
 	int32 now_turn = 0; // ターン数
 	int32 turn_start = 0; // 攻撃/防御のパターンの変化を管理(基本的には0のまま)
 	int32 action_cycle = 1; // 敵の行動パターンのサイクル
@@ -153,6 +154,7 @@ private:
 
 	// これらはdraw()から呼ばれ、現在のアニメーション状態に基づいて描画を行う
 	// void drawTableDeck() const;
+	void drawHandCards() const;
 	bool drawDefault() const;
 	void drawCombatEnemyEffect() const;
 	void drawCombatMyEffect() const;

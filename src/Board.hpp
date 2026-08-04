@@ -157,6 +157,7 @@ public:
 	std::pair<int32, int32> Confirm();
 	bool PassBlock(Block& selectedBlock, int32 deck_index, const Point hand_pos);
 	bool IsBusy() const;
+	bool IsDragging() const;
 	bool IsDraggingDeck(int32 deck_index) const;
 };
 

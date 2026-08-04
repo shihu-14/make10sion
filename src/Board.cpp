@@ -109,6 +109,10 @@ bool Board::IsBusy() const {
 	return false;
 }
 
+bool Board::IsDragging() const {
+	return drag_context.active;
+}
+
 bool Board::IsDraggingDeck(int32 deck_index) const {
 	return drag_context.active && (drag_context.deck_index == deck_index);
 }

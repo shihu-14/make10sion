@@ -29,7 +29,7 @@ private:
 	const Font fontBitMap2{ 72,Typeface::Bold };
 public:
 	void init(int global_money, int global_floor, Leric& global_leric);
-	bool update(std::vector<Block>& deck_data);
+	bool update(std::vector<Block>& deck_data, bool allow_deck_open = true);
 	void draw() const;
 };
 

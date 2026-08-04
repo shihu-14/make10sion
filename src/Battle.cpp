@@ -1,5 +1,6 @@
 #include "Battle.hpp"
 #include "Board.hpp" // BoardクラスのConfirm()などを使うためにインクルード
+#include <cassert>
 #include <tuple> // tie関数を使用するためにインクルード
 using std::tie; // std::tieを使用するために名前空間を指定
 
@@ -465,10 +466,14 @@ void Battle::updateGameOverEffect()
 
 void Battle::update()
 {
-    is_deck = m_banner.update(getData().Deck);
     const bool can_accept_board_input = (m_currentAnimState == BattleAnimationState::Idle)
         && !is_board_locked
         && !is_scene_transition_started;
+    const bool allow_deck_open = can_accept_board_input && !m_board.IsBusy();
+    is_deck = m_banner.update(getData().Deck, allow_deck_open);
+#ifndef NDEBUG
+    if (is_deck) assert(!m_board.IsDragging());
+#endif
     if (is_deck) {
         m_board.Update(0, getData().leric.getLeric(), false);
         return; // デッキ画面の場合は処理を受け付けない
@@ -512,7 +517,6 @@ void Battle::update()
     my_hpbar.update(0.1);
     ene_hpbar.update(0.1);
     m_board.Update(0, getData().leric.getLeric(), can_accept_board_input);
-    // m_banner.update(getData().Deck);
     // 現在の状態で処理を分岐
     switch (m_currentAnimState) {
     case BattleAnimationState::Idle:

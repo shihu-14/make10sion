@@ -7,7 +7,7 @@ void Banner::init(int global_money, int global_floor, Leric& global_leric) {
     leric = global_leric; // レリックの初期化
 }
 
-bool Banner::update(vector<Block>& deck_data) {
+bool Banner::update(vector<Block>& deck_data, bool allow_deck_open) {
     isHovered_setting = RectF{ 1720, 0, 150, 150 }.mouseOver();
     //設定はただの飾り
     if (setting_alpha < 0.4 && isHovered_setting) {
@@ -24,7 +24,7 @@ bool Banner::update(vector<Block>& deck_data) {
     }
     isHovered_deck = RectF{ 1520, 0, 150, 150 }.mouseOver();
     Cursor::RequestStyle(isHovered_deck ? CursorStyle::Hand : CursorStyle::Default);
-    if (isHovered_deck && MouseL.up()) {
+    if (allow_deck_open && isHovered_deck && MouseL.up()) {
         deck.init(deck_data); // デッキの初期化
         deck_mode = true; // デッキモードに入る
         deck_alpha = 0.0; // デッキボタンのアルファ値をリセット
@@ -57,4 +57,3 @@ void Banner::draw() const {
     fontBitMap2(floor).drawAt(65, 65, ColorF{ 0.0, 0.0, 0.0 });
     leric.draw(); // レリックの描画
 }
-

@@ -27,7 +27,6 @@ private:
 
 	Board m_board; // 盤面の状態を管理する Board クラスのインスタンス
 	Banner m_banner; // バナーの表示を管理する Banner クラスのインスタンス
-	bool is_result = false; // result画面にいるかどうか
 	bool is_deck = false; // デッキ画面にいるかどうか
 	bool is_board_locked = false; // 盤面の操作がロックされているかどうか
 	bool is_exit = false; // 敵が逃走するか

@@ -238,7 +238,6 @@ void Battle::updateCombatEnemyEffect()
     // 敵を倒したかの判定
     bool isWin = m_enemy.hp <= 0;
     if (isWin) {
-        is_result = true;
         m_currentAnimState = BattleAnimationState::WinEffect;
         m_animeStopwatch.restart();
         return;
@@ -305,15 +304,11 @@ void Battle::updateCombatMyEffect()
     // 勝利判定を行う
     bool isVictory = getData().HP <= 0;
     if (isVictory) {
-        if (getData().Layer >= 30) // 最後のボスか
-        {
-            is_result = true;
-        }
         m_currentAnimState = BattleAnimationState::GameOver;
         m_animeStopwatch.restart();
         return;
     }
-    table_id = Deck_table.size() - 1;
+    table_id = static_cast<int32>(Deck_table.size()) - 1;
     my_angle = 0.0;
     m_currentAnimState = BattleAnimationState::DiscardEffect;
     m_animeStopwatch.restart();
@@ -322,9 +317,9 @@ void Battle::updateCombatMyEffect()
 // 捨て札アニメーション(盤面, 手札 -> 捨て札)の更新処理
 void Battle::updateDiscardEffect()
 {
-    if (table_id >= 0) {
+    if ((0 <= table_id) && (table_id < static_cast<int32>(Deck_table.size()))) {
         if (sutehuda_angle > -90_deg) {
-            table_id = Deck_table.size() - 1;
+            table_id = static_cast<int32>(Deck_table.size()) - 1;
             sutehuda_angle -= Scene::DeltaTime() * 4.0;
             m_animeStopwatch.restart();
         } else {
@@ -387,7 +382,7 @@ void Battle::updateCardDrawEffect()
         getData().Deck.at(id).SetPos(200, 950);
     }
 
-    if (table_id < Deck_table.size()) // 手札のカードを山札から引く
+    if ((0 <= table_id) && (table_id < static_cast<int32>(Deck_table.size()))) // 手札のカードを山札から引く
     {
         if (yamahuda_angle < 90_deg) {
             table_id = 0;

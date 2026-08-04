@@ -252,14 +252,29 @@ Board::DropPlan Board::AnalyzeDrop(Point candidate_anchor) const {
     DropPlan plan;
     if (!IsDragContextValid()) return plan;
     const int32 selected_index = drag_context.board_block_index;
-    if ((ScreenToBoardCell(Cursor::Pos()) == Point{ -1,-1 })
-        || (candidate_anchor == Point{ -1,-1 })) return plan;
+    if (candidate_anchor == Point{ -1,-1 }) return plan;
 
+    const bool cursor_on_board = (ScreenToBoardCell(Cursor::Pos()) != Point{ -1,-1 });
+    const Block& selected_block = *board_blocks[selected_index].block;
     Array<Point> candidate_cells;
-    if (!GetBlockCells(*board_blocks[selected_index].block, candidate_anchor, candidate_cells)) return plan;
+    bool is_fully_on_board = true;
+    const int32 board_width = static_cast<int32>(board_usage.width());
+    const int32 board_height = static_cast<int32>(board_usage.height());
+    for (int32 y = 0; y < selected_block.Size().second; y++) {
+        for (int32 x = 0; x < selected_block.Size().first; x++) {
+            if (selected_block.GetPiece(x, y).content == '$') continue;
+            const Point cell = candidate_anchor + Point{ x,y };
+            if ((cell.x < 0) || (board_width <= cell.x)
+                || (cell.y < 0) || (board_height <= cell.y)) {
+                is_fully_on_board = false;
+                continue;
+            }
+            candidate_cells.push_back(cell);
+        }
+    }
+    if (candidate_cells.isEmpty()) return plan;
 
     Array<int32> overlapping_indices;
-    bool overlaps_original_cells = false;
     bool has_unusable_cell = false;
     for (const auto& cell : candidate_cells) {
         const int32 usage = board_usage[cell.y][cell.x];
@@ -269,27 +284,29 @@ Board::DropPlan Board::AnalyzeDrop(Point candidate_anchor) const {
         }
         if (usage <= 0) continue;
         const int32 occupied_index = usage - 1;
-        if (occupied_index == selected_index) {
-            overlaps_original_cells = true;
-        } else if (!overlapping_indices.includes(occupied_index)) {
+        if (occupied_index == selected_index) continue;
+        if (!overlapping_indices.includes(occupied_index)) {
             overlapping_indices.push_back(occupied_index);
         }
     }
 
     if (drag_context.from_board) {
+        if (!overlapping_indices.isEmpty()) {
+            plan.type = DropType::RestoreToBoard;
+            return plan;
+        }
+        if (!cursor_on_board || !is_fully_on_board || has_unusable_cell) return plan;
+
         const Point screen_pos = {
             board_blocks[selected_index].block->GetPos().first,
             board_blocks[selected_index].block->GetPos().second
         };
         const double restore_distance = static_cast<double>(cell_size * cell_size) / 4.0;
-        if (overlaps_original_cells
-            || !overlapping_indices.isEmpty()
-            || (candidate_anchor == drag_context.board_anchor)
+        if ((candidate_anchor == drag_context.board_anchor)
             || (CalcDist(screen_pos, drag_context.start_screen_pos) <= restore_distance)) {
             plan.type = DropType::RestoreToBoard;
             return plan;
         }
-        if (has_unusable_cell) return plan;
         if (CanPlaceBlock(selected_index, candidate_anchor, selected_index)) {
             plan.type = DropType::Place;
             plan.anchor = candidate_anchor;
@@ -297,7 +314,7 @@ Board::DropPlan Board::AnalyzeDrop(Point candidate_anchor) const {
         return plan;
     }
 
-    if (has_unusable_cell) return plan;
+    if (!cursor_on_board || !is_fully_on_board || has_unusable_cell) return plan;
     if (overlapping_indices.isEmpty()) {
         if (CanPlaceBlock(selected_index, candidate_anchor, selected_index)) {
             plan.type = DropType::Place;

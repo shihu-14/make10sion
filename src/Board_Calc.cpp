@@ -161,10 +161,10 @@ void Board::Discard() {
 
 
 
-void Board::AddUsablePlace() {
+void Board::AddUsablePlace(Point cursor_pos) {
 	const int32 board_width = static_cast<int32>(board_usage.width());
 	const int32 board_height = static_cast<int32>(board_usage.height());
-	const Point cell = ScreenToBoardCell(Cursor::Pos());
+	const Point cell = ScreenToBoardCell(cursor_pos);
 	if (cell == Point{ -1,-1 }) return;
 	const int32 bx = cell.x;
 	const int32 by = cell.y;
@@ -198,19 +198,20 @@ void Board::AddUsablePlace() {
 
 
 
-void Board::UpdateBoardNum(int32 index, Point putAt) {
-	if (!IsBoardBlockIndexValid(index)) return;
+bool Board::UpdateBoardNum(int32 index, Point putAt) {
+	if (!IsBoardBlockIndexValid(index)) return false;
 	Block* block = board_blocks[index].block;
 	Array<Point> cells;
-	if (!GetBlockCells(*block, putAt, cells)) return;
+	if (!GetBlockCells(*block, putAt, cells)) return false;
 	for (int i = 0; i < block->Size().second; i++) {
 		for (int j = 0; j < block->Size().first; j++) {
 			char content = block->GetPiece(j, i).content;
 			if (content == '$')continue; // $は無視
-			board_usage[putAt.y + i][putAt.x + j] = index + 1;
+			board_usage[putAt.y + i][putAt.x + j] = board_blocks[index].deck_index + 1;
 			GetPieceNum(content, putAt.y + i, putAt.x + j); // 数字の取得&マスの変更
 		}
 	}
+	return true;
 }
 
 

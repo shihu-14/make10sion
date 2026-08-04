@@ -6,6 +6,7 @@
 # include "Board.hpp" // Board クラスの定義があるヘッダファイルをインクルード
 # include "Enemy.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
 # include "Banner.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
+# include "BattleCardRules.hpp"
 #include "HPBar.hpp"
 
 // Data Manager の Deck を模倣したグローバル変数
@@ -32,6 +33,7 @@ private:
 	bool is_exit = false; // 敵が逃走するか
 	bool is_boss3 = false;
 	bool is_scene_transition_started = false;
+	BattleCardRules::PointerInputOwner m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
 	int32 now_turn = 0; // ターン数
 	int32 turn_start = 0; // 攻撃/防御のパターンの変化を管理(基本的には0のまま)
 	int32 action_cycle = 1; // 敵の行動パターンのサイクル
@@ -149,6 +151,7 @@ private:
 	void updateCardDrawEffect();
 	void updateWinEffect();
 	void updateGameOverEffect();
+	void AssertCardOwnership(const char* context) const;
 	// void finish();
 
 	// これらはdraw()から呼ばれ、現在のアニメーション状態に基づいて描画を行う

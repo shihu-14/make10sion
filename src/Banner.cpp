@@ -8,7 +8,12 @@ void Banner::init(int global_money, int global_floor, Leric& global_leric) {
 }
 
 bool Banner::update(vector<Block>& deck_data, bool allow_deck_open) {
-    isHovered_setting = RectF{ 1720, 0, 150, 150 }.mouseOver();
+    return update(deck_data, allow_deck_open, Cursor::Pos(), MouseL.down(), MouseL.up(), Window::GetState().focused);
+}
+
+bool Banner::update(vector<Block>& deck_data, bool allow_deck_open, Point cursor_pos,
+    bool left_down, bool left_up, bool focused) {
+    isHovered_setting = RectF{ 1720, 0, 150, 150 }.contains(cursor_pos);
     //設定はただの飾り
     if (setting_alpha < 0.4 && isHovered_setting) {
         setting_alpha += 0.1;
@@ -22,12 +27,15 @@ bool Banner::update(vector<Block>& deck_data, bool allow_deck_open) {
         deck_mode = deck.update();
         return true; // デッキモードに入っている場合はtrueを返す
     }
-    isHovered_deck = RectF{ 1520, 0, 150, 150 }.mouseOver();
+    isHovered_deck = IsDeckButtonHovered(cursor_pos);
     Cursor::RequestStyle(isHovered_deck ? CursorStyle::Hand : CursorStyle::Default);
-    if (allow_deck_open && isHovered_deck && MouseL.up()) {
+    if (!focused || !allow_deck_open) deck_button_armed = false;
+    if (focused && allow_deck_open && left_down && isHovered_deck) deck_button_armed = true;
+    if (left_up && deck_button_armed && allow_deck_open && isHovered_deck) {
         deck.init(deck_data); // デッキの初期化
         deck_mode = true; // デッキモードに入る
         deck_alpha = 0.0; // デッキボタンのアルファ値をリセット
+        deck_button_armed = false;
     } else if (deck_alpha < 0.4 && isHovered_deck) {
         deck_alpha += 0.1;
         if (deck_alpha > 0.4) deck_alpha = 0.4;
@@ -35,7 +43,16 @@ bool Banner::update(vector<Block>& deck_data, bool allow_deck_open) {
         deck_alpha -= 0.1;
         if (deck_alpha < 0.0) deck_alpha = 0.0;
     }
+    if (left_up) deck_button_armed = false;
     return false; // デッキモードに入っていない場合はfalseを返す
+}
+
+bool Banner::IsDeckButtonHovered(Point cursor_pos) const {
+    return RectF{ 1520, 0, 150, 150 }.contains(cursor_pos);
+}
+
+void Banner::CancelPointerGesture() {
+    deck_button_armed = false;
 }
 
 void Banner::draw() const {

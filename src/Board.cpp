@@ -11,32 +11,34 @@ void Board::InitAll() {//毎ターン開始時に呼び出してもらう
 }
 
 //ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
-void Board::Update(int32 idx, vector<int32> relics, bool allow_input) {//idx : 0:バトル中, 1:リザルト(マス解放時)
+void Board::Update(int32 idx, vector<int32> relics, const BoardInputFrame& input, bool allow_input) {//idx : 0:バトル中, 1:リザルト(マス解放時)
 	if (idx == 0) {
 		if (is_board_active) {
 			if (drag_context.active) {//Blockをドラッグしているとき
-				if (!allow_input || !IsDragContextValid()) {
-					if (drag_context.from_board) RestoreDraggedBlockToBoard();
-					else ReturnDraggedBlockToHand();
+				if (!input.focused || !allow_input || !IsDragContextValid()) {
+					RollbackDraggedBlock();
 				} else {
 					BoardBlockState& selected = board_blocks[drag_context.board_block_index];
-					if (MouseL.pressed()) {
-						const Point drag_pos = Cursor::Pos() + drag_context.cursor_offset;
+					const Point drag_pos = input.cursor + drag_context.cursor_offset;
+					if (input.left_pressed || input.left_up) {
 						selected.block->SetPos(drag_pos.x, drag_pos.y);
 
-						if (MouseR.down()) {//blockの回転
+						if (input.left_pressed && input.right_down) {//blockの回転
 							selected.block->Rotate();
 							selected.rotation = (selected.rotation + 1) % 4;
 							drag_context.rotation_steps = (drag_context.rotation_steps + 1) % 4;
 						}
-					} else {
-						PutBlock();
+					}
+					if (input.left_up) {
+						PutBlock(input.cursor, drag_pos);
+					} else if (!input.left_pressed) {
+						PutBlock(input.cursor, drag_pos);
 					}
 				}
-			} else if (allow_input) {
-				if (MouseL.down()) {//ボード内でクリックされたとき
-					const Point cell_pos = ScreenToBoardCell(Cursor::Pos());
-					if (cell_pos != Point{ -1,-1 }) TakeOutBlock(cell_pos);
+			} else if (allow_input && input.focused) {
+				if (input.left_down) {//ボード内でクリックされたとき
+					const Point cell_pos = ScreenToBoardCell(input.cursor);
+					if (cell_pos != Point{ -1,-1 }) TakeOutBlock(cell_pos, input.cursor);
 				}
 			}
 		}
@@ -58,7 +60,7 @@ void Board::Update(int32 idx, vector<int32> relics, bool allow_input) {//idx : 0
 
 
 	} else if (idx == 1) {
-		if (allow_input && MouseL.down())AddUsablePlace();
+		if (allow_input && input.focused && input.left_down) AddUsablePlace(input.cursor);
 	}
 }
 
@@ -115,4 +117,8 @@ bool Board::IsDragging() const {
 
 bool Board::IsDraggingDeck(int32 deck_index) const {
 	return drag_context.active && (drag_context.deck_index == deck_index);
+}
+
+void Board::CancelActiveDrag() {
+	if (drag_context.active) RollbackDraggedBlock();
 }

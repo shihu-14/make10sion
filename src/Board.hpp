@@ -8,6 +8,15 @@
 #include "Block.hpp"
 #include "leric.hpp"
 
+struct BoardInputFrame {
+	Point cursor = { 0,0 };
+	bool left_down = false;
+	bool left_pressed = false;
+	bool left_up = false;
+	bool right_down = false;
+	bool focused = true;
+};
+
 class Board {
 private:
 	struct BoardBlockState {
@@ -43,6 +52,10 @@ private:
 		int32 start_rotation = 0;
 		int32 rotation_steps = 0;
 		Array<BoardBlockSnapshot> board_block_snapshots;
+		Grid<int32> board_usage_snapshot;
+		Grid<int32> board_number_snapshot;
+		Grid<int32> board_effect_back_snapshot;
+		Grid<char> board_content_snapshot;
 	};
 
 	enum class DropType {
@@ -55,7 +68,7 @@ private:
 	struct DropPlan {
 		DropType type = DropType::ReturnToHand;
 		Point anchor = { -1,-1 };
-		int32 target_block_index = -1;
+		int32 target_deck_index = -1;
 	};
 
 	//variables
@@ -84,7 +97,7 @@ private:
 	const Texture chosable_board_img{ U"../../image/tile_kokodayo.png" };
 	const Texture board_frame_img{ U"../../image/tile_flame.png" };
 	const Font font{ FontMethod::MSDF, 48, Typeface::Bold };
-	Array<BoardBlockState> board_blocks;//盤面上では「このインデックス+1」を番号とする. ターン毎に初期化
+	Array<BoardBlockState> board_blocks;//board_usageの正数はdeck_index+1を表す. ターン毎に初期化
 	DragContext drag_context;
 	int32 add_damage = 0;
 	int32 add_armor = 0;
@@ -108,22 +121,24 @@ private:
 	bool IsBoardBlockPlaced(int32 index) const;
 	bool CanPlaceBlock(int32 index, Point anchor, int32 ignored_index_1, int32 ignored_index_2 = -1) const;
 	void CaptureBoardBlockSnapshots();
-	bool ValidateBoardState(int32 allowed_target_index = -1) const;
+	bool RestoreDragSnapshot();
+	bool ValidateBoardState(int32 allowed_target_index = -1, String* diagnostic = nullptr) const;
 	void AssertBoardState(int32 allowed_target_index = -1) const;
-	Point PutBlockAt() const;
-	DropPlan AnalyzeDrop(Point candidate_anchor) const;
-	void PutBlock();
-	void ClearBoardBlock(int32 index);
-	void UpdateBoardNum(int32 index, Point putAt);
+	Point PutBlockAt(Point screen_pos) const;
+	DropPlan AnalyzeDrop(Point candidate_anchor, Point release_cursor, Point release_screen_pos) const;
+	void PutBlock(Point release_cursor, Point release_screen_pos);
+	bool ClearBoardBlock(int32 index);
+	bool UpdateBoardNum(int32 index, Point putAt);
 	void SetBoardBlockPosition(int32 index, Point anchor);
 	void SetBlockRotation(int32 index, int32 rotation);
 	bool ReturnDraggedBlockToHand();
 	bool RestoreDraggedBlockToBoard();
+	bool RollbackDraggedBlock();
 	void ClearDrag();
 	void GetPieceNum(char content, int y, int x);
 	void InitBoardCoordinate();
-	void TakeOutBlock(Point pos);
-	void AddUsablePlace();
+	void TakeOutBlock(Point pos, Point cursor_pos);
+	void AddUsablePlace(Point cursor_pos);
 	void RebuildBoardDerivedState();
 	void CalcRow();
 	void DrawOnlyBoard() const;
@@ -151,11 +166,12 @@ public:
 	//functions
 	void InitAll();
 	void Discard();
-	void Update(int32 idx, std::vector<int32> relics, bool allow_input = true);
+	void Update(int32 idx, std::vector<int32> relics, const BoardInputFrame& input, bool allow_input = true);
 	void DrawBoard(int32 idx) const;
 	void DrawDraggedBlock() const;
 	std::pair<int32, int32> Confirm();
-	bool PassBlock(Block& selectedBlock, int32 deck_index, const Point hand_pos);
+	bool PassBlock(Block& selectedBlock, int32 deck_index, Point hand_pos, Point cursor_pos);
+	void CancelActiveDrag();
 	bool IsBusy() const;
 	bool IsDragging() const;
 	bool IsDraggingDeck(int32 deck_index) const;

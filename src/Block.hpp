@@ -42,8 +42,7 @@ public:
 	void Rotate();
 	int GetStat() const { return stat; }
 	void SetStat(int newStat) { stat = newStat; }
-	bool IsDragging();
-	bool IsHovered();
+	bool IsHovered(Point cursor_pos) const;
 	void Draw(std::pair<int, int> pos, double size = 1.0, double angle = 0.0, double alpha = 1.0) const;
 
 	Block& operator=(const Block& other);

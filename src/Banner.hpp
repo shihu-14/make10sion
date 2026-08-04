@@ -17,6 +17,7 @@ private:
 
 	Deck deck; // Deckクラスのインスタンス
 	bool deck_mode = false; // デッキモードのフラグ
+	bool deck_button_armed = false;
 
 	Leric leric; // レリックのインスタンス
 
@@ -30,6 +31,10 @@ private:
 public:
 	void init(int global_money, int global_floor, Leric& global_leric);
 	bool update(std::vector<Block>& deck_data, bool allow_deck_open = true);
+	bool update(std::vector<Block>& deck_data, bool allow_deck_open, Point cursor_pos,
+		bool left_down, bool left_up, bool focused);
+	bool IsDeckButtonHovered(Point cursor_pos) const;
+	void CancelPointerGesture();
 	void draw() const;
 };
 

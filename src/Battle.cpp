@@ -84,6 +84,49 @@ void Battle::updateTableDeck()
             Deck_board.push_back(i);
         }
     }
+    AssertCardOwnership("updateTableDeck");
+}
+
+void Battle::AssertCardOwnership(const char* context) const
+{
+#ifndef NDEBUG
+    Array<int32> counts(static_cast<size_t>(deck_size), 0);
+    String diagnostic;
+    const auto visit = [&](const Array<int>& cards, const int32 expected_stat, const StringView area) {
+        for (const int32 deck_index : cards) {
+            if ((deck_index < 0) || (deck_size <= deck_index)) {
+                diagnostic = U"invalid deck index in " + String{ area } + U": " + Format(deck_index);
+                return false;
+            }
+            counts[deck_index]++;
+            if (getData().Deck[deck_index].GetStat() != expected_stat) {
+                diagnostic = U"card stat mismatch in " + String{ area } + U": deck_index=" + Format(deck_index)
+                    + U", stat=" + Format(getData().Deck[deck_index].GetStat());
+                return false;
+            }
+        }
+        return true;
+    };
+    const bool valid_areas = visit(Deck_yama, 0, U"deck")
+        && visit(Deck_table, 1, U"hand")
+        && visit(Deck_board, 2, U"board")
+        && visit(Deck_gomi, -1, U"discard");
+    if (valid_areas) {
+        for (int32 deck_index = 0; deck_index < deck_size; deck_index++) {
+            if (counts[deck_index] != 1) {
+                diagnostic = U"card ownership count mismatch: deck_index=" + Format(deck_index)
+                    + U", count=" + Format(counts[deck_index]);
+                break;
+            }
+        }
+    }
+    if (!diagnostic.isEmpty()) {
+        Logger << U"Battle card invariant violation (" << Unicode::Widen(context) << U"): " << diagnostic;
+        assert(false && "Battle card invariant violation; see Logger output");
+    }
+#else
+    (void)context;
+#endif
 }
 
 void Battle::getEnemyInfo()
@@ -436,8 +479,7 @@ void Battle::updateWinEffect()
     {
         return; // 勝利演出の時間を待つ
     }
-    if (is_scene_transition_started) return;
-    is_scene_transition_started = true;
+    if (!BattleCardRules::BeginOneShotTransition(is_scene_transition_started)) return;
     if (getData().Layer >= 30) // 最後の勝利か
     {
         changeScene(State::Result); // リザルト画面へ遷移
@@ -459,32 +501,85 @@ void Battle::updateGameOverEffect()
     {   
         return;
     }
-    if (is_scene_transition_started) return;
-    is_scene_transition_started = true;
+    if (!BattleCardRules::BeginOneShotTransition(is_scene_transition_started)) return;
     changeScene(State::Result);
 }
 
 void Battle::update()
 {
-    const bool can_accept_board_input = (m_currentAnimState == BattleAnimationState::Idle)
-        && !is_board_locked
-        && !is_scene_transition_started;
-    const bool allow_deck_open = can_accept_board_input && !m_board.IsBusy();
-    is_deck = m_banner.update(getData().Deck, allow_deck_open);
+    const BoardInputFrame input{
+        Cursor::Pos(),
+        MouseL.down(),
+        MouseL.pressed(),
+        MouseL.up(),
+        MouseR.down(),
+        Window::GetState().focused,
+    };
+    const bool can_accept_board_input = BattleCardRules::CanAcceptBattleInput(
+        m_currentAnimState == BattleAnimationState::Idle,
+        is_board_locked,
+        is_scene_transition_started);
+    if (!input.focused) {
+        m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
+        m_banner.CancelPointerGesture();
+    }
+
+    if (is_deck) {
+        m_pointerInputOwner = BattleCardRules::PointerInputOwner::Deck;
+        is_deck = m_banner.update(getData().Deck, false, input.cursor,
+            input.left_down, input.left_up, input.focused);
+        m_board.Update(0, getData().leric.getLeric(), input, false);
+        if (!is_deck) m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
+        return;
+    }
+
+    if (m_board.IsDragging()) m_pointerInputOwner = BattleCardRules::PointerInputOwner::Card;
+
+    int32 hand_hit_index = -1;
+    for (int32 i = static_cast<int32>(Deck_table.size()) - 1; 0 <= i; --i) {
+        const int32 deck_index = Deck_table[i];
+        if ((deck_index < 0) || (static_cast<int32>(getData().Deck.size()) <= deck_index)) continue;
+        const Block& block = getData().Deck[deck_index];
+        if ((block.GetStat() == 1) && block.IsHovered(input.cursor)) {
+            hand_hit_index = deck_index;
+            break;
+        }
+    }
+
+    if ((m_pointerInputOwner == BattleCardRules::PointerInputOwner::None) && input.left_down) {
+        const bool board_hit = Rect{ 600, 170, 7 * 90, 6 * 90 }.contains(input.cursor);
+        m_pointerInputOwner = BattleCardRules::CapturePointerOwner(
+            false,
+            m_board.IsDragging(),
+            can_accept_board_input && !m_board.IsBusy(),
+            m_banner.IsDeckButtonHovered(input.cursor),
+            m_button_hantei.contains(input.cursor),
+            0 <= hand_hit_index,
+            board_hit);
+    }
+
+    const bool allow_deck_open = can_accept_board_input
+        && !m_board.IsBusy()
+        && ((m_pointerInputOwner == BattleCardRules::PointerInputOwner::None)
+            || (m_pointerInputOwner == BattleCardRules::PointerInputOwner::Deck));
+    is_deck = m_banner.update(getData().Deck, allow_deck_open, input.cursor,
+        input.left_down, input.left_up, input.focused);
 #ifndef NDEBUG
     if (is_deck) assert(!m_board.IsDragging());
 #endif
     if (is_deck) {
-        m_board.Update(0, getData().leric.getLeric(), false);
+        m_board.Update(0, getData().leric.getLeric(), input, false);
         return; // デッキ画面の場合は処理を受け付けない
     }
-    if (can_accept_board_input && m_button_hantei.mouseOver()) { // 「=」ボタンにマウスオーバーしている場合
+    if (can_accept_board_input && m_button_hantei.contains(input.cursor)) { // 「=」ボタンにマウスオーバーしている場合
         Cursor::RequestStyle(CursorStyle::Hand);
     }
     if (can_accept_board_input){ // 今のターンの敵の攻撃・防御を計算する。
         getEnemyInfo();
     }
-    if (m_button_hantei.leftClicked() && can_accept_board_input && !m_board.IsBusy()) { // 「=」ボタンがクリックされた場合
+    if ((m_pointerInputOwner == BattleCardRules::PointerInputOwner::Attack)
+        && input.left_down && can_accept_board_input && !m_board.IsBusy()) { // 「=」ボタンがクリックされた場合
+        m_board.CancelActiveDrag();
         attack();
         return;
     }
@@ -496,27 +591,32 @@ void Battle::update()
             getData().Deck[id].SetStat(0); // 山札の状態に戻す
         }
     }
-    if (can_accept_board_input && !m_board.IsBusy()){
-        for (int32 i = static_cast<int32>(Deck_table.size()) - 1; 0 <= i; --i) {
-            const int32 deck_index = Deck_table[i];
-            if ((deck_index < 0) || (static_cast<int32>(getData().Deck.size()) <= deck_index)) continue;
-            Block& block = getData().Deck[deck_index];
-            if ((block.GetStat() == 1) && block.IsDragging()) {
-                const Point hand_pos = { block.GetPos().first, block.GetPos().second };
-                if (m_board.PassBlock(block, deck_index, hand_pos)) {
-                    drag_card_se.playOneShot(); // ドラッグの効果音を再生
-                    return;
-                }
-            }
-            if (block.IsHovered()) {
-                Cursor::RequestStyle(CursorStyle::Hand);
-                break;
+    bool hand_capture_failed = false;
+    if (can_accept_board_input && (0 <= hand_hit_index)) {
+        Cursor::RequestStyle(CursorStyle::Hand);
+        if ((m_pointerInputOwner == BattleCardRules::PointerInputOwner::Card)
+            && input.left_down && !m_board.IsBusy()) {
+            Block& block = getData().Deck[hand_hit_index];
+            const Point hand_pos = { block.GetPos().first, block.GetPos().second };
+            if (m_board.PassBlock(block, hand_hit_index, hand_pos, input.cursor)) {
+                drag_card_se.playOneShot(); // ドラッグの効果音を再生
+            } else {
+                hand_capture_failed = true;
             }
         }
     }
     my_hpbar.update(0.1);
     ene_hpbar.update(0.1);
-    m_board.Update(0, getData().leric.getLeric(), can_accept_board_input);
+    const bool card_owns_input = (m_pointerInputOwner == BattleCardRules::PointerInputOwner::Card);
+    m_board.Update(0, getData().leric.getLeric(), input,
+        can_accept_board_input && !hand_capture_failed
+            && (card_owns_input || (m_pointerInputOwner == BattleCardRules::PointerInputOwner::None)));
+    if (input.left_up || !input.focused || (!input.left_down && !input.left_pressed)) {
+        if (m_pointerInputOwner == BattleCardRules::PointerInputOwner::Deck) {
+            m_banner.CancelPointerGesture();
+        }
+        m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
+    }
     // 現在の状態で処理を分岐
     switch (m_currentAnimState) {
     case BattleAnimationState::Idle:
@@ -563,9 +663,8 @@ bool Battle::drawDefault() const
         { 
             const ScopedRenderTarget2D target(m_combatSceneBuffer);
             m_backgroundTexture.scaled(0.5).draw();
-            m_banner.draw();
-            drawHandCards();
             m_board.DrawBoard(0);
+            drawHandCards();
             // プレイヤーのキャラクターを描画
             m_myTexture.scaled(0.75).rotated(my_angle).draw(180, 230);
             // 敵の情報を描画
@@ -599,6 +698,7 @@ bool Battle::drawDefault() const
                 m_defenceIcon.scaled(1.5).draw(440, 720);
                 m_numFont(U"{}"_fmt(my_defense)).draw(520, 720, Palette::Black);
             }
+            m_banner.draw();
         }
         Shader::GaussianBlur(m_combatSceneBuffer, m_blurInternalBuffer, m_combatSceneBuffer, BoxFilterSize::BoxFilter13x13); 
         m_combatSceneBuffer.draw();
@@ -606,10 +706,12 @@ bool Battle::drawDefault() const
     else
     {
         m_backgroundTexture.scaled(0.5).draw();
-        m_banner.draw();
-        if (is_deck) return true;
-        drawHandCards();
+        if (is_deck) {
+            m_banner.draw();
+            return true;
+        }
         m_board.DrawBoard(0);
+        drawHandCards();
         // プレイヤーのキャラクターを描画
         m_myTexture.scaled(0.75).rotated(my_angle).draw(180, 230);
         // 敵の情報を描画
@@ -643,6 +745,7 @@ bool Battle::drawDefault() const
             m_defenceIcon.scaled(1.5).draw(440, 720);
             m_numFont(U"{}"_fmt(my_defense)).draw(520, 720, Palette::Black);
         }
+        m_banner.draw();
     }
     return false;
 }

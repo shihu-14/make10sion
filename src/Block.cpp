@@ -91,16 +91,12 @@ void Block::Rotate() {
 	swap(sizeX, sizeY);
 }
 
-bool Block::IsDragging() {
-	return MouseL.down() && IsHovered();
-}
-
-bool Block::IsHovered() {
+bool Block::IsHovered(Point cursor_pos) const {
 	for (int y = 0; y < sizeY; y++) {
 		for (int x = 0; x < sizeX; x++) {
-			if (contents[x][y].content == '$')continue;
-			RectF rect{ Arg::center(contents[x][y].x + posX, contents[x][y].y + posY), 50, 50 };
-			if (rect.mouseOver())return true;
+			if (contents[x][y].content == '$') continue;
+			const RectF rect{ Arg::center(contents[x][y].x + posX, contents[x][y].y + posY), 50, 50 };
+			if (rect.contains(cursor_pos)) return true;
 		}
 	}
 	return false;

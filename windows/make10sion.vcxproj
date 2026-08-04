@@ -262,6 +262,7 @@
   <ItemGroup>
     <ClInclude Include="..\src\Banner.hpp" />
     <ClInclude Include="..\src\Battle.hpp" />
+    <ClInclude Include="..\src\BattleCardRules.hpp" />
     <ClInclude Include="..\src\Block.hpp" />
     <ClInclude Include="..\src\Board.hpp" />
     <ClInclude Include="..\src\common.hpp" />

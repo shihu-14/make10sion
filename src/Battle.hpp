@@ -34,6 +34,7 @@ private:
 	bool is_boss3 = false;
 	bool is_scene_transition_started = false;
 	BattleCardRules::PointerInputOwner m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
+	uint64 m_frameNumber = 0;
 	int32 now_turn = 0; // ターン数
 	int32 turn_start = 0; // 攻撃/防御のパターンの変化を管理(基本的には0のまま)
 	int32 action_cycle = 1; // 敵の行動パターンのサイクル

@@ -174,6 +174,56 @@ void TestStableIdentityAndReservations() {
 	Expect(board.cells == before.cells, "drop classification does not mutate unrelated board state");
 }
 
+void TestConcurrentReturnMotions() {
+	CardLifecycle card_a = CardLifecycle::ReturningToHand;
+	CardLifecycle card_b = CardLifecycle::InHand;
+	VisualMotion motion_a;
+	VisualMotion motion_b;
+	StartVisualMotion(motion_a, { 800, 500 }, { 350, 900 });
+
+	Expect(!CanStartCardDrag(card_a), "returning card ignores input");
+	Expect(CanStartCardDrag(card_b), "another hand card remains interactive");
+	Expect(!AdvanceVisualMotion(motion_a, 1.0 / 60.0), "return continues across multiple frames");
+	const ScreenPoint a_after_first_frame = motion_a.current;
+	Expect((a_after_first_frame != motion_a.start) && (a_after_first_frame != motion_a.end),
+		"returning card has a visual-only intermediate position");
+
+	card_b = CardLifecycle::DraggingFromHand;
+	Expect(IsLogicallyInHand(card_a) && IsLogicallyInHand(card_b),
+		"returning and dragging cards are both logically in hand");
+	StartVisualMotion(motion_b, { 900, 450 }, { 425, 900 });
+	card_b = CardLifecycle::ReturningToHand;
+
+	for (int frame = 0; frame < 9; frame++) {
+		if (AdvanceVisualMotion(motion_a, 1.0 / 60.0)) SettleReturnLifecycle(card_a);
+		if (AdvanceVisualMotion(motion_b, 1.0 / 60.0)) SettleReturnLifecycle(card_b);
+	}
+	Expect((card_a == CardLifecycle::InHand) && (motion_a.current == ScreenPoint{ 350, 900 }),
+		"first card snaps exactly to its reserved hand position");
+	Expect((card_b == CardLifecycle::InHand) && (motion_b.current == ScreenPoint{ 425, 900 }),
+		"second card returns independently to a different hand position");
+}
+
+void TestForcedMotionCompletion() {
+	CardLifecycle hand_card = CardLifecycle::ReturningToHand;
+	CardLifecycle board_card = CardLifecycle::ReturningToBoard;
+	VisualMotion hand_motion;
+	VisualMotion board_motion;
+	StartVisualMotion(hand_motion, { 700, 400 }, { 350, 900 });
+	StartVisualMotion(board_motion, { 900, 600 }, { 735, 305 });
+	AdvanceVisualMotion(hand_motion, 1.0 / 60.0);
+	AdvanceVisualMotion(board_motion, 1.0 / 60.0);
+
+	CompleteVisualMotion(hand_motion);
+	CompleteVisualMotion(board_motion);
+	SettleReturnLifecycle(hand_card);
+	SettleReturnLifecycle(board_card);
+	Expect((hand_card == CardLifecycle::InHand) && (hand_motion.current == hand_motion.end),
+		"focus loss or scene transition completes a hand return");
+	Expect((board_card == CardLifecycle::OnBoard) && (board_motion.current == board_motion.end),
+		"focus loss or scene transition completes a board return");
+}
+
 } // namespace
 
 int main() {
@@ -182,6 +232,8 @@ int main() {
 	TestRotationAndFastRelease();
 	TestInputOwnership();
 	TestStableIdentityAndReservations();
+	TestConcurrentReturnMotions();
+	TestForcedMotionCompletion();
 	if (failures != 0) return EXIT_FAILURE;
 	std::cout << "All battle card interaction tests passed\n";
 	return EXIT_SUCCESS;

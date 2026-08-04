@@ -120,9 +120,12 @@ void Battle::AssertCardOwnership(const char* context) const
             }
         }
     }
-    if (!diagnostic.isEmpty()) {
-        Logger << U"Battle card invariant violation (" << Unicode::Widen(context) << U"): " << diagnostic;
-        assert(false && "Battle card invariant violation; see Logger output");
+	if (!diagnostic.isEmpty()) {
+		Logger << U"Battle card invariant violation (" << Unicode::Widen(context) << U"): " << diagnostic
+			<< U", frame=" << m_frameNumber << U", pointer_owner=" << static_cast<int32>(m_pointerInputOwner);
+		Logger << U"Deck_table=" << Format(Deck_table) << U", Deck_board=" << Format(Deck_board)
+			<< U", Deck_yama=" << Format(Deck_yama) << U", Deck_gomi=" << Format(Deck_gomi);
+		assert(false && "Battle card invariant violation; see Logger output");
     }
 #else
     (void)context;
@@ -507,63 +510,94 @@ void Battle::updateGameOverEffect()
 
 void Battle::update()
 {
-    const BoardInputFrame input{
-        Cursor::Pos(),
+	m_frameNumber++;
+	const BoardInputFrame input{
+		Cursor::Pos(),
         MouseL.down(),
         MouseL.pressed(),
         MouseL.up(),
-        MouseR.down(),
-        Window::GetState().focused,
-    };
+		MouseR.down(),
+		Window::GetState().focused,
+		m_frameNumber,
+		Scene::DeltaTime(),
+	};
     const bool can_accept_board_input = BattleCardRules::CanAcceptBattleInput(
         m_currentAnimState == BattleAnimationState::Idle,
-        is_board_locked,
-        is_scene_transition_started);
-    if (!input.focused) {
-        m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
-        m_banner.CancelPointerGesture();
-    }
+		is_board_locked,
+		is_scene_transition_started);
+	if (!input.focused) {
+		m_board.CancelActiveDrag();
+		m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
+		m_banner.CancelPointerGesture();
+	} else if (!can_accept_board_input) {
+		m_board.CancelActiveDrag();
+	}
 
     if (is_deck) {
         m_pointerInputOwner = BattleCardRules::PointerInputOwner::Deck;
         is_deck = m_banner.update(getData().Deck, false, input.cursor,
             input.left_down, input.left_up, input.focused);
-        m_board.Update(0, getData().leric.getLeric(), input, false);
-        if (!is_deck) m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
-        return;
-    }
+		m_board.Update(0, getData().leric.getLeric(), input, false);
+		if (!is_deck) m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
+		return;
+	}
 
-    if (m_board.IsDragging()) m_pointerInputOwner = BattleCardRules::PointerInputOwner::Card;
+	if (m_board.IsDragging()) m_pointerInputOwner = BattleCardRules::PointerInputOwner::Card;
+	if (can_accept_board_input) {
+		for (int32 slot = 0; slot < static_cast<int32>(Deck_table.size()); slot++) {
+			const int32 deck_index = Deck_table[slot];
+			if ((deck_index < 0) || (static_cast<int32>(getData().Deck.size()) <= deck_index)) continue;
+			Block& block = getData().Deck[deck_index];
+			if (block.GetStat() != 1) continue;
+			const Point hand_pos = { block.GetPos().first, block.GetPos().second };
+			const bool registered = m_board.RegisterHandBlock(block, deck_index, slot, hand_pos);
+#ifndef NDEBUG
+			if (!registered) {
+				Logger << U"Failed to register hand reservation: frame=" << m_frameNumber
+					<< U", deck_index=" << deck_index << U", slot=" << slot << U", position=" << hand_pos;
+				assert(false && "Failed to register a unique hand reservation");
+			}
+#else
+			(void)registered;
+#endif
+		}
+	}
 
-    int32 hand_hit_index = -1;
+	int32 hand_hit_index = -1;
+	bool returning_hand_hit = false;
     for (int32 i = static_cast<int32>(Deck_table.size()) - 1; 0 <= i; --i) {
         const int32 deck_index = Deck_table[i];
         if ((deck_index < 0) || (static_cast<int32>(getData().Deck.size()) <= deck_index)) continue;
         const Block& block = getData().Deck[deck_index];
-        if ((block.GetStat() == 1) && block.IsHovered(input.cursor)) {
-            hand_hit_index = deck_index;
-            break;
-        }
-    }
+		if ((block.GetStat() != 1) || !m_board.ShouldDrawAsHand(deck_index)
+			|| !block.IsHovered(input.cursor)) continue;
+		if (m_board.CanStartHandDrag(deck_index)) hand_hit_index = deck_index;
+		else returning_hand_hit = true;
+		break;
+	}
+	const bool returning_board_hit = (hand_hit_index < 0) && !returning_hand_hit
+		&& m_board.IsReturningBoardCardHovered(input.cursor);
+	const bool returning_card_hit = returning_hand_hit || returning_board_hit;
 
     if ((m_pointerInputOwner == BattleCardRules::PointerInputOwner::None) && input.left_down) {
         const bool board_hit = Rect{ 600, 170, 7 * 90, 6 * 90 }.contains(input.cursor);
         m_pointerInputOwner = BattleCardRules::CapturePointerOwner(
             false,
             m_board.IsDragging(),
-            can_accept_board_input && !m_board.IsBusy(),
+			can_accept_board_input && !m_board.IsDragging(),
             m_banner.IsDeckButtonHovered(input.cursor),
             m_button_hantei.contains(input.cursor),
-            0 <= hand_hit_index,
+			(0 <= hand_hit_index) || returning_card_hit,
             board_hit);
     }
 
-    const bool allow_deck_open = can_accept_board_input
-        && !m_board.IsBusy()
+	const bool allow_deck_open = can_accept_board_input
+		&& !m_board.IsDragging()
         && ((m_pointerInputOwner == BattleCardRules::PointerInputOwner::None)
             || (m_pointerInputOwner == BattleCardRules::PointerInputOwner::Deck));
-    is_deck = m_banner.update(getData().Deck, allow_deck_open, input.cursor,
-        input.left_down, input.left_up, input.focused);
+	is_deck = m_banner.update(getData().Deck, allow_deck_open, input.cursor,
+		input.left_down, input.left_up, input.focused);
+	if (is_deck) m_board.CompleteVisualMotions();
 #ifndef NDEBUG
     if (is_deck) assert(!m_board.IsDragging());
 #endif
@@ -577,8 +611,8 @@ void Battle::update()
     if (can_accept_board_input){ // 今のターンの敵の攻撃・防御を計算する。
         getEnemyInfo();
     }
-    if ((m_pointerInputOwner == BattleCardRules::PointerInputOwner::Attack)
-        && input.left_down && can_accept_board_input && !m_board.IsBusy()) { // 「=」ボタンがクリックされた場合
+	if ((m_pointerInputOwner == BattleCardRules::PointerInputOwner::Attack)
+		&& input.left_down && can_accept_board_input && !m_board.IsDragging()) { // 「=」ボタンがクリックされた場合
         m_board.CancelActiveDrag();
         attack();
         return;
@@ -594,11 +628,10 @@ void Battle::update()
     bool hand_capture_failed = false;
     if (can_accept_board_input && (0 <= hand_hit_index)) {
         Cursor::RequestStyle(CursorStyle::Hand);
-        if ((m_pointerInputOwner == BattleCardRules::PointerInputOwner::Card)
-            && input.left_down && !m_board.IsBusy()) {
-            Block& block = getData().Deck[hand_hit_index];
-            const Point hand_pos = { block.GetPos().first, block.GetPos().second };
-            if (m_board.PassBlock(block, hand_hit_index, hand_pos, input.cursor)) {
+		if ((m_pointerInputOwner == BattleCardRules::PointerInputOwner::Card)
+			&& input.left_down && !m_board.IsDragging()) {
+			Block& block = getData().Deck[hand_hit_index];
+			if (m_board.PassBlock(block, hand_hit_index, input.cursor)) {
                 drag_card_se.playOneShot(); // ドラッグの効果音を再生
             } else {
                 hand_capture_failed = true;
@@ -608,9 +641,10 @@ void Battle::update()
     my_hpbar.update(0.1);
     ene_hpbar.update(0.1);
     const bool card_owns_input = (m_pointerInputOwner == BattleCardRules::PointerInputOwner::Card);
-    m_board.Update(0, getData().leric.getLeric(), input,
-        can_accept_board_input && !hand_capture_failed
-            && (card_owns_input || (m_pointerInputOwner == BattleCardRules::PointerInputOwner::None)));
+	m_board.Update(0, getData().leric.getLeric(), input,
+		can_accept_board_input && !hand_capture_failed
+			&& !returning_card_hit
+			&& (card_owns_input || (m_pointerInputOwner == BattleCardRules::PointerInputOwner::None)));
     if (input.left_up || !input.focused || (!input.left_down && !input.left_pressed)) {
         if (m_pointerInputOwner == BattleCardRules::PointerInputOwner::Deck) {
             m_banner.CancelPointerGesture();
@@ -648,7 +682,8 @@ void Battle::drawHandCards() const
     for (const int32 deck_index : Deck_table) {
         if ((deck_index < 0) || (static_cast<int32>(getData().Deck.size()) <= deck_index)) continue;
         const Block& block = getData().Deck[deck_index];
-        if ((block.GetStat() == 1) && !m_board.IsDraggingDeck(deck_index)) {
+		if ((block.GetStat() == 1) && m_board.ShouldDrawAsHand(deck_index)
+			&& !m_board.IsDraggingDeck(deck_index)) {
             block.Draw(block.GetPos());
         }
     }

@@ -6,6 +6,7 @@
 #include <array>
 #include <Siv3D.hpp>
 #include "Block.hpp"
+#include "BattleCardRules.hpp"
 #include "leric.hpp"
 
 struct BoardInputFrame {
@@ -15,6 +16,8 @@ struct BoardInputFrame {
 	bool left_up = false;
 	bool right_down = false;
 	bool focused = true;
+	uint64 frame_number = 0;
+	double delta_seconds = 0.0;
 };
 
 class Board {
@@ -22,21 +25,12 @@ private:
 	struct BoardBlockState {
 		Block* block = nullptr;
 		int32 deck_index = -1;
+		int32 hand_slot = -1;
 		Point hand_pos = { -1,-1 };
 		Point board_anchor = { -1,-1 };
 		int32 rotation = 0;
-		int32 animation = -1;
-	};
-
-	struct BoardBlockSnapshot {
-		Block* block = nullptr;
-		int32 deck_index = -1;
-		Point screen_pos = { -1,-1 };
-		Point hand_pos = { -1,-1 };
-		Point board_anchor = { -1,-1 };
-		int32 rotation = 0;
-		int32 stat = 0;
-		int32 animation = -1;
+		BattleCardRules::CardLifecycle lifecycle = BattleCardRules::CardLifecycle::InDeck;
+		BattleCardRules::VisualMotion visual_motion;
 	};
 
 	struct DragContext {
@@ -49,13 +43,9 @@ private:
 		Point hand_pos = { -1,-1 };
 		Point board_anchor = { -1,-1 };
 		Point cursor_offset = { 0,0 };
+		int32 hand_slot = -1;
 		int32 start_rotation = 0;
 		int32 rotation_steps = 0;
-		Array<BoardBlockSnapshot> board_block_snapshots;
-		Grid<int32> board_usage_snapshot;
-		Grid<int32> board_number_snapshot;
-		Grid<int32> board_effect_back_snapshot;
-		Grid<char> board_content_snapshot;
 	};
 
 	enum class DropType {
@@ -106,6 +96,8 @@ private:
 	int32 add_damage_by_cards = 0;
 	int32 off_count = 3;
 	bool is_board_active = false;
+	uint64 current_frame_number = 0;
+	Array<String> interaction_trace;
 
 	//function
 	int32 FindBoardBlockIndex(int32 deck_index) const;
@@ -120,14 +112,16 @@ private:
 	bool GetBlockCells(const Block& block, Point anchor, Array<Point>& cells) const;
 	bool IsBoardBlockPlaced(int32 index) const;
 	bool CanPlaceBlock(int32 index, Point anchor, int32 ignored_index_1, int32 ignored_index_2 = -1) const;
-	void CaptureBoardBlockSnapshots();
-	bool RestoreDragSnapshot();
 	bool ValidateBoardState(int32 allowed_target_index = -1, String* diagnostic = nullptr) const;
 	void AssertBoardState(int32 allowed_target_index = -1) const;
+	void TraceTransition(StringView event, int32 deck_index = -1, StringView detail = U"");
+	void DumpInteractionState(StringView context) const;
 	Point PutBlockAt(Point screen_pos) const;
 	DropPlan AnalyzeDrop(Point candidate_anchor, Point release_cursor, Point release_screen_pos) const;
 	void PutBlock(Point release_cursor, Point release_screen_pos);
 	bool ClearBoardBlock(int32 index);
+	bool HasBoardOccupancy(int32 index) const;
+	bool ForceOrphanedDragToHand();
 	bool UpdateBoardNum(int32 index, Point putAt);
 	void SetBoardBlockPosition(int32 index, Point anchor);
 	void SetBlockRotation(int32 index, int32 rotation);
@@ -135,6 +129,8 @@ private:
 	bool RestoreDraggedBlockToBoard();
 	bool RollbackDraggedBlock();
 	void ClearDrag();
+	void StartVisualReturn(int32 index, BattleCardRules::CardLifecycle lifecycle, Point end_pos);
+	void UpdateVisualMotions(double delta_seconds);
 	void GetPieceNum(char content, int y, int x);
 	void InitBoardCoordinate();
 	void TakeOutBlock(Point pos, Point cursor_pos);
@@ -143,7 +139,6 @@ private:
 	void CalcRow();
 	void DrawOnlyBoard() const;
 	void DrawBlock(Block block_on_board);
-	void BlockAnimation(int32 index, Point end_pos);
 	void DrawAddPlaceBoard() const;
 	void DoRelic(std::vector<int32> relics);
 
@@ -170,9 +165,13 @@ public:
 	void DrawBoard(int32 idx) const;
 	void DrawDraggedBlock() const;
 	std::pair<int32, int32> Confirm();
-	bool PassBlock(Block& selectedBlock, int32 deck_index, Point hand_pos, Point cursor_pos);
+	bool RegisterHandBlock(Block& block, int32 deck_index, int32 hand_slot, Point hand_pos);
+	bool PassBlock(Block& selectedBlock, int32 deck_index, Point cursor_pos);
 	void CancelActiveDrag();
-	bool IsBusy() const;
+	void CompleteVisualMotions();
+	bool CanStartHandDrag(int32 deck_index) const;
+	bool ShouldDrawAsHand(int32 deck_index) const;
+	bool IsReturningBoardCardHovered(Point cursor_pos) const;
 	bool IsDragging() const;
 	bool IsDraggingDeck(int32 deck_index) const;
 };

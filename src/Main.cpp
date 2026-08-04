@@ -11,6 +11,10 @@ using namespace std;
 
 void Main()
 {
+#ifndef NDEBUG
+	Logger << U"make10sion module: " << FileSystem::ModulePath();
+	Logger << U"make10sion working directory: " << FileSystem::CurrentDirectory();
+#endif
 	Scene::SetBackground(ColorF{ 0.0, 0.0, 0.0 });
 	//windowsサイズ
 	Window::Resize(1920, 1080);

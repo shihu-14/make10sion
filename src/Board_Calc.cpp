@@ -151,9 +151,6 @@ void Board::Discard() {
 	board_content.fill('\0');
 	num_on_board.clear();
 	result_of_calc.fill(0);
-	for (auto& state : board_blocks) {
-		if (state.board_anchor != Point{ -1,-1 }) state.animation = 2;
-	}
 	board_effect_front = board_effect_back;
 	board_effect_back.fill(0);
 	RebuildBoardDerivedState();

@@ -152,9 +152,46 @@ void TestInputOwnership() {
 	Expect(!CanAcceptBattleInput(false, false, false), "combat animation rejects input");
 	Expect(!CanAcceptBattleInput(true, true, false), "board lock rejects input");
 	Expect(!CanAcceptBattleInput(true, false, true), "scene transition rejects input");
+	Expect(CanProcessBoardInput(true, false, PointerInputOwner::Card),
+		"card owner can continue an active board drag");
+	Expect(CanProcessBoardInput(true, false, PointerInputOwner::None),
+		"unowned input can reach an empty board cell");
+	Expect(!CanProcessBoardInput(true, false, PointerInputOwner::Deck),
+		"deck-owned input does not reach the board");
+	Expect(!CanProcessBoardInput(true, true, PointerInputOwner::Card),
+		"failed hand capture does not also start a board drag");
 	bool transition_started = false;
 	Expect(BeginOneShotTransition(transition_started), "victory transition starts once");
 	Expect(!BeginOneShotTransition(transition_started), "victory transition cannot start twice");
+}
+
+void TestInteractionDrawLayers() {
+	Expect(GetCardDrawLayer(CardLifecycle::InDeck) == CardDrawLayer::Hidden,
+		"deck cards are hidden from battle card layers");
+	Expect(GetCardDrawLayer(CardLifecycle::InHand) == CardDrawLayer::StaticHand,
+		"hand cards use the static hand layer");
+	Expect(GetCardDrawLayer(CardLifecycle::OnBoard) == CardDrawLayer::StaticBoard,
+		"board cards use the static board layer");
+	Expect(GetCardDrawLayer(CardLifecycle::ReturningToHand) == CardDrawLayer::ReturningOverlay,
+		"hand returns use the interaction overlay");
+	Expect(GetCardDrawLayer(CardLifecycle::ReturningToBoard) == CardDrawLayer::ReturningOverlay,
+		"board returns use the interaction overlay");
+	Expect(GetCardDrawLayer(CardLifecycle::DraggingFromHand) == CardDrawLayer::DraggingOverlay,
+		"hand drags use the top interaction layer");
+	Expect(GetCardDrawLayer(CardLifecycle::DraggingFromBoard) == CardDrawLayer::DraggingOverlay,
+		"board drags use the top interaction layer");
+	Expect(!CanStartCardDrag(CardLifecycle::ReturningToBoard),
+		"returning board visuals are excluded from hit testing");
+	Expect(CanBeHandSwapTarget(CardLifecycle::OnBoard),
+		"a settled board card remains a valid hand swap target");
+	Expect(!CanBeHandSwapTarget(CardLifecycle::ReturningToBoard),
+		"another card cannot change a returning card's destination");
+	Expect(CapturePointerOwner(false, false, true, false, false, false, true)
+		== PointerInputOwner::Card,
+		"a board card under a returning visual can own input");
+	Expect(CapturePointerOwner(false, false, true, true, false, false, true)
+		== PointerInputOwner::Deck,
+		"UI under a returning visual keeps its normal priority");
 }
 
 void TestStableIdentityAndReservations() {
@@ -224,6 +261,51 @@ void TestForcedMotionCompletion() {
 		"focus loss or scene transition completes a board return");
 }
 
+void TestRepeatedBoardOverlapReturn() {
+	for (int iteration = 0; iteration < 500; iteration++) {
+		auto board = MakeBoard();
+		At(board, { 2, 2 }).occupant = 4;
+		At(board, { 3, 2 }).occupant = 4;
+		At(board, { 4, 2 }).occupant = 8;
+		const BoardSnapshot before = board;
+
+		const DropDecision decision = ResolveDrop(
+			Request(DragOrigin::Board, { 3, 2 }, { { 0, 0 }, { 1, 0 } }), board);
+		Expect(decision.result == DropResult::RestoreToBoard,
+			"board overlap resolves to a board restore");
+
+		CardLifecycle returning_card = CardLifecycle::ReturningToBoard;
+		CardLifecycle other_card = CardLifecycle::OnBoard;
+		VisualMotion return_motion;
+		StartVisualMotion(return_motion, { 900, 520 }, { 825, 395 });
+		const Cell other_anchor{ 4, 2 };
+		const int other_rotation = 1;
+		const int other_hand_slot = 3;
+
+		for (int frame = 0; frame < 10; frame++) {
+			if (frame == 1) {
+				Expect(CanStartCardDrag(other_card),
+					"another board card remains draggable during a return");
+				other_card = CardLifecycle::DraggingFromBoard;
+			}
+			Expect(CanProcessBoardInput(true, false, PointerInputOwner::Card),
+				"returning visual does not roll back another active drag");
+			if (AdvanceVisualMotion(return_motion, 1.0 / 60.0)) {
+				SettleReturnLifecycle(returning_card);
+			}
+			Expect(board.cells == before.cells,
+				"board restore preserves all logical occupancy while animating");
+			Expect((other_anchor == Cell{ 4, 2 }) && (other_rotation == 1) && (other_hand_slot == 3),
+				"board restore does not mutate the other card");
+		}
+		Expect((returning_card == CardLifecycle::OnBoard)
+			&& (return_motion.current == ScreenPoint{ 825, 395 }),
+			"board return ends exactly at its original screen position");
+		Expect(GetCardDrawLayer(other_card) == CardDrawLayer::DraggingOverlay,
+			"active drag remains above the returning overlay");
+	}
+}
+
 } // namespace
 
 int main() {
@@ -231,9 +313,11 @@ int main() {
 	TestBoardDrops();
 	TestRotationAndFastRelease();
 	TestInputOwnership();
+	TestInteractionDrawLayers();
 	TestStableIdentityAndReservations();
 	TestConcurrentReturnMotions();
 	TestForcedMotionCompletion();
+	TestRepeatedBoardOverlapReturn();
 	if (failures != 0) return EXIT_FAILURE;
 	std::cout << "All battle card interaction tests passed\n";
 	return EXIT_SUCCESS;

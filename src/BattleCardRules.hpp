@@ -182,6 +182,42 @@ enum class CardLifecycle {
 	InDiscard,
 };
 
+enum class CardDrawLayer {
+	Hidden,
+	StaticHand,
+	StaticBoard,
+	ReturningOverlay,
+	DraggingOverlay,
+};
+
+[[nodiscard]] inline CardDrawLayer GetCardDrawLayer(const CardLifecycle lifecycle) noexcept {
+	switch (lifecycle) {
+	case CardLifecycle::InHand:
+		return CardDrawLayer::StaticHand;
+	case CardLifecycle::OnBoard:
+		return CardDrawLayer::StaticBoard;
+	case CardLifecycle::ReturningToHand:
+	case CardLifecycle::ReturningToBoard:
+		return CardDrawLayer::ReturningOverlay;
+	case CardLifecycle::DraggingFromHand:
+	case CardLifecycle::DraggingFromBoard:
+		return CardDrawLayer::DraggingOverlay;
+	case CardLifecycle::InDeck:
+	case CardLifecycle::InDiscard:
+		return CardDrawLayer::Hidden;
+	}
+	return CardDrawLayer::Hidden;
+}
+
+[[nodiscard]] inline bool CanProcessBoardInput(
+	const bool can_accept_battle_input,
+	const bool hand_capture_failed,
+	const PointerInputOwner pointer_owner) noexcept {
+	return can_accept_battle_input && !hand_capture_failed
+		&& ((pointer_owner == PointerInputOwner::Card)
+			|| (pointer_owner == PointerInputOwner::None));
+}
+
 struct ScreenPoint {
 	std::int32_t x = 0;
 	std::int32_t y = 0;
@@ -212,6 +248,10 @@ struct VisualMotion {
 
 [[nodiscard]] inline bool CanStartCardDrag(const CardLifecycle lifecycle) noexcept {
 	return (lifecycle == CardLifecycle::InHand) || (lifecycle == CardLifecycle::OnBoard);
+}
+
+[[nodiscard]] inline bool CanBeHandSwapTarget(const CardLifecycle lifecycle) noexcept {
+	return lifecycle == CardLifecycle::OnBoard;
 }
 
 inline void StartVisualMotion(VisualMotion& motion, const ScreenPoint start,

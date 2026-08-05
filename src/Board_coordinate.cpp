@@ -145,9 +145,16 @@ bool Board::ValidateBoardState(int32 allowed_target_index, String* diagnostic) c
 		if (diagnostic) *diagnostic = message;
 		return false;
 	};
+	int32 dragging_count = 0;
+	int32 dragging_index = -1;
 	for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {
 		if (!IsBoardBlockIndexValid(i)) return fail(U"invalid board_blocks entry: index=" + Format(i));
 		const BoardBlockState& state = board_blocks[i];
+		if ((state.lifecycle == BattleCardRules::CardLifecycle::DraggingFromHand)
+			|| (state.lifecycle == BattleCardRules::CardLifecycle::DraggingFromBoard)) {
+			dragging_count++;
+			dragging_index = i;
+		}
 		if ((state.hand_slot < 0) || (state.hand_pos == Point{ -1,-1 })) {
 			return fail(U"missing reserved hand position: deck_index=" + Format(board_blocks[i].deck_index));
 		}
@@ -165,6 +172,15 @@ bool Board::ValidateBoardState(int32 allowed_target_index, String* diagnostic) c
 				return fail(U"duplicate reserved hand slot=" + Format(board_blocks[i].hand_slot));
 			}
 		}
+	}
+	if (drag_context.active) {
+		if ((dragging_count != 1) || (dragging_index != ResolveDragBlockIndex())
+			|| !IsDragContextValid()) {
+			return fail(U"active drag/lifecycle mismatch: drag_deck_index="
+				+ Format(drag_context.deck_index) + U", dragging_count=" + Format(dragging_count));
+		}
+	} else if (dragging_count != 0) {
+		return fail(U"dragging lifecycle without active context: index=" + Format(dragging_index));
 	}
 
     for (int32 y = 0; y < static_cast<int32>(board_usage.height()); y++) {
@@ -194,6 +210,12 @@ bool Board::ValidateBoardState(int32 allowed_target_index, String* diagnostic) c
 			if ((state.lifecycle == BattleCardRules::CardLifecycle::ReturningToHand) != state.visual_motion.active) {
 				return fail(U"hand return motion mismatch: deck_index=" + Format(state.deck_index));
 			}
+			if (state.lifecycle == BattleCardRules::CardLifecycle::ReturningToHand) {
+				const Point motion_end = { state.visual_motion.end.x, state.visual_motion.end.y };
+				if (motion_end != state.hand_pos) {
+					return fail(U"hand return endpoint mismatch: deck_index=" + Format(state.deck_index));
+				}
+			}
 			if (state.lifecycle == BattleCardRules::CardLifecycle::InHand) {
 				const Point screen_pos = { state.block->GetPos().first, state.block->GetPos().second };
 				if (screen_pos != state.hand_pos) return fail(U"hand screen position mismatch: deck_index=" + Format(state.deck_index));
@@ -215,6 +237,12 @@ bool Board::ValidateBoardState(int32 allowed_target_index, String* diagnostic) c
 		const Point expected_screen_pos = GetBoardBlockScreenPosition(*state.block, state.board_anchor);
 		if ((state.lifecycle == BattleCardRules::CardLifecycle::ReturningToBoard) != state.visual_motion.active) {
 			return fail(U"board return motion mismatch: deck_index=" + Format(state.deck_index));
+		}
+		if (state.lifecycle == BattleCardRules::CardLifecycle::ReturningToBoard) {
+			const Point motion_end = { state.visual_motion.end.x, state.visual_motion.end.y };
+			if (motion_end != expected_screen_pos) {
+				return fail(U"board return endpoint mismatch: deck_index=" + Format(state.deck_index));
+			}
 		}
 		if ((state.lifecycle == BattleCardRules::CardLifecycle::OnBoard) && (screen_pos != expected_screen_pos)) {
 			return fail(U"board screen position mismatch: deck_index=" + Format(state.deck_index)
@@ -350,6 +378,7 @@ Board::DropPlan Board::AnalyzeDrop(Point candidate_anchor, Point release_cursor,
     case BattleCardRules::DropResult::Swap: {
         const int32 target_index = FindBoardBlockIndex(plan.target_deck_index);
         if (IsBoardBlockPlaced(target_index)
+			&& BattleCardRules::CanBeHandSwapTarget(board_blocks[target_index].lifecycle)
             && (board_blocks[target_index].hand_pos != Point{ -1,-1 })
             && (drag_context.hand_pos != Point{ -1,-1 })
             && (board_blocks[target_index].hand_pos != drag_context.hand_pos)
@@ -454,8 +483,8 @@ bool Board::ForceOrphanedDragToHand() {
 	CalcRow();
 	TraceTransition(U"orphaned-drag-returned", deck_index);
 	const bool recovered = (deck_index >= 0) && (hand_slot >= 0) && (hand_pos != Point{ -1,-1 });
-	if (recovered) AssertBoardState();
 	ClearDrag();
+	if (recovered) AssertBoardState();
 	return recovered;
 }
 
@@ -511,14 +540,62 @@ bool Board::ReturnDraggedBlockToHand() {
 	if (occupancy_changed) CalcRow();
 	TraceTransition(U"return-to-hand", selected.deck_index,
 		drag_context.from_board ? U"origin=board" : U"origin=hand");
-	AssertBoardState();
 	ClearDrag();
+	AssertBoardState();
 	return true;
 }
 
 bool Board::RestoreDraggedBlockToBoard() {
-    if (!drag_context.active || !drag_context.from_board) return false;
-    return RollbackDraggedBlock();
+	if (!drag_context.active || !drag_context.from_board) return false;
+	const int32 selected_index = ResolveDragBlockIndex();
+	if (!IsBoardBlockIndexValid(selected_index)) return ForceOrphanedDragToHand();
+	BoardBlockState& selected = board_blocks[selected_index];
+	SetBlockRotation(selected_index, drag_context.start_rotation);
+	selected.board_anchor = drag_context.board_anchor;
+	selected.block->SetStat(2);
+	if (!IsBoardBlockPlaced(selected_index)) return RestoreDraggedBlockAfterFailedCommit();
+
+	const Point board_pos = GetBoardBlockScreenPosition(*selected.block, selected.board_anchor);
+	StartVisualReturn(selected_index, BattleCardRules::CardLifecycle::ReturningToBoard, board_pos);
+	TraceTransition(U"restore-to-board", selected.deck_index, U"occupancy=preserved");
+	ClearDrag();
+	AssertBoardState();
+	return true;
+}
+
+bool Board::RestoreDraggedBlockAfterFailedCommit() {
+	if (!drag_context.active || !drag_context.from_board) return false;
+	const int32 selected_index = ResolveDragBlockIndex();
+	if (!IsBoardBlockIndexValid(selected_index)) return ForceOrphanedDragToHand();
+	BoardBlockState& selected = board_blocks[selected_index];
+	ClearBoardBlock(selected_index);
+	SetBlockRotation(selected_index, drag_context.start_rotation);
+	selected.board_anchor = drag_context.board_anchor;
+	if ((selected.board_anchor != Point{ -1,-1 })
+		&& CanPlaceBlock(selected_index, selected.board_anchor, selected_index)
+		&& UpdateBoardNum(selected_index, selected.board_anchor)) {
+		selected.block->SetStat(2);
+		const Point board_pos = GetBoardBlockScreenPosition(*selected.block, selected.board_anchor);
+		StartVisualReturn(selected_index, BattleCardRules::CardLifecycle::ReturningToBoard, board_pos);
+		CalcRow();
+		TraceTransition(U"rollback-rebuild-board", selected.deck_index);
+		ClearDrag();
+		AssertBoardState();
+		return true;
+	}
+
+	ClearBoardBlock(selected_index);
+	SetBlockRotation(selected_index, 0);
+	selected.block->SetStat(1);
+	selected.board_anchor = { -1,-1 };
+	if (drag_context.hand_pos == Point{ -1,-1 }) return ForceOrphanedDragToHand();
+	StartVisualReturn(selected_index, BattleCardRules::CardLifecycle::ReturningToHand,
+		drag_context.hand_pos);
+	CalcRow();
+	TraceTransition(U"rollback-fallback-hand", selected.deck_index);
+	ClearDrag();
+	AssertBoardState();
+	return false;
 }
 
 bool Board::RollbackDraggedBlock() {
@@ -527,44 +604,21 @@ bool Board::RollbackDraggedBlock() {
 	if (!IsBoardBlockIndexValid(selected_index)) {
 		return ForceOrphanedDragToHand();
 	}
+	if (drag_context.from_board) return RestoreDraggedBlockToBoard();
+
 	BoardBlockState& selected = board_blocks[selected_index];
 	const bool occupancy_changed = HasBoardOccupancy(selected_index);
 	ClearBoardBlock(selected_index);
-	if (!drag_context.from_board) {
-		SetBlockRotation(selected_index, 0);
-		selected.block->SetStat(1);
-		selected.board_anchor = { -1,-1 };
-		StartVisualReturn(selected_index, BattleCardRules::CardLifecycle::ReturningToHand,
-			drag_context.start_screen_pos);
-		if (occupancy_changed) CalcRow();
-		TraceTransition(U"rollback-to-hand", selected.deck_index);
-		AssertBoardState();
-		ClearDrag();
-		return true;
-	}
-
-	SetBlockRotation(selected_index, drag_context.start_rotation);
-	selected.board_anchor = drag_context.board_anchor;
-	if (!CanPlaceBlock(selected_index, selected.board_anchor, selected_index)
-		|| !UpdateBoardNum(selected_index, selected.board_anchor)) {
-		selected.board_anchor = { -1,-1 };
-		selected.block->SetStat(1);
-		SetBlockRotation(selected_index, 0);
-		StartVisualReturn(selected_index, BattleCardRules::CardLifecycle::ReturningToHand,
-			drag_context.hand_pos);
-		CalcRow();
-		TraceTransition(U"rollback-fallback-hand", selected.deck_index);
-		AssertBoardState();
-		ClearDrag();
-		return false;
-	}
-	selected.block->SetStat(2);
-	const Point board_pos = GetBoardBlockScreenPosition(*selected.block, selected.board_anchor);
-	StartVisualReturn(selected_index, BattleCardRules::CardLifecycle::ReturningToBoard, board_pos);
-	CalcRow();
-	TraceTransition(U"restore-to-board", selected.deck_index);
-	AssertBoardState();
+	SetBlockRotation(selected_index, 0);
+	selected.block->SetStat(1);
+	selected.board_anchor = { -1,-1 };
+	if (drag_context.start_screen_pos == Point{ -1,-1 }) return ForceOrphanedDragToHand();
+	StartVisualReturn(selected_index, BattleCardRules::CardLifecycle::ReturningToHand,
+		drag_context.start_screen_pos);
+	if (occupancy_changed) CalcRow();
+	TraceTransition(U"rollback-to-hand", selected.deck_index);
 	ClearDrag();
+	AssertBoardState();
 	return true;
 }
 
@@ -593,12 +647,15 @@ void Board::PutBlock(Point release_cursor, Point release_screen_pos) {//blockが
     }
 
 	if (plan.type == DropType::Place) {
-        if (!CanPlaceBlock(selected_index, plan.anchor, selected_index)
-            || !ClearBoardBlock(selected_index)
-            || !UpdateBoardNum(selected_index, plan.anchor)) {
-            RollbackDraggedBlock();
-            return;
-        }
+		if (!CanPlaceBlock(selected_index, plan.anchor, selected_index)) {
+			RollbackDraggedBlock();
+			return;
+		}
+		if (!ClearBoardBlock(selected_index) || !UpdateBoardNum(selected_index, plan.anchor)) {
+			if (drag_context.from_board) RestoreDraggedBlockAfterFailedCommit();
+			else RollbackDraggedBlock();
+			return;
+		}
 		SetBoardBlockPosition(selected_index, plan.anchor);
 		selected.lifecycle = BattleCardRules::CardLifecycle::OnBoard;
 		selected.visual_motion = {};
@@ -667,8 +724,8 @@ void Board::PutBlock(Point release_cursor, Point release_screen_pos) {//blockが
     }
 	CalcRow();
 	if (plan.type == DropType::Place) TraceTransition(U"place", selected.deck_index, U"anchor=" + Format(plan.anchor));
+	ClearDrag();
 	AssertBoardState(FindBoardBlockIndex(plan.target_deck_index));
-    ClearDrag();
 }
 
 void Board::TakeOutBlock(Point pos, Point cursor_pos) {//クリックしたBlockのドラッグを開始する

@@ -127,6 +127,7 @@ private:
 	void SetBlockRotation(int32 index, int32 rotation);
 	bool ReturnDraggedBlockToHand();
 	bool RestoreDraggedBlockToBoard();
+	bool RestoreDraggedBlockAfterFailedCommit();
 	bool RollbackDraggedBlock();
 	void ClearDrag();
 	void StartVisualReturn(int32 index, BattleCardRules::CardLifecycle lifecycle, Point end_pos);
@@ -163,7 +164,7 @@ public:
 	void Discard();
 	void Update(int32 idx, std::vector<int32> relics, const BoardInputFrame& input, bool allow_input = true);
 	void DrawBoard(int32 idx) const;
-	void DrawDraggedBlock() const;
+	void DrawInteractionOverlay() const;
 	std::pair<int32, int32> Confirm();
 	bool RegisterHandBlock(Block& block, int32 deck_index, int32 hand_slot, Point hand_pos);
 	bool PassBlock(Block& selectedBlock, int32 deck_index, Point cursor_pos);
@@ -171,9 +172,7 @@ public:
 	void CompleteVisualMotions();
 	bool CanStartHandDrag(int32 deck_index) const;
 	bool ShouldDrawAsHand(int32 deck_index) const;
-	bool IsReturningBoardCardHovered(Point cursor_pos) const;
 	bool IsDragging() const;
-	bool IsDraggingDeck(int32 deck_index) const;
 };
 
 #endif

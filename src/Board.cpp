@@ -49,6 +49,7 @@ void Board::Update(int32 idx, vector<int32> relics, const BoardInputFrame& input
 		DoRelic(relics);
 		relics_old = relics;
 		UpdateVisualMotions(input.delta_seconds);
+		AssertBoardState();
 	} else if (idx == 1) {
 		if (allow_input && input.focused && input.left_down) AddUsablePlace(input.cursor);
 	}
@@ -59,11 +60,10 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 
 		DrawOnlyBoard();//Boardの描画
 
-		const int32 dragged_index = drag_context.active ? ResolveDragBlockIndex() : -1;
 		for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {//ブロックの描画
 			const BoardBlockState& state = board_blocks[i];
-			if ((i != dragged_index) && state.block
-				&& BattleCardRules::IsLogicallyOnBoard(state.lifecycle)) {
+			if (state.block && (BattleCardRules::GetCardDrawLayer(state.lifecycle)
+				== BattleCardRules::CardDrawLayer::StaticBoard)) {
 				state.block->Draw(state.block->GetPos(), img_scale, 0.0, 1.0);
 			}
 		}
@@ -84,13 +84,23 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 	}
 }
 
-void Board::DrawDraggedBlock() const {
-	if (!drag_context.active) return;
-	const int32 dragged_index = ResolveDragBlockIndex();
-	if (!IsBoardBlockIndexValid(dragged_index)) return;
-	const BoardBlockState& dragged = board_blocks[dragged_index];
-	if (dragged.block) {
-		dragged.block->Draw(dragged.block->GetPos(), img_scale, 0.0, 1.0);
+void Board::DrawInteractionOverlay() const {
+	for (const auto& state : board_blocks) {
+		if (!state.block || (BattleCardRules::GetCardDrawLayer(state.lifecycle)
+			!= BattleCardRules::CardDrawLayer::ReturningOverlay)) continue;
+		const double scale = (state.lifecycle == BattleCardRules::CardLifecycle::ReturningToHand)
+			? 1.0 : img_scale;
+		state.block->Draw(state.block->GetPos(), scale, 0.0, 1.0);
+	}
+
+	if (drag_context.active) {
+		const int32 dragged_index = ResolveDragBlockIndex();
+		if (!IsBoardBlockIndexValid(dragged_index)) return;
+		const BoardBlockState& dragged = board_blocks[dragged_index];
+		if (dragged.block && (BattleCardRules::GetCardDrawLayer(dragged.lifecycle)
+			== BattleCardRules::CardDrawLayer::DraggingOverlay)) {
+			dragged.block->Draw(dragged.block->GetPos(), img_scale, 0.0, 1.0);
+		}
 	}
 }
 
@@ -113,14 +123,11 @@ void Board::CompleteVisualMotions() {
 		BattleCardRules::SettleReturnLifecycle(state.lifecycle);
 		TraceTransition(U"motion-forced-complete", state.deck_index);
 	}
+	AssertBoardState();
 }
 
 bool Board::IsDragging() const {
 	return drag_context.active;
-}
-
-bool Board::IsDraggingDeck(int32 deck_index) const {
-	return drag_context.active && (drag_context.deck_index == deck_index);
 }
 
 bool Board::CanStartHandDrag(int32 deck_index) const {
@@ -133,24 +140,8 @@ bool Board::CanStartHandDrag(int32 deck_index) const {
 bool Board::ShouldDrawAsHand(int32 deck_index) const {
 	const int32 index = FindBoardBlockIndex(deck_index);
 	if (!IsBoardBlockIndexValid(index)) return true;
-	return BattleCardRules::IsLogicallyInHand(board_blocks[index].lifecycle);
-}
-
-bool Board::IsReturningBoardCardHovered(Point cursor_pos) const {
-	for (auto it = board_blocks.rbegin(); it != board_blocks.rend(); ++it) {
-		const BoardBlockState& state = *it;
-		if (!state.block || (state.lifecycle != BattleCardRules::CardLifecycle::ReturningToBoard)) continue;
-		const Point screen_pos = { state.block->GetPos().first, state.block->GetPos().second };
-		for (int32 y = 0; y < state.block->Size().second; y++) {
-			for (int32 x = 0; x < state.block->Size().first; x++) {
-				const Piece& piece = state.block->GetPiece(x, y);
-				if (piece.content == '$') continue;
-				const Point center = screen_pos + GetScaledPieceOffset(piece);
-				if (RectF{ Arg::center(center), cell_size, cell_size }.contains(cursor_pos)) return true;
-			}
-		}
-	}
-	return false;
+	return BattleCardRules::GetCardDrawLayer(board_blocks[index].lifecycle)
+		== BattleCardRules::CardDrawLayer::StaticHand;
 }
 
 void Board::CancelActiveDrag() {

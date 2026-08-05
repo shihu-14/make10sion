@@ -564,20 +564,15 @@ void Battle::update()
 	}
 
 	int32 hand_hit_index = -1;
-	bool returning_hand_hit = false;
     for (int32 i = static_cast<int32>(Deck_table.size()) - 1; 0 <= i; --i) {
         const int32 deck_index = Deck_table[i];
         if ((deck_index < 0) || (static_cast<int32>(getData().Deck.size()) <= deck_index)) continue;
         const Block& block = getData().Deck[deck_index];
-		if ((block.GetStat() != 1) || !m_board.ShouldDrawAsHand(deck_index)
+		if ((block.GetStat() != 1) || !m_board.CanStartHandDrag(deck_index)
 			|| !block.IsHovered(input.cursor)) continue;
-		if (m_board.CanStartHandDrag(deck_index)) hand_hit_index = deck_index;
-		else returning_hand_hit = true;
+		hand_hit_index = deck_index;
 		break;
 	}
-	const bool returning_board_hit = (hand_hit_index < 0) && !returning_hand_hit
-		&& m_board.IsReturningBoardCardHovered(input.cursor);
-	const bool returning_card_hit = returning_hand_hit || returning_board_hit;
 
     if ((m_pointerInputOwner == BattleCardRules::PointerInputOwner::None) && input.left_down) {
         const bool board_hit = Rect{ 600, 170, 7 * 90, 6 * 90 }.contains(input.cursor);
@@ -587,7 +582,7 @@ void Battle::update()
 			can_accept_board_input && !m_board.IsDragging(),
             m_banner.IsDeckButtonHovered(input.cursor),
             m_button_hantei.contains(input.cursor),
-			(0 <= hand_hit_index) || returning_card_hit,
+			(0 <= hand_hit_index),
             board_hit);
     }
 
@@ -640,11 +635,9 @@ void Battle::update()
     }
     my_hpbar.update(0.1);
     ene_hpbar.update(0.1);
-    const bool card_owns_input = (m_pointerInputOwner == BattleCardRules::PointerInputOwner::Card);
 	m_board.Update(0, getData().leric.getLeric(), input,
-		can_accept_board_input && !hand_capture_failed
-			&& !returning_card_hit
-			&& (card_owns_input || (m_pointerInputOwner == BattleCardRules::PointerInputOwner::None)));
+		BattleCardRules::CanProcessBoardInput(can_accept_board_input,
+			hand_capture_failed, m_pointerInputOwner));
     if (input.left_up || !input.focused || (!input.left_down && !input.left_pressed)) {
         if (m_pointerInputOwner == BattleCardRules::PointerInputOwner::Deck) {
             m_banner.CancelPointerGesture();
@@ -682,8 +675,7 @@ void Battle::drawHandCards() const
     for (const int32 deck_index : Deck_table) {
         if ((deck_index < 0) || (static_cast<int32>(getData().Deck.size()) <= deck_index)) continue;
         const Block& block = getData().Deck[deck_index];
-		if ((block.GetStat() == 1) && m_board.ShouldDrawAsHand(deck_index)
-			&& !m_board.IsDraggingDeck(deck_index)) {
+		if ((block.GetStat() == 1) && m_board.ShouldDrawAsHand(deck_index)) {
             block.Draw(block.GetPos());
         }
     }
@@ -902,5 +894,5 @@ void Battle::draw() const
         // ゲームオーバーの描画処理
         break;
     }
-    m_board.DrawDraggedBlock();
+	m_board.DrawInteractionOverlay();
 }

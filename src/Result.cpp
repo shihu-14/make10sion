@@ -3,12 +3,11 @@ using namespace std;
 
 Result::Result(const InitData& init) : IScene(init),
 retry_rect(Arg::center = Vec2(Scene::Center().x - 450, Scene::Height() - 200), 300, 300, 20),
-// ¶‰ºŠñ‚èƒ{ƒ^ƒ“
+// å·¦ä¸‹å¯„ã‚Šãƒœã‚¿ãƒ³
 title_rect(Arg::center = Vec2(Scene::Center().x +450, Scene::Height() - 200), 300, 300, 20)
-// ‰E‰ºŠñ‚èƒ{ƒ^ƒ“
+// å³ä¸‹å¯„ã‚Šãƒœã‚¿ãƒ³
 {
 	Scene::SetBackground(Palette::Skyblue);
-	background = Texture(U"../../image/haikei_sentou.png");
 	title_back = Texture(U"../../image/bottun_titlehe.png");
 	retry = Texture(U"../../image/bottun_mouitido.png");
     
@@ -22,15 +21,15 @@ void Result::update(){
     if (retry_rect.mouseOver())
     {
         Cursor::RequestStyle(CursorStyle::Hand);
-        if (retry_rect.leftClicked()) { // ƒ}ƒEƒX¶ƒ{ƒ^ƒ“‚ªƒNƒŠƒbƒN‚³‚ê‚½uŠÔ
-            // 
-            changeScene(State::Map, 0.5s);
+        if (retry_rect.leftClicked()) { // ãƒã‚¦ã‚¹å·¦ãƒœã‚¿ãƒ³ãŒã‚¯ãƒªãƒƒã‚¯ã•ã‚ŒãŸç¬é–“
+			getData().ResetForNewRun();
+			changeScene(State::Battle, 0.5s);
         }
     }
     if (title_rect.mouseOver())
     {
         Cursor::RequestStyle(CursorStyle::Hand);
-        if (title_rect.leftClicked()) { // ƒ}ƒEƒX¶ƒ{ƒ^ƒ“‚ªƒNƒŠƒbƒN‚³‚ê‚½uŠÔ
+        if (title_rect.leftClicked()) { // ãƒã‚¦ã‚¹å·¦ãƒœã‚¿ãƒ³ãŒã‚¯ãƒªãƒƒã‚¯ã•ã‚ŒãŸç¬é–“
 
             changeScene(State::Title, 0.5s);
         }
@@ -38,17 +37,15 @@ void Result::update(){
 }
 
 void Result::draw() const{
-	//background.scaled(1.5).draw();
     title_back.drawAt(title_rect.center());
 	retry.drawAt(retry_rect.center());
-    if (getData().Layer == 30)
+    if (getData().run_outcome == GameStateRules::RunOutcome::Clear)
     {
-        font(U"Clear!\nScore:{} \n"_fmt(score)).drawAt(Scene::Center().x, Scene::Center().y - 100, ColorF{ 0.2 });
+        font(U"Clear!\nScore:{}\n"_fmt(score)).drawAt(Scene::Center().x, Scene::Center().y - 100, ColorF{ 0.2 });
     }
     else
     {
-        font(U"Game Over\nScore:{} \n"_fmt(score)).drawAt(Scene::Center().x, Scene::Center().y - 100, ColorF{ 0.2 });
+        font(U"Game Over\nScore:{}\n"_fmt(score)).drawAt(Scene::Center().x, Scene::Center().y - 100, ColorF{ 0.2 });
     }
 	
 }
-

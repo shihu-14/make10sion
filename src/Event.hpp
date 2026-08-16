@@ -1,21 +1,26 @@
-﻿#ifndef Event_HPP
+#ifndef Event_HPP
 #define Event_HPP
-#include <Siv3D.hpp> // OpenSiv3D v0.6.4
+
+#include <Siv3D.hpp>
+#include "Board.hpp"
 #include "common.hpp"
 
 class Event : public App::Scene {
 private:
-	//Write private functions or variables here.
-	Texture m_background;  // 背景画像用のTextureオブジェクト
+	Texture m_background;
 	Texture event;
 	const Font font;
 	std::vector<String> sentences;
 	size_t currentIndex;
+	Board unlock_board;
+	int32 unlock_target = 0;
+	int32 unlocked_in_event = 0;
+	RoundRect confirm_rect{ Arg::center = Vec2{ 960, 820 }, 360, 110, 20 };
+
 public:
 	Event(const InitData& init);
-	//Write public functions here.
 	void update() override;
 	void draw() const override;
 };
-#endif
 
+#endif

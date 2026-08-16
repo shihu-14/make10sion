@@ -1,4 +1,5 @@
 #include "../src/BattleCardRules.hpp"
+#include "../src/GameStateRules.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -306,6 +307,59 @@ void TestRepeatedBoardOverlapReturn() {
 	}
 }
 
+void TestBoardProgress() {
+	using namespace GameStateRules;
+	BoardProgress progress;
+	Expect(progress.UnlockedCount() == 6, "board progress starts with six cells");
+	Expect(CalculateHandLimit(progress) == 5, "six cells allow five hand cards");
+	Expect(progress.IsUnlockable({ 2, 1 }), "cell above the initial board is unlockable");
+	Expect(!progress.IsUnlockable({ 0, 0 }), "detached cell is not unlockable");
+	Expect(progress.Unlock({ 2, 1 }), "first event cell unlock succeeds");
+	Expect(!progress.Unlock({ 2, 1 }), "same event cell cannot unlock twice");
+	Expect(progress.Unlock({ 3, 1 }), "second event cell unlock succeeds");
+	Expect((progress.UnlockedCount() == 8) && (CalculateHandLimit(progress) == 6),
+		"two event cells increase the next hand limit");
+	Expect(ActIndex(0) == 0, "first act index starts at zero");
+	Expect(ActIndex(10) == 1, "second act index starts at layer ten");
+	Expect((ActIndex(29) == 2) && (FloorInAct(29) == 9),
+		"final boss uses act two floor nine");
+	const auto second_act = ResolveVictory(2, 9);
+	Expect((second_act.destination == VictoryDestination::NextActBattle)
+		&& (second_act.next_layer == 10), "first boss advances directly to layer ten");
+	const auto third_act = ResolveVictory(2, 19);
+	Expect((third_act.destination == VictoryDestination::NextActBattle)
+		&& (third_act.next_layer == 20), "second boss advances directly to layer twenty");
+	Expect(ResolveVictory(2, 29).destination == VictoryDestination::Result,
+		"final boss produces the clear result");
+	Expect(ResolveVictory(0, 29).destination == VictoryDestination::Map,
+		"non-boss victory does not finish the run");
+	BoardProgress fully_unlocked;
+	while (true) {
+		const auto candidates = fully_unlocked.UnlockableCells();
+		if (candidates.empty()) break;
+		Expect(fully_unlocked.Unlock(candidates.front()), "each reachable board cell unlocks once");
+	}
+	Expect(fully_unlocked.UnlockedCount() == BoardProgress::CellCount,
+		"board progress can unlock every cell without stale counts");
+	Expect(CalculateHandLimit(fully_unlocked) == 15, "hand limit remains capped at fifteen");
+}
+
+void TestBattleDeckState() {
+	using namespace GameStateRules;
+	BattleDeckState deck;
+	deck.Initialize(4, { 2, 0, 3, 1 });
+	Expect(deck.Validate(), "battle deck starts with one zone per card");
+	Expect(deck.Move(1, CardZone::DrawPile, CardZone::Hand), "draw moves one card to hand");
+	Expect(deck.Move(1, CardZone::Hand, CardZone::Board), "placement moves hand card to board");
+	Expect(deck.Move(1, CardZone::Board, CardZone::Discard), "turn end discards board card");
+	Expect(deck.Move(3, CardZone::DrawPile, CardZone::Discard), "second card moves to discard");
+	Expect(deck.Move(0, CardZone::DrawPile, CardZone::Discard), "third card moves to discard");
+	Expect(deck.Move(2, CardZone::DrawPile, CardZone::Discard), "fourth card moves to discard");
+	Expect(deck.RecycleDiscard(), "discard recycles only when all other zones are empty");
+	Expect(deck.Validate() && (deck.Cards(CardZone::DrawPile).size() == 4),
+		"recycled deck keeps every card exactly once");
+}
+
 } // namespace
 
 int main() {
@@ -318,6 +372,8 @@ int main() {
 	TestConcurrentReturnMotions();
 	TestForcedMotionCompletion();
 	TestRepeatedBoardOverlapReturn();
+	TestBoardProgress();
+	TestBattleDeckState();
 	if (failures != 0) return EXIT_FAILURE;
 	std::cout << "All battle card interaction tests passed\n";
 	return EXIT_SUCCESS;

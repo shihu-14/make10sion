@@ -7,6 +7,7 @@
 #include <Siv3D.hpp>
 #include "Block.hpp"
 #include "BattleCardRules.hpp"
+#include "GameStateRules.hpp"
 #include "leric.hpp"
 
 struct BoardInputFrame {
@@ -74,6 +75,7 @@ private:
 	Grid<char> board_content;
 	Grid<Point> board_coordinate;
 	Array<int32> num_on_board;
+	const Array<double> board_multiply_base = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };
 	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };
 	Array<double> board_multiply_effect = { 0,0,0,0,0,0 };
 	Array<int32> board_off_def = { 1,1,1,0,0,0 };//攻1守0
@@ -91,13 +93,12 @@ private:
 	DragContext drag_context;
 	int32 add_damage = 0;
 	int32 add_armor = 0;
-	std::vector<int32> relics_old;
 	bool do_armor_raise = false;
 	int32 add_damage_by_cards = 0;
 	int32 off_count = 3;
-	bool is_board_active = false;
 	uint64 current_frame_number = 0;
 	Array<String> interaction_trace;
+	std::vector<GameStateRules::CardZoneChange> pending_zone_changes;
 
 	//function
 	int32 FindBoardBlockIndex(int32 deck_index) const;
@@ -115,6 +116,8 @@ private:
 	bool ValidateBoardState(int32 allowed_target_index = -1, String* diagnostic = nullptr) const;
 	void AssertBoardState(int32 allowed_target_index = -1) const;
 	void TraceTransition(StringView event, int32 deck_index = -1, StringView detail = U"");
+	void QueueZoneChange(int32 deck_index, GameStateRules::CardZone expected,
+		GameStateRules::CardZone destination);
 	void DumpInteractionState(StringView context) const;
 	Point PutBlockAt(Point screen_pos) const;
 	DropPlan AnalyzeDrop(Point candidate_anchor, Point release_cursor, Point release_screen_pos) const;
@@ -135,7 +138,6 @@ private:
 	void GetPieceNum(char content, int y, int x);
 	void InitBoardCoordinate();
 	void TakeOutBlock(Point pos, Point cursor_pos);
-	void AddUsablePlace(Point cursor_pos);
 	void RebuildBoardDerivedState();
 	void CalcRow();
 	void DrawOnlyBoard() const;
@@ -152,15 +154,15 @@ public:
 		board_effect_back(Size{ 7,6 }, 0),
 		board_effect_front(Size{ 7,6 }, 0),
 		board_content(Size{ 7,6 }, '\0'),
-		board_coordinate(Size{ 7,6 }, Point{ 0,0 }),
-		relics_old(19, 0)
+		board_coordinate(Size{ 7,6 }, Point{ 0,0 })
 		{};
 
-	//variables
-	int32 unlocked_num = 6;
-
 	//functions
-	void InitAll();
+	void BeginBattle(const GameStateRules::BoardProgress& progress);
+	void BeginTurn();
+	void EndTurn();
+	void BeginUnlockSelection(const GameStateRules::BoardProgress& progress);
+	Point GetBoardCellAt(Point screen_pos) const;
 	void Discard();
 	void Update(int32 idx, std::vector<int32> relics, const BoardInputFrame& input, bool allow_input = true);
 	void DrawBoard(int32 idx) const;
@@ -173,6 +175,7 @@ public:
 	bool CanStartHandDrag(int32 deck_index) const;
 	bool ShouldDrawAsHand(int32 deck_index) const;
 	bool IsDragging() const;
+	std::vector<GameStateRules::CardZoneChange> ConsumeZoneChanges();
 };
 
 #endif

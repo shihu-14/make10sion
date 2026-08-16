@@ -54,6 +54,8 @@ private:
 	int32 my_defense_effect = 0; // 自分の防御力を減らすエフェクトのための変数
 	int32 ene_defense_effect = 0; // 敵の防御力のへらすエフェクトのための変数
 	int32 reward_money = 0; // 報酬の金額
+	std::vector<Block> m_cards;
+	GameStateRules::BattleDeckState m_deckState;
 
 
 	enum class BattleAnimationState
@@ -71,15 +73,7 @@ private:
 
 	// アニメーションの時間を制御するための変数
 	Stopwatch m_animeStopwatch;
-	Duration m_currentAnimDuration;
 
-
-	// デッキの状態を管理する変数
-	Array<int> Deck_id; // grobalのdeckの配列indexを管理
-	Array<int> Deck_yama;     // 山札 (元のGlobalDeckのコピー) 
-	Array<int> Deck_table;   // 手札 
-	Array<int> Deck_gomi;     // 捨て札
-	Array<int> Deck_board; 
 
 	// Texture 
 	Texture m_backgroundTexture; // 背景画像
@@ -130,13 +124,11 @@ private:
 	double enemy_image_alpha = 1.0; // 敵を倒した際のフェードアウト演出のための変数
 	RenderTexture m_combatSceneBuffer; // 戦闘画面全体を描き込むためのレンダーターゲット
 	RenderTexture m_blurInternalBuffer;
-    double m_blurAlpha = 0.0; 
 
 	int32 table_id = 0; // 手札のID
 	double yamahuda_angle = 0.0;
 	double sutehuda_angle = 0.0;
 	double tehuda_rate = 0.0;
-	double tehuda_angle = 0.0;
 
 	// コンストラクタで呼ばれる関数
 	int32 getTableSize() const;
@@ -146,6 +138,9 @@ private:
 	void getEnemyInfo();
 	void attack();
 	void updateTableDeck();
+	bool MoveCard(int32 card_id, GameStateRules::CardZone expected, GameStateRules::CardZone destination);
+	bool ApplyBoardZoneChanges();
+	const std::vector<int32>& Cards(GameStateRules::CardZone zone) const;
 	void updateCombatEnemyEffect();
 	void updateCombatMyEffect();
 	void updateDiscardEffect();

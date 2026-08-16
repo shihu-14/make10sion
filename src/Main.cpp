@@ -5,13 +5,17 @@
 # include "Battle.hpp"
 # include "Result.hpp"
 # include "Shop.hpp"
+# include "Event.hpp"
 # include "Deck.hpp"
+#if defined(DEBUG) || defined(_DEBUG)
+# include "DebugScenarioFactory.hpp"
+#endif
 
 using namespace std;
 
 void Main()
 {
-#ifndef NDEBUG
+#if defined(DEBUG) || defined(_DEBUG)
 	Logger << U"make10sion module: " << FileSystem::ModulePath();
 	Logger << U"make10sion working directory: " << FileSystem::CurrentDirectory();
 #endif
@@ -26,17 +30,28 @@ void Main()
 	//タイトル
 	Window::SetTitle(U"Arithmancer");
 
-	App manager;
+	auto shared_data = std::make_shared<GameData>();
+	State initial_state = State::Title;
+#if defined(DEBUG) || defined(_DEBUG)
+	if (System::GetCommandLineArgs().includes(U"--debug-midgame")) {
+		shared_data = DebugScenarioFactory::CreateMidgame();
+		initial_state = State::Battle;
+		Logger << U"make10sion debug scenario: midgame, layer=" << shared_data->Layer
+			<< U", unlocked=" << shared_data->board_progress.UnlockedCount()
+			<< U", hand_limit=" << GameStateRules::CalculateHandLimit(shared_data->board_progress)
+			<< U", deck_size=" << shared_data->Deck.size();
+	}
+#endif
+	App manager{ shared_data };
 	manager.add<Title>(State::Title);
 	manager.add<Map>(State::Map);
 	manager.add<Battle>(State::Battle);
 	manager.add<Result>(State::Result);
 	manager.add<Shop>(State::Shop);
+	manager.add<Event>(State::Event);
 
 
-	//XXX:debug用
-	//開始シーンを指定する
-	manager.init(State::Battle);
+	manager.init(initial_state);
 
 	while (System::Update() && manager.update()) {};
 }

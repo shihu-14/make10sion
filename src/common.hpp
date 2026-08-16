@@ -2,7 +2,7 @@
 # include <Siv3D.hpp>
 # include <vector>
 # include "Block.hpp"
-# include "Board.hpp"
+# include "GameStateRules.hpp"
 # include "leric.hpp"
 
 // シーンの名前
@@ -29,14 +29,12 @@ enum class MapPointType {
 // マップのノードデータ
 struct Node {
 	MapPointType type = MapPointType::None;
-	bool isVisited = false;
 	int NextLayerIndex = 0; // 次の層のインデックス (1:上層, 2:中層, 4:下層)
 };
 
-// 共有するデータ
-struct GameData
+inline std::vector<Block> CreateStarterDeck()
 {
-	std::vector<Block> Deck = {
+	return {
 		Block("2\n3"),
 		Block("2\n3"),
 		Block("3\n2"),
@@ -49,18 +47,25 @@ struct GameData
 		Block("+\n*"),
 		Block("+\n*")
 	};
+}
+
+// 共有するデータ
+struct GameData
+{
+	std::vector<Block> Deck = CreateStarterDeck();
 	int Layer = 0;
 	int Index = 1; // 現在のマップのインデックス
 	int HP = 80;
 	int MaxHP = 80;
 	int money = 100;
-	Board board;
-	long long status = 0; // 状態
+	GameStateRules::BoardProgress board_progress;
+	GameStateRules::RunOutcome run_outcome = GameStateRules::RunOutcome::None;
 	int enemy = 0;
 	Leric leric; // レリック
 
 	// Map Data
 	std::vector<std::vector<Node>> selected_nodes;
+	int selected_map_act = -1;
 
 	//Shop のカードデータ
 	// 通常カード
@@ -116,6 +121,22 @@ struct GameData
 		Block("*\n-\n*"),
 		Block("*4\n*$")
 	};
+
+	void ResetForNewRun()
+	{
+		Deck = CreateStarterDeck();
+		Layer = 0;
+		Index = 1;
+		HP = 80;
+		MaxHP = 80;
+		money = 100;
+		board_progress.Reset();
+		run_outcome = GameStateRules::RunOutcome::None;
+		enemy = 0;
+		leric.Reset();
+		selected_nodes.clear();
+		selected_map_act = -1;
+	}
 };
 
 using App = SceneManager<State, GameData>;

@@ -1,12 +1,6 @@
 #include "Banner.hpp"
 using namespace std;
 
-void Banner::init(int global_money, int global_floor, Leric& global_leric) {
-    money = global_money;
-    floor = global_floor;
-    leric = global_leric; // レリックの初期化
-}
-
 bool Banner::update(vector<Block>& deck_data, bool allow_deck_open) {
     return update(deck_data, allow_deck_open, Cursor::Pos(), MouseL.down(), MouseL.up(), Window::GetState().focused);
 }
@@ -55,7 +49,7 @@ void Banner::CancelPointerGesture() {
     deck_button_armed = false;
 }
 
-void Banner::draw() const {
+void Banner::draw(const int money, const int floor, const Leric& leric) const {
     if (deck_mode)
         deck.draw(); // デッキの描画
     banner_img.draw(0, 0);

@@ -3,7 +3,6 @@
 using namespace std;
 
 Shop::Shop(const InitData& init) : IScene(init), leric_alpha(4, 0.0), void_leric(4, false), leric_index(4, 0) {
-    banner.init(getData().money, getData().Layer, getData().leric); // バナーの初期化
 
     normal_1 = getData().normal_cards[Random<int>(0, (int)getData().normal_cards.size() - 1)];
     normal_2 = getData().normal_cards[Random<int>(0, (int)getData().normal_cards.size() - 1)];
@@ -42,7 +41,6 @@ void Shop::update() {
                 //Shopのカードを更新
                 void_normal_1 = true;
                 normal_1_alpha = 0.8; // 売り切れ
-                banner.init(getData().money, getData().Layer, getData().leric);
             } else {
                 //TODO:効果音！！
             }
@@ -69,7 +67,6 @@ void Shop::update() {
                 //Shopのカードを更新
                 void_normal_2 = true;
                 normal_2_alpha = 0.8; // 売り切れ
-                banner.init(getData().money, getData().Layer, getData().leric);
             } else {
             }
             return;
@@ -95,7 +92,6 @@ void Shop::update() {
                 //Shopのカードを更新
                 void_uncommon = true;
                 uncommon_alpha = 0.8; // 売り切れ
-                banner.init(getData().money, getData().Layer, getData().leric);
             } else {
             }
             return;
@@ -120,7 +116,6 @@ void Shop::update() {
                 //Shopのカードを更新
                 void_rare = true;
                 rare_alpha = 0.8; // 売り切れ
-                banner.init(getData().money, getData().Layer, getData().leric);
             } else {
             }
             return;
@@ -147,7 +142,6 @@ void Shop::update() {
                     //Shopのカードを更新
                     void_leric[i] = true;
                     leric_alpha[i] = 0.8; // 売り切れ
-                    banner.init(getData().money, getData().Layer, getData().leric);
                     if (getData().leric.getLeric().at(18))discount = 0.8;
                 } else {
                 }
@@ -239,7 +233,7 @@ void Shop::draw() const {
         }
     }
     // バナーの描画
-    banner.draw();
+    banner.draw(getData().money, getData().Layer, getData().leric);
 }
 
 void Shop::drawFadeIn(double t) const {
@@ -277,7 +271,7 @@ void Shop::drawFadeIn(double t) const {
     back_button_img.scaled(0.75).draw(1600, 800 + 50 * (1.0 - t), ColorF{ 1.0, 1.0, 1.0, time });
 
     // バナーの描画
-    banner.draw();
+    banner.draw(getData().money, getData().Layer, getData().leric);
     if (t <= 0.5) {
         const double progress = EaseInOutExpo(t * 2.0);
         loading_icon.draw(1920 * Math::Lerp(0.0, 1.0, progress), 0);

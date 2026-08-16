@@ -480,6 +480,10 @@ bool Board::ForceOrphanedDragToHand() {
 		recovered.lifecycle = BattleCardRules::CardLifecycle::InHand;
 		board_blocks.push_back(recovered);
 	}
+	if (drag_context.from_board && (deck_index >= 0)) {
+		QueueZoneChange(deck_index, GameStateRules::CardZone::Board,
+			GameStateRules::CardZone::Hand);
+	}
 	CalcRow();
 	TraceTransition(U"orphaned-drag-returned", deck_index);
 	const bool recovered = (deck_index >= 0) && (hand_slot >= 0) && (hand_pos != Point{ -1,-1 });
@@ -494,6 +498,12 @@ void Board::SetBoardBlockPosition(int32 index, Point anchor) {
     const Point screen_pos = GetBoardBlockScreenPosition(*state.block, anchor);
     state.block->SetPos(screen_pos.x, screen_pos.y);
     state.board_anchor = anchor;
+}
+
+void Board::QueueZoneChange(const int32 deck_index, const GameStateRules::CardZone expected,
+	const GameStateRules::CardZone destination) {
+	if ((deck_index < 0) || (expected == destination)) return;
+	pending_zone_changes.push_back({ deck_index, expected, destination });
 }
 
 void Board::SetBlockRotation(int32 index, int32 rotation) {
@@ -537,6 +547,10 @@ bool Board::ReturnDraggedBlockToHand() {
 	selected.board_anchor = { -1,-1 };
 	selected.block->SetStat(1);
 	StartVisualReturn(selected_index, BattleCardRules::CardLifecycle::ReturningToHand, return_pos);
+	if (drag_context.from_board) {
+		QueueZoneChange(selected.deck_index, GameStateRules::CardZone::Board,
+			GameStateRules::CardZone::Hand);
+	}
 	if (occupancy_changed) CalcRow();
 	TraceTransition(U"return-to-hand", selected.deck_index,
 		drag_context.from_board ? U"origin=board" : U"origin=hand");
@@ -591,6 +605,8 @@ bool Board::RestoreDraggedBlockAfterFailedCommit() {
 	if (drag_context.hand_pos == Point{ -1,-1 }) return ForceOrphanedDragToHand();
 	StartVisualReturn(selected_index, BattleCardRules::CardLifecycle::ReturningToHand,
 		drag_context.hand_pos);
+	QueueZoneChange(selected.deck_index, GameStateRules::CardZone::Board,
+		GameStateRules::CardZone::Hand);
 	CalcRow();
 	TraceTransition(U"rollback-fallback-hand", selected.deck_index);
 	ClearDrag();
@@ -660,6 +676,10 @@ void Board::PutBlock(Point release_cursor, Point release_screen_pos) {//blockが
 		selected.lifecycle = BattleCardRules::CardLifecycle::OnBoard;
 		selected.visual_motion = {};
 		selected.block->SetStat(2);
+		if (!drag_context.from_board) {
+			QueueZoneChange(selected.deck_index, GameStateRules::CardZone::Hand,
+				GameStateRules::CardZone::Board);
+		}
     } else if ((plan.type == DropType::Swap) && !drag_context.from_board) {
         const int32 target_index = FindBoardBlockIndex(plan.target_deck_index);
         if (!IsBoardBlockPlaced(target_index)
@@ -700,6 +720,8 @@ void Board::PutBlock(Point release_cursor, Point release_screen_pos) {//blockが
 				target.board_anchor = { -1,-1 };
 				StartVisualReturn(target_index,
 					BattleCardRules::CardLifecycle::ReturningToHand, target.hand_pos);
+				QueueZoneChange(target.deck_index, GameStateRules::CardZone::Board,
+					GameStateRules::CardZone::Hand);
 			}
 			CalcRow();
 			RollbackDraggedBlock();
@@ -717,6 +739,10 @@ void Board::PutBlock(Point release_cursor, Point release_screen_pos) {//blockが
 		target.board_anchor = { -1,-1 };
 		target.block->SetStat(1);
 		StartVisualReturn(target_index, BattleCardRules::CardLifecycle::ReturningToHand, target.hand_pos);
+		QueueZoneChange(selected.deck_index, GameStateRules::CardZone::Hand,
+			GameStateRules::CardZone::Board);
+		QueueZoneChange(target.deck_index, GameStateRules::CardZone::Board,
+			GameStateRules::CardZone::Hand);
 		TraceTransition(U"swap-place", selected.deck_index, U"target=" + Format(target.deck_index));
     } else {
         RollbackDraggedBlock();
@@ -767,28 +793,19 @@ void Board::InitBoardCoordinate() {//board_coordinateの初期化
 }
 
 void Board::DoRelic(vector<int32> relics) { //cf.) md
-    if (relics[3] > relics_old[3]) {
-        for (int i = 0;i < 6;i++) {
-            board_multiply[i] += 0.5;
-        }
-    }
-    const int32 new_off_count = 3 + relics[10] - relics[11];//攻防の範囲の動かす数を記録
+	if (relics.size() < 19) return;
+	for (int i = 0; i < 6; i++) {
+		board_multiply[i] = board_multiply_base[i] + relics[3] * 0.5;
+	}
+	const int32 new_off_count = 3 + relics[10] - relics[11];//攻防の範囲の動かす数を記録
     if (off_count != new_off_count) {
         off_count = new_off_count;
         RebuildBoardDerivedState();
     }
-    if (relics[13] > relics_old[13]) {
-        add_damage += (relics[13] - relics_old[13]) * 3;
-    }
-    if (relics[14] > relics_old[14]) {
-        add_armor = relics[14] * 3;
-    }
-
-    do_armor_raise = (relics[15] == 1);
-
-    if (relics[16] > relics_old[16]) {
-        add_damage_by_cards = relics[16];
-    }
+	add_damage = relics[13] * 3;
+	add_armor = relics[14] * 3;
+	do_armor_raise = (relics[15] == 1);
+	add_damage_by_cards = relics[16];
 }
 
 
@@ -840,6 +857,5 @@ bool Board::PassBlock(Block& selectedBlock, int32 deck_index, Point cursor_pos) 
 	selected.lifecycle = BattleCardRules::CardLifecycle::DraggingFromHand;
 	selected.visual_motion = {};
 	TraceTransition(U"drag-start-hand", deck_index);
-	is_board_active = true; // Boardをアクティブにする
 	return true;
 }

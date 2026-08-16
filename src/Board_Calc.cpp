@@ -124,7 +124,6 @@ void Board::CalcRow() {
 
 
 std::pair<int, int> Board::Confirm() {
-	is_board_active = !is_board_active;
 	CalcRow();
 	int attack = 0, defense = 0;
 	for (int i = 0; i < 6; i++) {
@@ -138,7 +137,8 @@ std::pair<int, int> Board::Confirm() {
 	for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {
 		if (IsBoardBlockPlaced(i)) placed_block_count++;
 	}
-	attack += add_damage_by_cards * placed_block_count;
+	attack += add_damage + add_damage_by_cards * placed_block_count;
+	defense += add_armor;
 	if (do_armor_raise) {
 		if (defense < 6)defense = 6;
 	}
@@ -155,43 +155,6 @@ void Board::Discard() {
 	board_effect_back.fill(0);
 	RebuildBoardDerivedState();
 }
-
-
-
-void Board::AddUsablePlace(Point cursor_pos) {
-	const int32 board_width = static_cast<int32>(board_usage.width());
-	const int32 board_height = static_cast<int32>(board_usage.height());
-	const Point cell = ScreenToBoardCell(cursor_pos);
-	if (cell == Point{ -1,-1 }) return;
-	const int32 bx = cell.x;
-	const int32 by = cell.y;
-	if (board_usage[by][bx] != -2)return;
-
-	board_usage[by][bx] = 0;
-	for (int i = 0; i < board_height; i++) {//使用不可の所の初期化
-		for (int j = 0; j < board_width; j++) {
-			if (board_usage[i][j] != 0)board_usage[i][j] = -1;
-		}
-	}
-	//ここ以降で使用可能に隣接する使用不可の所の計算を行う
-	for (int i = 0; i < board_height; i++) {
-		for (int j = 0; j < board_width; j++) {
-			if (board_usage[i][j] != -1)continue;
-			if (i < 2) {
-				if ((i + 1 < board_height) && (board_usage[i + 1][j] == 0)) board_usage[i][j] = -2;
-			} else if (i < 4) {
-				if ((j + 1 < board_width) && (board_usage[i][j + 1] == 0)) board_usage[i][j] = -2;
-				if ((0 < j) && (board_usage[i][j - 1] == 0)) board_usage[i][j] = -2;
-			} else {
-				if ((0 < i) && (board_usage[i - 1][j] == 0)) board_usage[i][j] = -2;
-			}
-		}
-	}
-	//ココまで
-
-}
-
-
 
 
 

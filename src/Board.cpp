@@ -2,7 +2,34 @@
 #include "Board.hpp"
 using namespace std;
 
-void Board::InitAll() {//毎ターン開始時に呼び出してもらう
+void Board::BeginBattle(const GameStateRules::BoardProgress& progress) {
+	InitBoardCoordinate();
+	for (int32 y = 0; y < GameStateRules::BoardProgress::Height; y++) {
+		for (int32 x = 0; x < GameStateRules::BoardProgress::Width; x++) {
+			board_usage[y][x] = progress.IsUnlocked({ x, y }) ? 0 : -1;
+		}
+	}
+	board_number.fill(0);
+	board_effect_back.fill(0);
+	board_effect_front.fill(0);
+	board_content.fill('\0');
+	num_on_board.clear();
+	board_multiply = board_multiply_base;
+	board_multiply_effect.fill(0);
+	board_off_def = { 1,1,1,0,0,0 };
+	result_of_calc.fill(0);
+	add_damage = 0;
+	add_armor = 0;
+	add_damage_by_cards = 0;
+	off_count = 3;
+	do_armor_raise = false;
+	board_blocks.clear();
+	drag_context = {};
+	interaction_trace.clear();
+	pending_zone_changes.clear();
+}
+
+void Board::BeginTurn() {//毎ターン開始時に呼び出してもらう
 	InitBoardCoordinate();
 	for (auto& usage : board_usage) if (usage > 0) usage = 0;
 	Discard();
@@ -10,11 +37,33 @@ void Board::InitAll() {//毎ターン開始時に呼び出してもらう
 	drag_context = {};
 }
 
+void Board::EndTurn() {
+	CancelActiveDrag();
+	for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {
+		if (!IsBoardBlockIndexValid(i)) continue;
+		SetBlockRotation(i, 0);
+	}
+}
+
+void Board::BeginUnlockSelection(const GameStateRules::BoardProgress& progress) {
+	InitBoardCoordinate();
+	for (int32 y = 0; y < GameStateRules::BoardProgress::Height; y++) {
+		for (int32 x = 0; x < GameStateRules::BoardProgress::Width; x++) {
+			const GameStateRules::BoardCell cell{ x, y };
+			board_usage[y][x] = progress.IsUnlocked(cell) ? 0
+				: (progress.IsUnlockable(cell) ? -2 : -1);
+		}
+	}
+}
+
+Point Board::GetBoardCellAt(Point screen_pos) const {
+	return ScreenToBoardCell(screen_pos);
+}
+
 //ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
 void Board::Update(int32 idx, vector<int32> relics, const BoardInputFrame& input, bool allow_input) {//idx : 0:バトル中, 1:リザルト(マス解放時)
 	current_frame_number = input.frame_number;
 	if (idx == 0) {
-		if (is_board_active) {
 			if (drag_context.active) {//Blockをドラッグしているとき
 				if (!input.focused || !allow_input || !IsDragContextValid()) {
 					RollbackDraggedBlock();
@@ -43,15 +92,11 @@ void Board::Update(int32 idx, vector<int32> relics, const BoardInputFrame& input
 					if (cell_pos != Point{ -1,-1 }) TakeOutBlock(cell_pos, input.cursor);
 				}
 			}
-		}
 
 		//レリック
 		DoRelic(relics);
-		relics_old = relics;
 		UpdateVisualMotions(input.delta_seconds);
 		AssertBoardState();
-	} else if (idx == 1) {
-		if (allow_input && input.focused && input.left_down) AddUsablePlace(input.cursor);
 	}
 }
 
@@ -128,6 +173,12 @@ void Board::CompleteVisualMotions() {
 
 bool Board::IsDragging() const {
 	return drag_context.active;
+}
+
+std::vector<GameStateRules::CardZoneChange> Board::ConsumeZoneChanges() {
+	auto changes = std::move(pending_zone_changes);
+	pending_zone_changes.clear();
+	return changes;
 }
 
 bool Board::CanStartHandDrag(int32 deck_index) const {

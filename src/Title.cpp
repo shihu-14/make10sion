@@ -22,7 +22,7 @@ fadeTextures(3)
 void Title::update() {
     if (go_to_map) {
         if (Time::GetMillisec() - timer > 9000) { // 6000ミリ秒待つ
-            getData().enemy = 0; // 敵の初期化
+            getData().ResetForNewRun();
             changeScene(State::Battle, 0.5s); // マップシーンへ遷移
         }
         return;

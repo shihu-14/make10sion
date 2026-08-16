@@ -23,7 +23,7 @@ void Board::RebuildBoardDerivedState() {
 			if (board_usage[y][x] <= 0) continue;
 			const auto definition = CardSymbolRules::Decode(board_content[y][x]);
 			if (definition.kind == CardSymbolRules::Kind::RowMultiplier) {
-				board_multiply_effect[y] = Max(board_multiply_effect[y], definition.row_multiplier);
+				board_multiply_effect[y] = definition.row_multiplier;
 			} else if (definition.kind == CardSymbolRules::Kind::RowMode) {
 				board_off_def[y] = (definition.row_mode == CardSymbolRules::RowMode::Attack) ? 1 : 0;
 			}
@@ -102,8 +102,8 @@ void Board::Discard() {
 	num_on_board.clear();
 	result_of_calc.fill(0);
 	row_valid.fill(true);
-	board_effect_front = board_effect_back;
-	board_effect_back.fill(0);
+	BoardCalculationRules::AdvanceDelayedEffects(
+		board_effect_front, board_effect_back, board_effect_committed);
 	RebuildBoardDerivedState();
 }
 

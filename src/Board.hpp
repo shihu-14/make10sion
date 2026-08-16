@@ -72,6 +72,7 @@ private:
 	Grid<int32> board_number;
 	Grid<int32> board_effect_back;
 	Grid<int32> board_effect_front;
+	Grid<int32> board_effect_committed;
 	Grid<char> board_content;
 	Grid<Point> board_coordinate;
 	Array<int32> num_on_board;
@@ -154,6 +155,7 @@ public:
 	Board() :board_number(Size{ 7,6 }, 0),
 		board_effect_back(Size{ 7,6 }, 0),
 		board_effect_front(Size{ 7,6 }, 0),
+		board_effect_committed(Size{ 7,6 }, 0),
 		board_content(Size{ 7,6 }, '\0'),
 		board_coordinate(Size{ 7,6 }, Point{ 0,0 })
 		{};

@@ -6,6 +6,7 @@
 #include "../src/GameStateRules.hpp"
 #include "../src/ShopRules.hpp"
 
+#include <array>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -472,8 +473,28 @@ void TestBoardCalculationRules() {
 	board.Set(0, 0, '2');
 	board.Set(1, 0, '3');
 	const auto adjacent = Evaluate(board);
-	Expect((adjacent.row_values[0] == 0) && !adjacent.row_valid[0],
-		"adjacent numbers make the row invalid");
+	Expect((adjacent.row_values[0] == 2) && adjacent.row_valid[0],
+		"an adjacent second number is ignored as in the historical evaluator");
+
+	board = Board{ 7, 6 };
+	board.Set(0, 0, '+');
+	board.Set(1, 0, '2');
+	board.Set(2, 0, '+');
+	board.Set(3, 0, '*');
+	board.Set(4, 0, '3');
+	board.Set(5, 0, '+');
+	const auto tolerant = Evaluate(board);
+	Expect((tolerant.row_values[0] == 5) && tolerant.row_valid[0],
+		"leading repeated and trailing operators are ignored as in the historical evaluator");
+
+	board = Board{ 7, 6 };
+	board.Set(0, 0, '2');
+	board.Set(1, 0, '+');
+	board.Set(2, 0, 'g');
+	board.Set(3, 0, '+');
+	board.Set(4, 0, '3');
+	Expect(Evaluate(board).row_values[0] == 5,
+		"tokens after an aggregate operand follow the historical tolerant evaluator");
 
 	board = Board{ 7, 6 };
 	board.Set(0, 0, '0');
@@ -490,8 +511,11 @@ void TestBoardCalculationRules() {
 	board.Set(0, 0, 'a');
 	board.Set(1, 0, 'c');
 	board.Set(2, 0, 'b');
-	Expect(Evaluate(board).row_multiplier_effects[0] == 2.0,
-		"multiple row multiplier cards use the greatest value regardless of order");
+	Expect(Evaluate(board).row_multiplier_effects[0] == 1.5,
+		"the rightmost row multiplier keeps the historical scan-order priority");
+	board.Set(3, 0, 'a');
+	Expect(Evaluate(board).row_multiplier_effects[0] == 1.0,
+		"a later smaller multiplier still overwrites earlier multipliers");
 
 	board = Board{ 7, 6 };
 	board.Set(0, 0, 'i');
@@ -506,8 +530,8 @@ void TestBoardCalculationRules() {
 	board.Set(0, 0, 'E');
 	board.Set(1, 0, '+');
 	board.Set(2, 0, '6');
-	Expect(Evaluate(board).row_values[0] == 0,
-		"an occupied-only uppercase cell cannot silently become a number");
+	Expect(Evaluate(board).row_values[0] == 6,
+		"an occupied-only uppercase cell is skipped instead of becoming an ASCII number");
 
 	Expect(!CheckedRowContribution(std::numeric_limits<int32_t>::max(), 2.0),
 		"out-of-range row contribution is rejected");
@@ -531,6 +555,90 @@ void TestBoardCalculationRules() {
 	int32_t total = std::numeric_limits<int32_t>::max();
 	Expect(!CheckedAdd(total, 1) && total == std::numeric_limits<int32_t>::max(),
 		"overflowing total is rejected without changing the prior total");
+}
+
+void TestDelayedEffectLifecycle() {
+	using namespace BoardCalculationRules;
+	struct DelayedCase {
+		char symbol;
+		int32_t current_value;
+		int32_t next_turn_bonus;
+	};
+	constexpr std::array cases{
+		DelayedCase{ 'q', 1, 1 },
+		DelayedCase{ 'j', 1, 2 },
+		DelayedCase{ 'k', 2, 2 },
+		DelayedCase{ 'l', 2, 4 },
+		DelayedCase{ 'o', 2, 1 },
+		DelayedCase{ 'p', 3, 1 },
+	};
+	for (const auto& delayed : cases) {
+		std::array<int32_t, 2> active{};
+		std::array<int32_t, 2> current{};
+		std::array<int32_t, 2> committed{};
+		const auto definition = CardSymbolRules::Decode(delayed.symbol);
+		Board current_turn{ 2, 1 };
+		current_turn.Set(0, 0, delayed.symbol);
+		Expect(Evaluate(current_turn).row_values[0] == delayed.current_value,
+			"a delayed card contributes its documented current-turn value");
+		current[0] = definition.next_turn_bonus;
+		CommitDelayedEffects(current, committed);
+		current[0] = 0;
+		AdvanceDelayedEffects(active, current, committed);
+
+		Board next_turn{ 2, 1 };
+		next_turn.Set(0, 0, '5', active[0]);
+		const auto next_result = Evaluate(next_turn);
+		Expect(definition.current_value == delayed.current_value
+			&& active[0] == delayed.next_turn_bonus
+			&& next_result.row_values[0] == (5 + delayed.next_turn_bonus),
+			"a committed delayed card affects the same cell on exactly the next turn");
+
+		CommitDelayedEffects(current, committed);
+		AdvanceDelayedEffects(active, current, committed);
+		Board following_turn{ 2, 1 };
+		following_turn.Set(0, 0, '5', active[0]);
+		Expect(Evaluate(following_turn).row_values[0] == 5,
+			"a delayed bonus expires after one turn unless generated again");
+	}
+
+	std::array<int32_t, 2> active{};
+	std::array<int32_t, 2> current{ 1, 0 };
+	std::array<int32_t, 2> committed{};
+	current[0] = 0;
+	CommitDelayedEffects(current, committed);
+	AdvanceDelayedEffects(active, current, committed);
+	Expect(active[0] == 0, "a delayed card returned to hand before confirmation leaves no bonus");
+
+	current[0] = 1;
+	CommitDelayedEffects(current, committed);
+	current[0] = 0;
+	AdvanceDelayedEffects(active, current, committed);
+	Board other_cell{ 2, 1 };
+	other_cell.Set(1, 0, '5', active[1]);
+	Expect(Evaluate(other_cell).row_values[0] == 5,
+		"a delayed bonus never moves to another board cell");
+
+	for (const char aggregate : { 'g', 'h', 'e' }) {
+		Board aggregate_board{ 2, 1 };
+		aggregate_board.Set(0, 0, aggregate, active[0]);
+		aggregate_board.Set(1, 0, '5');
+		Expect(Evaluate(aggregate_board).row_values[0] == 5,
+			"Max Min and Ave ignore a positional delayed bonus on a non-number cell");
+	}
+	Board operator_board{ 2, 1 };
+	operator_board.Set(0, 0, '+', active[0]);
+	operator_board.Set(1, 0, '5');
+	Expect(Evaluate(operator_board).row_values[0] == 5,
+		"an operator cell ignores its positional delayed bonus");
+
+	GameStateRules::BattleDeckState deck;
+	deck.Initialize(1);
+	Expect(deck.Move(0, GameStateRules::CardZone::DrawPile, GameStateRules::CardZone::Hand)
+		&& deck.Move(0, GameStateRules::CardZone::Hand, GameStateRules::CardZone::Board)
+		&& deck.Move(0, GameStateRules::CardZone::Board, GameStateRules::CardZone::Discard)
+		&& deck.Validate(),
+		"committing delayed effects does not weaken Board to Discard zone invariants");
 }
 
 void TestEnemyIntentRules() {
@@ -598,6 +706,7 @@ int main() {
 	TestBattleDeckState();
 	TestCardSymbolRules();
 	TestBoardCalculationRules();
+	TestDelayedEffectLifecycle();
 	TestEnemyIntentRules();
 	TestDebugScenarioRules();
 	TestShopRules();

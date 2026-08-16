@@ -61,6 +61,18 @@ struct Evaluation {
 	std::vector<int32_t> numbers;
 };
 
+template <class Storage>
+inline void CommitDelayedEffects(const Storage& current, Storage& committed) {
+	committed = current;
+}
+
+template <class Storage>
+inline void AdvanceDelayedEffects(Storage& active, Storage& current, Storage& committed) {
+	active = committed;
+	current.fill(0);
+	committed.fill(0);
+}
+
 namespace Detail {
 
 struct Token {
@@ -141,8 +153,7 @@ struct Token {
 					result.numbers.push_back(static_cast<int32_t>(value));
 				}
 			} else if (definition.kind == CardSymbolRules::Kind::RowMultiplier) {
-				result.row_multiplier_effects[y] = std::max(
-					result.row_multiplier_effects[y], definition.row_multiplier);
+				result.row_multiplier_effects[y] = definition.row_multiplier;
 			} else if (definition.kind == CardSymbolRules::Kind::RowMode) {
 				result.row_modes[y] = (definition.row_mode == CardSymbolRules::RowMode::Attack) ? 1 : 0;
 			}
@@ -152,21 +163,25 @@ struct Token {
 
 	for (int32_t y = 0; y < board.Height(); ++y) {
 		std::vector<Detail::Token> tokens;
-		bool invalid = false;
+		bool before_was_number = false;
+		bool before_was_operator = false;
 		for (int32_t x = 0; x < board.Width(); ++x) {
 			const Cell& cell = board.At(x, y);
 			if (!cell.occupied) continue;
 			const auto definition = CardSymbolRules::Decode(cell.symbol);
 			if (definition.kind == CardSymbolRules::Kind::Number) {
+				if (before_was_number) continue;
 				tokens.push_back({ true,
 					static_cast<double>(definition.current_value) + cell.front_bonus });
+				before_was_number = true;
+				before_was_operator = false;
 			} else if (definition.kind == CardSymbolRules::Kind::Operator) {
+				if (before_was_operator || !before_was_number) continue;
 				tokens.push_back({ false, 0.0, definition.operation });
+				before_was_number = false;
+				before_was_operator = true;
 			} else if (definition.kind == CardSymbolRules::Kind::Aggregate) {
-				if (result.numbers.empty()) {
-					invalid = true;
-					break;
-				}
+				if (before_was_number || result.numbers.empty()) continue;
 				double value = 0.0;
 				if (definition.aggregate == CardSymbolRules::Aggregate::Maximum) {
 					value = result.numbers.back();
@@ -177,12 +192,10 @@ struct Token {
 					value /= static_cast<double>(result.numbers.size());
 				}
 				tokens.push_back({ true, value });
+				before_was_number = true;
 			}
 		}
-		if (invalid) {
-			result.row_valid[y] = false;
-			continue;
-		}
+		if (!tokens.empty() && !tokens.back().is_number) tokens.pop_back();
 		const auto value = Detail::EvaluateTokens(tokens);
 		if (value) result.row_values[y] = *value;
 		else result.row_valid[y] = false;

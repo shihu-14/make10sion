@@ -1,5 +1,6 @@
 #include "Battle.hpp"
 #include "Board.hpp"
+#include "BoardCalculationRules.hpp"
 using namespace std;
 
 void Board::BeginBattle(const GameStateRules::BoardProgress& progress) {
@@ -12,6 +13,7 @@ void Board::BeginBattle(const GameStateRules::BoardProgress& progress) {
 	board_number.fill(0);
 	board_effect_back.fill(0);
 	board_effect_front.fill(0);
+	board_effect_committed.fill(0);
 	board_content.fill('\0');
 	num_on_board.clear();
 	board_multiply = board_multiply_base;
@@ -40,6 +42,7 @@ void Board::BeginTurn() {//毎ターン開始時に呼び出してもらう
 
 void Board::EndTurn() {
 	CancelActiveDrag();
+	BoardCalculationRules::CommitDelayedEffects(board_effect_back, board_effect_committed);
 	for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {
 		if (!IsBoardBlockIndexValid(i)) continue;
 		SetBlockRotation(i, 0);

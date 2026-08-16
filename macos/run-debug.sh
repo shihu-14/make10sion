@@ -28,12 +28,23 @@ if [[ "$actual_root" != "$repo_root" || "$actual_sha" != "$expected_sha"
 fi
 
 cat "$manifest_path"
-if [[ "${1:-}" == "--check" ]]; then
-	exit 0
-fi
-if (( $# != 0 )); then
-	echo "Usage: $0 [--check]" >&2
+run_args=()
+if (( $# == 1 )); then
+	case "$1" in
+		--check)
+			exit 0
+			;;
+		--debug-midgame)
+			run_args+=("--debug-midgame")
+			;;
+		*)
+			echo "Usage: $0 [--check|--debug-midgame]" >&2
+			exit 2
+			;;
+	esac
+elif (( $# != 0 )); then
+	echo "Usage: $0 [--check|--debug-midgame]" >&2
 	exit 2
 fi
 cd "$repo_root/macos/App"
-exec "$binary_path"
+exec "$binary_path" "${run_args[@]}"

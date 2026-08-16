@@ -18,6 +18,15 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "Siv3D: Run Midgame Debug",
+			"type": "shell",
+			"command": "${workspaceFolder}/macos/run-debug.sh",
+			"args": [
+				"--debug-midgame"
+			],
+			"problemMatcher": []
+		},
+		{
 			"label": "Siv3D: Test Battle Card Interactions",
 			"type": "shell",
 			"command": "${workspaceFolder}/tests/run-battle-card-tests.sh",

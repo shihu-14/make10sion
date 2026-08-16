@@ -85,7 +85,16 @@ const std::vector<int32>& Battle::Cards(const GameStateRules::CardZone zone) con
 bool Battle::MoveCard(const int32 card_id, const GameStateRules::CardZone expected,
     const GameStateRules::CardZone destination)
 {
-    if (!m_deckState.Move(card_id, expected, destination)) return false;
+	if (!m_deckState.CanMove(card_id, expected, destination)) return false;
+	if (GameStateRules::NeedsBoardDetach(expected, destination)
+		&& !m_board.DetachCard(card_id)) return false;
+	const bool moved = m_deckState.Move(card_id, expected, destination);
+#ifndef NDEBUG
+	if (!moved) assert(false && "CardZone transition failed after successful preflight");
+#else
+	(void)moved;
+#endif
+	if (!moved) return false;
     const int32 stat = (destination == GameStateRules::CardZone::DrawPile) ? 0
         : (destination == GameStateRules::CardZone::Hand) ? 1
         : (destination == GameStateRules::CardZone::Board) ? 2 : -1;
@@ -157,43 +166,30 @@ void Battle::AssertCardOwnership(const char* context) const
 
 void Battle::getEnemyInfo()
 {
-    if (m_currentAnimState == BattleAnimationState::Idle) {
-        // 盤面の操作をロックする
-        // 敵の攻撃・防御を取得
-        ene_attack = m_enemy.actionPattern[now_turn % action_cycle + turn_start].attack;
-        ene_defense = m_enemy.actionPattern[now_turn % action_cycle + turn_start].defense;
-        // -------特殊攻撃--------
-        if (ene_attack == -10) {
-            ene_attack = 3 + 2 * (table_max_size - static_cast<int32>(Cards(GameStateRules::CardZone::Hand).size()));
-        } else if (ene_attack == -11) {
-            ene_attack = 20;
-            now_turn++;
-            turn_start = now_turn;
-            action_cycle = 4;
-        } else if (ene_attack == -12) {
-            ene_attack = 60 - 4 * (table_max_size - static_cast<int32>(Cards(GameStateRules::CardZone::Hand).size()));
-        } else if (ene_attack == -13) {
-            ene_attack = 40;
-            getData().money -= 30;
-        } else if (ene_attack == -14) {
-            is_exit = true;
-            // 逃走の処理は保留
-        } else if (ene_attack == -15) {
-            ene_attack = 10 + 14 * (table_max_size - static_cast<int32>(Cards(GameStateRules::CardZone::Hand).size()));
-        } else if (ene_attack == -16) {
-            ene_attack = 30;
-            now_turn++;
-            turn_start = now_turn;
-            action_cycle = 5;
-        } else if (ene_attack == -17) {
-            ene_attack = 80;
-            is_boss3 = true; // ボス3の敵
-        } else if (ene_attack == -18) {
-            ene_attack = 2 + 3 * (table_max_size - static_cast<int32>(Cards(GameStateRules::CardZone::Hand).size()));
-        } else if (ene_attack == -19) {
-            ene_attack = 3 + 5 * (table_max_size - static_cast<int32>(Cards(GameStateRules::CardZone::Hand).size()));
-        }      
-    }
+	if ((m_currentAnimState != BattleAnimationState::Idle) || m_enemy.actionPattern.isEmpty()) return;
+	if (!m_enemyIntentState.has_action) {
+		const int32 pattern_size = static_cast<int32>(m_enemy.actionPattern.size());
+		const int64 raw_index = static_cast<int64>(now_turn % Max(action_cycle, 1)) + turn_start;
+		const int32 action_index = static_cast<int32>(((raw_index % pattern_size) + pattern_size) % pattern_size);
+		const EnemyAction& action = m_enemy.actionPattern[action_index];
+		EnemyIntentRules::PrepareAction(m_enemyIntentState, action.attack, action.defense);
+	}
+	const auto intent = EnemyIntentRules::ResolveFrame(m_enemyIntentState.side_effects_prepared, {
+		m_enemyIntentState.raw_attack,
+		m_enemyIntentState.raw_defense,
+		table_max_size,
+		static_cast<int32>(Cards(GameStateRules::CardZone::Hand).size()),
+	});
+	ene_attack = intent.attack;
+	ene_defense = intent.defense;
+	is_exit = intent.exit_requested;
+	is_boss3 = intent.cancels_player_damage;
+	getData().money += intent.money_delta;
+	if (intent.turn_advance != 0) {
+		now_turn += intent.turn_advance;
+		turn_start = now_turn;
+	}
+	if (intent.action_cycle_override != 0) action_cycle = intent.action_cycle_override;
 }
 
 // 「=」ボタンが押された時に呼び出される
@@ -400,6 +396,12 @@ void Battle::updateDiscardEffect()
             Vec2 to{ 1610, 950 };
             Vec2 pos = from.lerp(to, tehuda_rate);
             const int32 card_id = hand[table_id];
+			if (!m_board.DetachCard(card_id)) {
+#ifndef NDEBUG
+				assert(false && "Failed to detach hand card before discard animation");
+#endif
+				return;
+			}
             m_cards[card_id].SetPos(pos.x, pos.y); // 手札
             if (tehuda_rate >= 1) {
                 MoveCard(card_id, GameStateRules::CardZone::Hand, GameStateRules::CardZone::Discard);
@@ -473,6 +475,7 @@ void Battle::updateCardDrawEffect()
     is_board_locked = false;
     yamahuda_angle = 0.0;
     now_turn++;
+	m_enemyIntentState = {};
 }
 
 void Battle::updateWinEffect()

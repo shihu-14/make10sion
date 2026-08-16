@@ -18,6 +18,7 @@ void Board::BeginBattle(const GameStateRules::BoardProgress& progress) {
 	board_multiply_effect.fill(0);
 	board_off_def = { 1,1,1,0,0,0 };
 	result_of_calc.fill(0);
+	row_valid.fill(true);
 	add_damage = 0;
 	add_armor = 0;
 	add_damage_by_cards = 0;
@@ -193,6 +194,23 @@ bool Board::ShouldDrawAsHand(int32 deck_index) const {
 	if (!IsBoardBlockIndexValid(index)) return true;
 	return BattleCardRules::GetCardDrawLayer(board_blocks[index].lifecycle)
 		== BattleCardRules::CardDrawLayer::StaticHand;
+}
+
+bool Board::DetachCard(const int32 deck_index) {
+	const int32 index = FindBoardBlockIndex(deck_index);
+	if (!IsBoardBlockIndexValid(index)) return true;
+	const bool occupancy_changed = HasBoardOccupancy(index);
+	if (!ClearBoardBlock(index)) return false;
+	if (drag_context.active && (drag_context.deck_index == deck_index)) ClearDrag();
+	pending_zone_changes.erase(std::remove_if(pending_zone_changes.begin(), pending_zone_changes.end(),
+		[deck_index](const GameStateRules::CardZoneChange& change) {
+			return change.card_id == deck_index;
+		}), pending_zone_changes.end());
+	TraceTransition(U"detach-card", deck_index);
+	board_blocks.erase(board_blocks.begin() + index);
+	if (occupancy_changed) CalcRow();
+	AssertBoardState();
+	return true;
 }
 
 void Board::CancelActiveDrag() {

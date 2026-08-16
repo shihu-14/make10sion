@@ -7,6 +7,7 @@
 # include "Enemy.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
 # include "Banner.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
 # include "BattleCardRules.hpp"
+# include "EnemyIntentRules.hpp"
 #include "HPBar.hpp"
 
 // Data Manager の Deck を模倣したグローバル変数
@@ -32,6 +33,7 @@ private:
 	bool is_board_locked = false; // 盤面の操作がロックされているかどうか
 	bool is_exit = false; // 敵が逃走するか
 	bool is_boss3 = false;
+	EnemyIntentRules::TurnState m_enemyIntentState;
 	bool is_scene_transition_started = false;
 	BattleCardRules::PointerInputOwner m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
 	uint64 m_frameNumber = 0;

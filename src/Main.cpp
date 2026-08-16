@@ -34,6 +34,7 @@ void Main()
 	State initial_state = State::Title;
 #if defined(DEBUG) || defined(_DEBUG)
 	if (System::GetCommandLineArgs().includes(U"--debug-midgame")) {
+		Reseed(DebugScenarioRules::Midgame().seed);
 		shared_data = DebugScenarioFactory::CreateMidgame();
 		initial_state = State::Battle;
 		Logger << U"make10sion debug scenario: midgame, layer=" << shared_data->Layer

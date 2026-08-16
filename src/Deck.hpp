@@ -18,7 +18,7 @@ private:
 	std::vector<Block> deck_data; //デッキのカード
 	bool first_call = false;
 	bool fade_mode = true; //フェードインモード
-	int timer = 0; //フェードインのタイマー
+	uint64 timer = 0; //フェードインのタイマー
 	void updateFadeIn(double t);
 public:
 	void init(std::vector<Block>& deck);

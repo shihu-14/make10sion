@@ -1,5 +1,6 @@
 #include <Siv3D.hpp> // Siv3D v0.6.16
-#include "Block.hpp"  
+#include "Block.hpp"
+#include "CardSymbolRules.hpp"
 using namespace std;
 
 Block::Block() : sizeX(0), sizeY(0), stat(0), number_imgs(8), special_imgs(17), posX(0), posY(0) {
@@ -33,6 +34,10 @@ Block& Block::operator=(const Block& other) {
 }
 
 Block& Block::operator=(const string& value) {
+	if (!CardSymbolRules::IsValidCardDefinition(value)) {
+		Logger << U"Rejected invalid card definition";
+		return *this;
+	}
 	contents.clear();
 	// stringstream を使って文字列を行ごとに安全に処理します
 	std::stringstream ss(value);
@@ -106,14 +111,16 @@ void Block::Draw(pair<int, int> pos, double size, double angle, double alpha) co
 	for (int y = 0; y < sizeY; y++) {
 		for (int x = 0; x < sizeX; x++) {
 			const Piece& p = contents[x][y];
-			if (p.content == '$') continue;
+			const auto definition = CardSymbolRules::Decode(p.content);
+			if ((definition.kind == CardSymbolRules::Kind::Hole)
+				|| (definition.kind == CardSymbolRules::Kind::Unknown)) continue;
 			Texture img;
 			bool mode_alpha = false;
 			if (p.content == '+') img = plus_img;
 			else if (p.content == '-') img = minus_img;
 			else if (p.content == '*') img = kakeru_img;
 			else if (p.content == '/') img = waru_img;
-			else if (isdigit(p.content)) img = number_imgs[p.content - '0'];
+			else if (('0' <= p.content) && (p.content <= '7')) img = number_imgs[p.content - '0'];
 			else if ('a' <= p.content && p.content <= 'q') img = special_imgs[p.content - 'a'];
 			else if ('A' <= p.content && p.content <= 'H') {
 				mode_alpha = true;

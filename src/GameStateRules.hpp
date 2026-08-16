@@ -69,6 +69,10 @@ public:
 		return true;
 	}
 
+	void UnlockAll() noexcept {
+		m_unlocked.fill(true);
+	}
+
 	[[nodiscard]] int32_t UnlockedCount() const noexcept {
 		return static_cast<int32_t>(std::count(m_unlocked.begin(), m_unlocked.end(), true));
 	}
@@ -83,6 +87,10 @@ private:
 
 [[nodiscard]] inline int32_t CalculateHandLimit(const BoardProgress& progress) noexcept {
 	return std::min<int32_t>(15, progress.UnlockedCount() / 2 + 2);
+}
+
+[[nodiscard]] inline uint64_t ElapsedMillis(const uint64_t now, const uint64_t start) noexcept {
+	return (start <= now) ? (now - start) : 0;
 }
 
 enum class RunOutcome {
@@ -128,6 +136,13 @@ enum class CardZone {
 	Discard,
 };
 
+[[nodiscard]] inline bool NeedsBoardDetach(const CardZone expected,
+	const CardZone destination) noexcept {
+	const bool was_board_managed = (expected == CardZone::Hand) || (expected == CardZone::Board);
+	const bool remains_board_managed = (destination == CardZone::Hand) || (destination == CardZone::Board);
+	return was_board_managed && !remains_board_managed;
+}
+
 struct CardZoneChange {
 	int32_t card_id = -1;
 	CardZone expected = CardZone::DrawPile;
@@ -166,14 +181,22 @@ public:
 		return Container(zone);
 	}
 
-	bool Move(const int32_t card_id, const CardZone expected, const CardZone destination) {
+	[[nodiscard]] bool CanMove(const int32_t card_id, const CardZone expected,
+		const CardZone destination) const noexcept {
 		if (!IsValidCard(card_id) || (ZoneOf(card_id) != expected)) return false;
+		if (expected == destination) return true;
+		const auto& source = Container(expected);
+		const auto& target = Container(destination);
+		return (std::find(source.begin(), source.end(), card_id) != source.end())
+			&& (std::find(target.begin(), target.end(), card_id) == target.end());
+	}
+
+	bool Move(const int32_t card_id, const CardZone expected, const CardZone destination) {
+		if (!CanMove(card_id, expected, destination)) return false;
 		if (expected == destination) return true;
 		auto& source = Container(expected);
 		const auto it = std::find(source.begin(), source.end(), card_id);
-		if (it == source.end()) return false;
 		auto& target = Container(destination);
-		if (std::find(target.begin(), target.end(), card_id) != target.end()) return false;
 		source.erase(it);
 		target.push_back(card_id);
 		m_zones[static_cast<std::size_t>(card_id)] = destination;

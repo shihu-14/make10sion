@@ -21,8 +21,8 @@ fadeTextures(3)
 
 void Title::update() {
     if (go_to_map) {
-        if (Time::GetMillisec() - timer > 9000) { // 6000ミリ秒待つ
-            getData().enemy = 0; // 敵の初期化
+        if (GameStateRules::ElapsedMillis(Time::GetMillisec(), timer) > 9000) { // 6000ミリ秒待つ
+            getData().ResetForNewRun();
             changeScene(State::Battle, 0.5s); // マップシーンへ遷移
         }
         return;
@@ -53,7 +53,7 @@ void Title::draw() const {
     m_titlelogo.drawAt(Scene::Center().x, Scene::Center().y - 100); // タイトルロゴを画面中央に配置
 
     if (go_to_map) {
-        int time = Time::GetMillisec() - timer;
+        const uint64 time = GameStateRules::ElapsedMillis(Time::GetMillisec(), timer);
         double animation = 0.0;
         if (time < 1000){
             const double t = static_cast<double>(time) / 1000.0; // 0.0から1.0の範囲に正規化

@@ -1,4 +1,5 @@
 #include "leric.hpp"
+#include <algorithm>
 using namespace std;
 
 Leric::Leric() :leric_imgs(19), leric_sum(19, 0) {
@@ -9,6 +10,14 @@ Leric::Leric() :leric_imgs(19), leric_sum(19, 0) {
 
 vector<int>& Leric::getLeric() {
 	return leric_sum;
+}
+
+const vector<int>& Leric::getLeric() const {
+	return leric_sum;
+}
+
+void Leric::Reset() {
+	std::fill(leric_sum.begin(), leric_sum.end(), 0);
 }
 void Leric::draw() const {
 	// 画像を描画

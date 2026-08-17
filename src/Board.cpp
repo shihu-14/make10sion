@@ -1,55 +1,106 @@
 #include "Battle.hpp"
 #include "Board.hpp"
+#include "BoardCalculationRules.hpp"
 using namespace std;
 
-void Board::InitAll() {//毎ターン開始時に呼び出してもらう
+void Board::BeginBattle(const GameStateRules::BoardProgress& progress) {
 	InitBoardCoordinate();
-	used_blocks.clear();
-	block_hand_pos.clear();
-	block_anim.clear();
+	for (int32 y = 0; y < GameStateRules::BoardProgress::Height; y++) {
+		for (int32 x = 0; x < GameStateRules::BoardProgress::Width; x++) {
+			board_usage[y][x] = progress.IsUnlocked({ x, y }) ? 0 : -1;
+		}
+	}
+	board_number.fill(0);
+	board_effect_back.fill(0);
+	board_effect_front.fill(0);
+	board_effect_committed.fill(0);
+	board_content.fill('\0');
+	num_on_board.clear();
+	board_multiply = board_multiply_base;
+	board_multiply_effect.fill(0);
+	board_off_def = { 1,1,1,0,0,0 };
+	result_of_calc.fill(0);
+	row_valid.fill(true);
+	add_damage = 0;
+	add_armor = 0;
+	add_damage_by_cards = 0;
+	off_count = 3;
+	do_armor_raise = false;
+	board_blocks.clear();
+	drag_context = {};
+	interaction_trace.clear();
+	pending_zone_changes.clear();
+}
+
+void Board::BeginTurn() {//毎ターン開始時に呼び出してもらう
+	InitBoardCoordinate();
 	for (auto& usage : board_usage) if (usage > 0) usage = 0;
-	blockNum = 0;
+	Discard();
+	board_blocks.clear();
+	drag_context = {};
+}
+
+void Board::EndTurn() {
+	CancelActiveDrag();
+	BoardCalculationRules::CommitDelayedEffects(board_effect_back, board_effect_committed);
+	for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {
+		if (!IsBoardBlockIndexValid(i)) continue;
+		SetBlockRotation(i, 0);
+	}
+}
+
+void Board::BeginUnlockSelection(const GameStateRules::BoardProgress& progress) {
+	InitBoardCoordinate();
+	for (int32 y = 0; y < GameStateRules::BoardProgress::Height; y++) {
+		for (int32 x = 0; x < GameStateRules::BoardProgress::Width; x++) {
+			const GameStateRules::BoardCell cell{ x, y };
+			board_usage[y][x] = progress.IsUnlocked(cell) ? 0
+				: (progress.IsUnlockable(cell) ? -2 : -1);
+		}
+	}
+}
+
+Point Board::GetBoardCellAt(Point screen_pos) const {
+	return ScreenToBoardCell(screen_pos);
 }
 
 //ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
-void Board::Update(int32 idx, vector<int32> relics) {//idx : 0:バトル中, 1:リザルト(マス解放時)
+void Board::Update(int32 idx, vector<int32> relics, const BoardInputFrame& input, bool allow_input) {//idx : 0:バトル中, 1:リザルト(マス解放時)
+	current_frame_number = input.frame_number;
 	if (idx == 0) {
-		if (is_board_active) {
-			if (is_block_selected) {//Blockをドラッグしているとき
-				used_blocks.at(block_number)->SetPos(Cursor::Pos().x, Cursor::Pos().y);
-				if (!used_blocks.at(block_number)->IsDragging()) {
-					PutBlock();
-				}
+			if (drag_context.active) {//Blockをドラッグしているとき
+				if (!input.focused || !allow_input || !IsDragContextValid()) {
+					RollbackDraggedBlock();
+					if (!input.focused || !allow_input) CompleteVisualMotions();
+				} else {
+					BoardBlockState& selected = board_blocks[drag_context.board_block_index];
+					const Point drag_pos = input.cursor + drag_context.cursor_offset;
+					if (input.left_pressed || input.left_up) {
+						selected.block->SetPos(drag_pos.x, drag_pos.y);
 
-				if (MouseR.down()) {//blockの回転
-					used_blocks.at(block_number)->Rotate();
+						if (input.left_pressed && input.right_down) {//blockの回転
+							selected.block->Rotate();
+							selected.rotation = (selected.rotation + 1) % 4;
+							drag_context.rotation_steps = (drag_context.rotation_steps + 1) % 4;
+						}
+					}
+					if (input.left_up) {
+						PutBlock(input.cursor, drag_pos);
+					} else if (!input.left_pressed) {
+						PutBlock(input.cursor, drag_pos);
+					}
 				}
-			} else {
-				Point cell_pos = (Cursor::Pos() - offset) / cell_size;//ボードのどこのマスにあたるか
-				if (((0 <= cell_pos.x) && (cell_pos.x <= 7)) && ((0 <= cell_pos.y) && (cell_pos.y <= 6)) && MouseL.down()) {//ボード内でクリックされたとき
-					TakeOutBlock(cell_pos);
+			} else if (allow_input && input.focused) {
+				if (input.left_down) {//ボード内でクリックされたとき
+					const Point cell_pos = ScreenToBoardCell(input.cursor);
+					if (cell_pos != Point{ -1,-1 }) TakeOutBlock(cell_pos, input.cursor);
 				}
 			}
-		}
 
 		//レリック
 		DoRelic(relics);
-		relics_old = relics;
-
-		//アニメーション
-		for (int i = 0; i < used_blocks.size(); i++) {
-			if (block_anim[i] == 1) {
-				//手札へ移動するブロック
-				BlockAnimation(used_blocks[i], block_hand_pos[i], block_anim[i]);
-			} else if (block_anim[i] == 2) {
-				//捨札へ移動するブロック
-				BlockAnimation(used_blocks[i], Point{ 1600, 880 }, block_anim[i]);//捨て札の座標を指定
-			}
-		}
-
-
-	} else if (idx == 1) {
-		if (MouseL.down())AddUsablePlace();
+		UpdateVisualMotions(input.delta_seconds);
+		AssertBoardState();
 	}
 }
 
@@ -58,9 +109,11 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 
 		DrawOnlyBoard();//Boardの描画
 
-		for (int i = 0; i < used_blocks.size(); i++) {//ブロックの描画
-			if (block_anim[i] >= 0) {
-				used_blocks[i]->Draw(used_blocks[i]->GetPos(), img_scale, 0.0, 1.0);
+		for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {//ブロックの描画
+			const BoardBlockState& state = board_blocks[i];
+			if (state.block && (BattleCardRules::GetCardDrawLayer(state.lifecycle)
+				== BattleCardRules::CardDrawLayer::StaticBoard)) {
+				state.block->Draw(state.block->GetPos(), img_scale, 0.0, 1.0);
 			}
 		}
 		Array<int32> dy = { 10,10, 10, -10,-10,-10 };
@@ -78,4 +131,92 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 	} else if (idx == 1) {
 		DrawAddPlaceBoard();
 	}
+}
+
+void Board::DrawInteractionOverlay() const {
+	for (const auto& state : board_blocks) {
+		if (!state.block || (BattleCardRules::GetCardDrawLayer(state.lifecycle)
+			!= BattleCardRules::CardDrawLayer::ReturningOverlay)) continue;
+		const double scale = (state.lifecycle == BattleCardRules::CardLifecycle::ReturningToHand)
+			? 1.0 : img_scale;
+		state.block->Draw(state.block->GetPos(), scale, 0.0, 1.0);
+	}
+
+	if (drag_context.active) {
+		const int32 dragged_index = ResolveDragBlockIndex();
+		if (!IsBoardBlockIndexValid(dragged_index)) return;
+		const BoardBlockState& dragged = board_blocks[dragged_index];
+		if (dragged.block && (BattleCardRules::GetCardDrawLayer(dragged.lifecycle)
+			== BattleCardRules::CardDrawLayer::DraggingOverlay)) {
+			dragged.block->Draw(dragged.block->GetPos(), img_scale, 0.0, 1.0);
+		}
+	}
+}
+
+void Board::UpdateVisualMotions(double delta_seconds) {
+	for (auto& state : board_blocks) {
+		if (!state.visual_motion.active || !state.block) continue;
+		const bool completed = BattleCardRules::AdvanceVisualMotion(state.visual_motion, delta_seconds);
+		state.block->SetPos(state.visual_motion.current.x, state.visual_motion.current.y);
+		if (!completed) continue;
+		BattleCardRules::SettleReturnLifecycle(state.lifecycle);
+		TraceTransition(U"motion-complete", state.deck_index);
+	}
+}
+
+void Board::CompleteVisualMotions() {
+	for (auto& state : board_blocks) {
+		if (!state.visual_motion.active || !state.block) continue;
+		BattleCardRules::CompleteVisualMotion(state.visual_motion);
+		state.block->SetPos(state.visual_motion.end.x, state.visual_motion.end.y);
+		BattleCardRules::SettleReturnLifecycle(state.lifecycle);
+		TraceTransition(U"motion-forced-complete", state.deck_index);
+	}
+	AssertBoardState();
+}
+
+bool Board::IsDragging() const {
+	return drag_context.active;
+}
+
+std::vector<GameStateRules::CardZoneChange> Board::ConsumeZoneChanges() {
+	auto changes = std::move(pending_zone_changes);
+	pending_zone_changes.clear();
+	return changes;
+}
+
+bool Board::CanStartHandDrag(int32 deck_index) const {
+	const int32 index = FindBoardBlockIndex(deck_index);
+	return IsBoardBlockIndexValid(index)
+		&& (board_blocks[index].lifecycle == BattleCardRules::CardLifecycle::InHand)
+		&& !board_blocks[index].visual_motion.active;
+}
+
+bool Board::ShouldDrawAsHand(int32 deck_index) const {
+	const int32 index = FindBoardBlockIndex(deck_index);
+	if (!IsBoardBlockIndexValid(index)) return true;
+	return BattleCardRules::GetCardDrawLayer(board_blocks[index].lifecycle)
+		== BattleCardRules::CardDrawLayer::StaticHand;
+}
+
+bool Board::DetachCard(const int32 deck_index) {
+	const int32 index = FindBoardBlockIndex(deck_index);
+	if (!IsBoardBlockIndexValid(index)) return true;
+	const bool occupancy_changed = HasBoardOccupancy(index);
+	if (!ClearBoardBlock(index)) return false;
+	if (drag_context.active && (drag_context.deck_index == deck_index)) ClearDrag();
+	pending_zone_changes.erase(std::remove_if(pending_zone_changes.begin(), pending_zone_changes.end(),
+		[deck_index](const GameStateRules::CardZoneChange& change) {
+			return change.card_id == deck_index;
+		}), pending_zone_changes.end());
+	TraceTransition(U"detach-card", deck_index);
+	board_blocks.erase(board_blocks.begin() + index);
+	if (occupancy_changed) CalcRow();
+	AssertBoardState();
+	return true;
+}
+
+void Board::CancelActiveDrag() {
+	if (drag_context.active) RollbackDraggedBlock();
+	CompleteVisualMotions();
 }

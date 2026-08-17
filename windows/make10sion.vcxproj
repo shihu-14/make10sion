@@ -262,12 +262,15 @@
   <ItemGroup>
     <ClInclude Include="..\src\Banner.hpp" />
     <ClInclude Include="..\src\Battle.hpp" />
+    <ClInclude Include="..\src\BattleCardRules.hpp" />
+	<ClInclude Include="..\src\DebugScenarioFactory.hpp" />
     <ClInclude Include="..\src\Block.hpp" />
     <ClInclude Include="..\src\Board.hpp" />
     <ClInclude Include="..\src\common.hpp" />
     <ClInclude Include="..\src\Deck.hpp" />
     <ClInclude Include="..\src\Enemy.hpp" />
     <ClInclude Include="..\src\Event.hpp" />
+	<ClInclude Include="..\src\GameStateRules.hpp" />
     <ClInclude Include="..\src\HPBar.hpp" />
     <ClInclude Include="..\src\leric.hpp" />
     <ClInclude Include="..\src\Map.hpp" />

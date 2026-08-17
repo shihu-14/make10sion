@@ -75,34 +75,29 @@ code .
 
 ### VS Codeからビルド・実行
 
-VS Codeでリポジトリのルートフォルダを開き、`Command + Shift + B`を押します。既定タスク`Siv3D: Build and Run macOS`が次の順番で実行されます。
+VS Codeでリポジトリのルートフォルダを開き、`Command + Shift + B`を押します。既定タスク`Siv3D: Build macOS`はclean buildだけを実行し、アプリを自動では起動しません。
 
-1. `xcodebuild`でDebug版の`x86_64`アプリを`macos/App/make10sion.app`へ出力
-2. `macos/App`を作業ディレクトリとしてアプリを起動
+ビルド成功後、`macos/App/make10sion-build-provenance.txt`へworktree、コミットSHA、実行ファイルのSHA-256とUUIDを記録します。`Siv3D: Run macOS`はこの記録が現在のworktreeと一致する場合だけアプリを起動します。
 
 個別に実行する場合は、VS Codeの「Terminal」→「Run Task...」から次のタスクを選択します。
 
 - `Siv3D: Build macOS`
 - `Siv3D: Run macOS`
 - `Siv3D: Build and Run macOS`
+- `Siv3D: Test Battle Card Interactions`
 
 ターミナルから同じビルドを行う場合は次を実行します。
 
 ```bash
-xcodebuild \
-  -project macos/make10sion.xcodeproj \
-  -target make10sion \
-  -configuration Debug \
-  ARCHS=x86_64 \
-  ONLY_ACTIVE_ARCH=YES \
-  build
+./macos/build-debug.sh
 ```
 
 実行コマンドは次のとおりです。
 
 ```bash
-cd macos/App
-./make10sion.app/Contents/MacOS/make10sion
+./macos/run-debug.sh
 ```
+
+アプリを起動せず由来情報だけを検証する場合は`./macos/run-debug.sh --check`を使用できます。
 
 Xcodeの画面を普段開く必要はありません。VS Codeのタスクが、Xcodeに付属する`xcodebuild`とmacOS SDKをバックエンドとして使用します。

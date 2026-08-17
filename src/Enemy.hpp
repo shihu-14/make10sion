@@ -19,7 +19,6 @@ struct EnemyData
 	int32 layer; // 序盤0、中盤1、終盤2
 	int32 maxHp = 0;
 	Array<EnemyAction> actionPattern; // ターンごとの行動パターン
-	bool isDefeated = false;
 };
 
 // ゲームに登場するすべての敵データを管理するクラス
@@ -31,7 +30,6 @@ private:
 
 public:
 	Enemy();
-	void markAsDefeated(const String& enemyName); // 指定された敵を「倒した」状態にす
-	const EnemyData& getOneEnemy(int32 type, int32 layer) const; // データベースからランダムな敵データを1体返す
+	const EnemyData& getOneEnemy(int32 type, int32 act) const; // データベースからランダムな敵データを1体返す
 };
 #endif

@@ -494,11 +494,20 @@
     <ClInclude Include="..\src\Battle.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\BattleCardRules.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+	<ClInclude Include="..\src\DebugScenarioFactory.hpp">
+	  <Filter>Header Files</Filter>
+	</ClInclude>
     <ClInclude Include="..\src\Enemy.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\HPBar.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+	<ClInclude Include="..\src\GameStateRules.hpp">
+	  <Filter>Header Files</Filter>
+	</ClInclude>
   </ItemGroup>
 </Project>

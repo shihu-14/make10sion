@@ -1,9 +1,8 @@
 #include "Shop.hpp"
-#define M_PI 3.14159265358979323846
+#include "ShopRules.hpp"
 using namespace std;
 
 Shop::Shop(const InitData& init) : IScene(init), leric_alpha(4, 0.0), void_leric(4, false), leric_index(4, 0) {
-    banner.init(getData().money, getData().Layer, getData().leric); // バナーの初期化
 
     normal_1 = getData().normal_cards[Random<int>(0, (int)getData().normal_cards.size() - 1)];
     normal_2 = getData().normal_cards[Random<int>(0, (int)getData().normal_cards.size() - 1)];
@@ -13,14 +12,17 @@ Shop::Shop(const InitData& init) : IScene(init), leric_alpha(4, 0.0), void_leric
     if (getData().leric.getLeric().at(18))discount = 0.8;
 
     vector<int> available_lerics = { 3,5,10,11,13,14,15,16,18 };
-    map<int, bool> once_lerics = {
-        { 3, false }, { 10, false }, { 11, false },{ 18, false }
-    };
+    available_lerics.erase(std::remove_if(available_lerics.begin(), available_lerics.end(),
+        [this](const int relic_index) {
+            return !ShopRules::CanOfferRelic(relic_index,
+                getData().leric.getLeric().at(relic_index), false);
+        }), available_lerics.end());
     for (int i = 0; i < 4; i++) {
         int index = Random<int>(0, (int)available_lerics.size() - 1);
         leric_index[i] = available_lerics[index];
-        if ((once_lerics.count(leric_index[i]) > 0) && (getData().leric.getLeric().at(leric_index[i]) > 0))
-            i--;
+        if (ShopRules::IsOneTimeRelic(leric_index[i])) {
+            available_lerics.erase(available_lerics.begin() + index);
+        }
     }
 }
 
@@ -42,7 +44,6 @@ void Shop::update() {
                 //Shopのカードを更新
                 void_normal_1 = true;
                 normal_1_alpha = 0.8; // 売り切れ
-                banner.init(getData().money, getData().Layer, getData().leric);
             } else {
                 //TODO:効果音！！
             }
@@ -69,7 +70,6 @@ void Shop::update() {
                 //Shopのカードを更新
                 void_normal_2 = true;
                 normal_2_alpha = 0.8; // 売り切れ
-                banner.init(getData().money, getData().Layer, getData().leric);
             } else {
             }
             return;
@@ -95,7 +95,6 @@ void Shop::update() {
                 //Shopのカードを更新
                 void_uncommon = true;
                 uncommon_alpha = 0.8; // 売り切れ
-                banner.init(getData().money, getData().Layer, getData().leric);
             } else {
             }
             return;
@@ -120,7 +119,6 @@ void Shop::update() {
                 //Shopのカードを更新
                 void_rare = true;
                 rare_alpha = 0.8; // 売り切れ
-                banner.init(getData().money, getData().Layer, getData().leric);
             } else {
             }
             return;
@@ -147,7 +145,6 @@ void Shop::update() {
                     //Shopのカードを更新
                     void_leric[i] = true;
                     leric_alpha[i] = 0.8; // 売り切れ
-                    banner.init(getData().money, getData().Layer, getData().leric);
                     if (getData().leric.getLeric().at(18))discount = 0.8;
                 } else {
                 }
@@ -239,7 +236,7 @@ void Shop::draw() const {
         }
     }
     // バナーの描画
-    banner.draw();
+    banner.draw(getData().money, getData().Layer, getData().leric);
 }
 
 void Shop::drawFadeIn(double t) const {
@@ -247,28 +244,28 @@ void Shop::drawFadeIn(double t) const {
     background_img.draw(0, 0);
     // フェードインの描画処理
     double time = Clamp(t, 0.0, 0.4) * 2.5; // 0.4を1.0に変換するための係数
-    normal_1.Draw({ 500, 300 }, time * 1.5, M_PI * (1.0 - time), time);
+    normal_1.Draw({ 500, 300 }, time * 1.5, Math::Pi * (1.0 - time), time);
     price_img.drawAt(500, 650 + 50 * (1.0 - time), ColorF{ 1.0, 1.0, 1.0, time });
     fontBitMap((discount == 0.8) ? U"40G" : U"50G").drawAt(520, 550 + 50 * (1.0 - time), ColorF{ money_check(50), time });
 
     time = Clamp(t - 0.2, 0.0, 0.4) * 2.5; // 0.4を1.0に変換するための係数
-    normal_2.Draw({ 800, 300 }, time * 1.5, M_PI * (1.0 - time), time);
+    normal_2.Draw({ 800, 300 }, time * 1.5, Math::Pi * (1.0 - time), time);
     price_img.drawAt(800, 650 + 50 * (1.0 - time), ColorF{ 1.0, 1.0, 1.0, time });
     fontBitMap((discount == 0.8) ? U"40G" : U"50G").drawAt(820, 550 + 50 * (1.0 - time), ColorF{ money_check(50), time });
 
     time = Clamp(t - 0.4, 0.0, 0.4) * 2.5; // 0.4を1.0に変換するための係数
-    uncommon.Draw({ 1100, 300 }, time * 1.5, M_PI * (1.0 - time), time);
+    uncommon.Draw({ 1100, 300 }, time * 1.5, Math::Pi * (1.0 - time), time);
     price_img.drawAt(1100, 650 + 50 * (1.0 - time), ColorF{ 1.0, 1.0, 1.0, time });
     fontBitMap((discount == 0.8) ? U"80G" : U"100G").drawAt(1120, 550 + 50 * (1.0 - time), ColorF{ money_check(100), time });
 
     time = Clamp(t - 0.6, 0.0, 0.4) * 2.5; // 0.4を1.0に変換するための係数
-    rare.Draw({ 1400, 300 }, time * 1.5, M_PI * (1.0 - time), time);
+    rare.Draw({ 1400, 300 }, time * 1.5, Math::Pi * (1.0 - time), time);
     price_img.drawAt(1400, 650 + 50 * (1.0 - time), ColorF{ 1.0, 1.0, 1.0, time });
     fontBitMap((discount == 0.8) ? U"120G" : U"150G").drawAt(1420, 550 + 50 * (1.0 - time), ColorF{ money_check(150), time });
 
     for (int i = 0; i < 4; i++) {
         time = Clamp(t - 0.8 + 0.2 * i, 0.0, 0.4) * 2.5; // 0.4を1.0に変換するための係数
-        getData().leric.drawOne(leric_index[i], 450 + 300 * i, 700, time, M_PI * (1.0 - time));
+        getData().leric.drawOne(leric_index[i], 450 + 300 * i, 700, time, Math::Pi * (1.0 - time));
         price_img.drawAt(500 + 300 * i, 1000 + 50 * (1.0 - time), ColorF{ 1.0, 1.0, 1.0, time });
         fontBitMap((discount == 0.8) ? U"120G" : U"150G").drawAt(520 + 300 * i, 900 + 50 * (1.0 - time), ColorF{ money_check(150), time });
     }
@@ -277,7 +274,7 @@ void Shop::drawFadeIn(double t) const {
     back_button_img.scaled(0.75).draw(1600, 800 + 50 * (1.0 - t), ColorF{ 1.0, 1.0, 1.0, time });
 
     // バナーの描画
-    banner.draw();
+    banner.draw(getData().money, getData().Layer, getData().leric);
     if (t <= 0.5) {
         const double progress = EaseInOutExpo(t * 2.0);
         loading_icon.draw(1920 * Math::Lerp(0.0, 1.0, progress), 0);

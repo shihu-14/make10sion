@@ -74,6 +74,9 @@
 		20000000000000000000000E /* Shop.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Shop.cpp; sourceTree = "<group>"; };
 		20000000000000000000000F /* Title.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Title.cpp; sourceTree = "<group>"; };
 		30000000000000000000000E /* HPBar.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = HPBar.hpp; sourceTree = "<group>"; };
+		30000000000000000000000F /* BattleCardRules.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = BattleCardRules.hpp; sourceTree = "<group>"; };
+		300000000000000000000010 /* GameStateRules.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = GameStateRules.hpp; sourceTree = "<group>"; };
+		300000000000000000000011 /* DebugScenarioFactory.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DebugScenarioFactory.hpp; sourceTree = "<group>"; };
 		300000000000000000000001 /* Banner.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Banner.hpp; sourceTree = "<group>"; };
 		300000000000000000000002 /* Battle.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Battle.hpp; sourceTree = "<group>"; };
 		300000000000000000000003 /* Block.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Block.hpp; sourceTree = "<group>"; };
@@ -184,6 +187,8 @@
 				300000000000000000000001 /* Banner.hpp */,
 				200000000000000000000002 /* Battle.cpp */,
 				300000000000000000000002 /* Battle.hpp */,
+				30000000000000000000000F /* BattleCardRules.hpp */,
+				300000000000000000000011 /* DebugScenarioFactory.hpp */,
 				200000000000000000000003 /* Block.cpp */,
 				300000000000000000000003 /* Block.hpp */,
 				200000000000000000000004 /* Board.cpp */,
@@ -197,6 +202,7 @@
 				300000000000000000000006 /* Enemy.hpp */,
 				20000000000000000000000A /* Event.cpp */,
 				300000000000000000000007 /* Event.hpp */,
+				300000000000000000000010 /* GameStateRules.hpp */,
 				30000000000000000000000E /* HPBar.hpp */,
 				20000000000000000000000B /* leric.cpp */,
 				300000000000000000000008 /* leric.hpp */,

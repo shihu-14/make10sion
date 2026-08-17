@@ -7,9 +7,6 @@
 class Banner {
 private:
 	//Write private functions or varables here.
-	int money;
-	int floor;
-
 	bool isHovered_deck = false;
 	double deck_alpha = 0.0;
 	bool isHovered_setting = false;
@@ -17,8 +14,7 @@ private:
 
 	Deck deck; // Deckクラスのインスタンス
 	bool deck_mode = false; // デッキモードのフラグ
-
-	Leric leric; // レリックのインスタンス
+	bool deck_button_armed = false;
 
 	const Texture floor_img{ U"../../image/UI_floor_hyouzi.png" };
 	const Texture money_img{ U"../../image/UI_money.png" };
@@ -28,9 +24,12 @@ private:
 	const Font fontBitMap{ 48 };
 	const Font fontBitMap2{ 72,Typeface::Bold };
 public:
-	void init(int global_money, int global_floor, Leric& global_leric);
-	bool update(std::vector<Block>& deck_data);
-	void draw() const;
+	bool update(std::vector<Block>& deck_data, bool allow_deck_open = true);
+	bool update(std::vector<Block>& deck_data, bool allow_deck_open, Point cursor_pos,
+		bool left_down, bool left_up, bool focused);
+	bool IsDeckButtonHovered(Point cursor_pos) const;
+	void CancelPointerGesture();
+	void draw(int money, int floor, const Leric& leric) const;
 };
 
 #endif

@@ -371,34 +371,16 @@ void Enemy::loadEnemies()
 }
 
 // データベースからランダムに1体の敵を選ぶ
-const EnemyData& Enemy::getOneEnemy(int32 type, int32 layer) const
+const EnemyData& Enemy::getOneEnemy(int32 type, int32 act) const
 {
-	// 敵データの数を取得
-	if (type == 0) {
-		// ボス敵のデータを取得
-		if (1 <= layer && layer < 10) return m_enemies[Random(0, 2)]; 
-		else if (10 <= layer && layer < 20) return m_enemies[Random(3, 5)];
-		else return m_enemies[Random(6, 8)]; 
-	} 
-	else if (type == 1){
-		if (1 <= layer && layer < 10) return m_enemies[Random(9, 10)]; 
-		else if (10 <= layer && layer < 20) return m_enemies[Random(11, 12)];
-		else return m_enemies[Random(13, 14)];
-	}
-	else{
-		if (1 <= layer && layer < 10) return m_enemies[Random(15, 16)]; 
-		else if (10 <= layer && layer < 20) return m_enemies[Random(17, 18)];
-		else return m_enemies[Random(19, 20)];
-	}
-}
-
-// 指定された名前の敵を「倒した」状態にする関数
-void Enemy::markAsDefeated(const String& enemyName)
-{
-	for (auto& enemy : m_enemies) {
-		if (enemy.name == enemyName) {
-			enemy.isDefeated = true;
-			return; // 該当の敵を見つけたら処理を終了します
+	const int32 selected_type = Clamp(type, 0, 2);
+	const int32 selected_act = Clamp(act, 0, 2);
+	Array<int32> candidates;
+	for (int32 i = 0; i < static_cast<int32>(m_enemies.size()); i++) {
+		if ((m_enemies[i].type == selected_type) && (m_enemies[i].layer == selected_act)) {
+			candidates.push_back(i);
 		}
 	}
+	if (candidates.isEmpty()) return m_enemies.front();
+	return m_enemies[candidates[Random(static_cast<int32>(candidates.size() - 1))]];
 }

@@ -6,6 +6,8 @@
 # include "Board.hpp" // Board クラスの定義があるヘッダファイルをインクルード
 # include "Enemy.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
 # include "Banner.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
+# include "BattleCardRules.hpp"
+# include "EnemyIntentRules.hpp"
 #include "HPBar.hpp"
 
 // Data Manager の Deck を模倣したグローバル変数
@@ -27,11 +29,14 @@ private:
 
 	Board m_board; // 盤面の状態を管理する Board クラスのインスタンス
 	Banner m_banner; // バナーの表示を管理する Banner クラスのインスタンス
-	bool is_result = false; // result画面にいるかどうか
 	bool is_deck = false; // デッキ画面にいるかどうか
 	bool is_board_locked = false; // 盤面の操作がロックされているかどうか
 	bool is_exit = false; // 敵が逃走するか
 	bool is_boss3 = false;
+	EnemyIntentRules::TurnState m_enemyIntentState;
+	bool is_scene_transition_started = false;
+	BattleCardRules::PointerInputOwner m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
+	uint64 m_frameNumber = 0;
 	int32 now_turn = 0; // ターン数
 	int32 turn_start = 0; // 攻撃/防御のパターンの変化を管理(基本的には0のまま)
 	int32 action_cycle = 1; // 敵の行動パターンのサイクル
@@ -51,6 +56,8 @@ private:
 	int32 my_defense_effect = 0; // 自分の防御力を減らすエフェクトのための変数
 	int32 ene_defense_effect = 0; // 敵の防御力のへらすエフェクトのための変数
 	int32 reward_money = 0; // 報酬の金額
+	std::vector<Block> m_cards;
+	GameStateRules::BattleDeckState m_deckState;
 
 
 	enum class BattleAnimationState
@@ -68,15 +75,7 @@ private:
 
 	// アニメーションの時間を制御するための変数
 	Stopwatch m_animeStopwatch;
-	Duration m_currentAnimDuration;
 
-
-	// デッキの状態を管理する変数
-	Array<int> Deck_id; // grobalのdeckの配列indexを管理
-	Array<int> Deck_yama;     // 山札 (元のGlobalDeckのコピー) 
-	Array<int> Deck_table;   // 手札 
-	Array<int> Deck_gomi;     // 捨て札
-	Array<int> Deck_board; 
 
 	// Texture 
 	Texture m_backgroundTexture; // 背景画像
@@ -127,13 +126,11 @@ private:
 	double enemy_image_alpha = 1.0; // 敵を倒した際のフェードアウト演出のための変数
 	RenderTexture m_combatSceneBuffer; // 戦闘画面全体を描き込むためのレンダーターゲット
 	RenderTexture m_blurInternalBuffer;
-    double m_blurAlpha = 0.0; 
 
 	int32 table_id = 0; // 手札のID
 	double yamahuda_angle = 0.0;
 	double sutehuda_angle = 0.0;
 	double tehuda_rate = 0.0;
-	double tehuda_angle = 0.0;
 
 	// コンストラクタで呼ばれる関数
 	int32 getTableSize() const;
@@ -143,16 +140,21 @@ private:
 	void getEnemyInfo();
 	void attack();
 	void updateTableDeck();
+	bool MoveCard(int32 card_id, GameStateRules::CardZone expected, GameStateRules::CardZone destination);
+	bool ApplyBoardZoneChanges();
+	const std::vector<int32>& Cards(GameStateRules::CardZone zone) const;
 	void updateCombatEnemyEffect();
 	void updateCombatMyEffect();
 	void updateDiscardEffect();
 	void updateCardDrawEffect();
 	void updateWinEffect();
 	void updateGameOverEffect();
+	void AssertCardOwnership(const char* context) const;
 	// void finish();
 
 	// これらはdraw()から呼ばれ、現在のアニメーション状態に基づいて描画を行う
 	// void drawTableDeck() const;
+	void drawHandCards() const;
 	bool drawDefault() const;
 	void drawCombatEnemyEffect() const;
 	void drawCombatMyEffect() const;

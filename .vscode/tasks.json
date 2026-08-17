@@ -4,28 +4,33 @@
 		{
 			"label": "Siv3D: Build macOS",
 			"type": "shell",
-			"command": "xcodebuild",
-			"args": [
-				"-project",
-				"${workspaceFolder}/macos/make10sion.xcodeproj",
-				"-target",
-				"make10sion",
-				"-configuration",
-				"Debug",
-				"ARCHS=x86_64",
-				"ONLY_ACTIVE_ARCH=YES",
-				"build"
-			],
+			"command": "${workspaceFolder}/macos/build-debug.sh",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
 			"problemMatcher": "$gcc"
 		},
 		{
 			"label": "Siv3D: Run macOS",
 			"type": "shell",
-			"command": "./make10sion.app/Contents/MacOS/make10sion",
-			"options": {
-				"cwd": "${workspaceFolder}/macos/App"
-			},
+			"command": "${workspaceFolder}/macos/run-debug.sh",
 			"problemMatcher": []
+		},
+		{
+			"label": "Siv3D: Run Midgame Debug",
+			"type": "shell",
+			"command": "${workspaceFolder}/macos/run-debug.sh",
+			"args": [
+				"--debug-midgame"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "Siv3D: Test Battle Card Interactions",
+			"type": "shell",
+			"command": "${workspaceFolder}/tests/run-battle-card-tests.sh",
+			"problemMatcher": "$gcc"
 		},
 		{
 			"label": "Siv3D: Build and Run macOS",
@@ -34,10 +39,6 @@
 				"Siv3D: Build macOS",
 				"Siv3D: Run macOS"
 			],
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
 			"problemMatcher": []
 		}
 	]

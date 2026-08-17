@@ -10,7 +10,6 @@ private:
 	const Font font{ FontMethod::MSDF, 120,Typeface::Bold };
 	Texture title_back;
 	Texture retry;
-	Texture background;
 	RoundRect retry_rect;
 	RoundRect title_rect;
 	int score;

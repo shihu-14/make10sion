@@ -1,6 +1,5 @@
 #include "Deck.hpp"
 #include "common.hpp"
-#define M_PI 3.14159265358979323846
 using namespace std;
 
 void Deck::init(vector<Block>& deck) {
@@ -23,10 +22,11 @@ void Deck::init(vector<Block>& deck) {
 bool Deck::update() {
 	if (!first_call) {
 		first_call = true;
-		timer = (int)Time::GetMillisec();
+		timer = Time::GetMillisec();
 	}
-	if (timer + 1000 > Time::GetMillisec()) {
-		updateFadeIn((double)(Time::GetMillisec() - timer) / 1000.0);
+	const uint64 elapsed = GameStateRules::ElapsedMillis(Time::GetMillisec(), timer);
+	if (elapsed < 1000) {
+		updateFadeIn(static_cast<double>(elapsed) / 1000.0);
 		fade_mode = true;
 	} else {
 		if (fade_mode)fade_mode = false;
@@ -55,7 +55,7 @@ void Deck::draw() const {
 			double card_fade_value = (deck_data.at(i).GetStat() == -1) ? 0.5 : 1.0;
 			const ScopedColorMul2D colorMul{ ColorF{ card_fade_value, card_fade_value, fade_alpha } };
 			if (fade_mode) {
-				deck_data.at(i).Draw({ card_pos.at(i).first, card_pos.at(i).second + now_y }, card_fade.at(i), M_PI * (1.0 - card_fade.at(i)), card_fade.at(i));
+				deck_data.at(i).Draw({ card_pos.at(i).first, card_pos.at(i).second + now_y }, card_fade.at(i), Math::Pi * (1.0 - card_fade.at(i)), card_fade.at(i));
 			} else {
 				deck_data.at(i).Draw({ card_pos.at(i).first, card_pos.at(i).second + now_y }, 1.0, 0.0, 1.0);
 			}

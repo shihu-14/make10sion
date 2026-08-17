@@ -34,15 +34,17 @@ private:
 public:
 	Block();
 	Block(const std::string& value);
+	Block(const Block&) = default;
 	std::pair<int, int> Size() const { return { sizeX, sizeY }; }
 	std::pair<int, int> GetPos() const { return { posX, posY }; }
 	void SetPos(int x, int y) { posX = x; posY = y; }
+	void ResetRuntimeState() { posX = 0; posY = 0; stat = 0; }
 	Piece& GetPiece(int x, int y) { return contents[x][y]; }
+	const Piece& GetPiece(int x, int y) const { return contents[x][y]; }
 	void Rotate();
 	int GetStat() const { return stat; }
 	void SetStat(int newStat) { stat = newStat; }
-	bool IsDragging();
-	bool IsHovered();
+	bool IsHovered(Point cursor_pos) const;
 	void Draw(std::pair<int, int> pos, double size = 1.0, double angle = 0.0, double alpha = 1.0) const;
 
 	Block& operator=(const Block& other);

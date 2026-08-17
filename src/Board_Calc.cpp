@@ -47,6 +47,11 @@ void Board::CalcRow() {
 	row_valid.assign(evaluation.row_valid.begin(), evaluation.row_valid.end());
 	board_multiply_effect.assign(evaluation.row_multiplier_effects.begin(), evaluation.row_multiplier_effects.end());
 	board_off_def.assign(evaluation.row_modes.begin(), evaluation.row_modes.end());
+	for (int32 y = 0; y < board_height; ++y) {
+		for (int32 x = 0; x < board_width; ++x) {
+			expression_cell_usage[y][x] = evaluation.ExpressionUsageAt(x, y);
+		}
+	}
 }
 
 
@@ -62,7 +67,8 @@ std::pair<int, int> Board::Confirm() {
 			Logger << U"Invalid board expression treated as zero: row=" << i;
 		}
 		const auto contribution = BoardCalculationRules::CheckedRowContribution(
-			result_of_calc[i], board_multiply[i] + board_multiply_effect[i]);
+			result_of_calc[i], BoardCalculationRules::FinalRowMultiplier(
+				board_multiply[i], board_multiply_effect[i]));
 		if (!contribution) {
 			Logger << U"Ignored out-of-range board row contribution: row=" << i;
 			continue;
@@ -102,6 +108,7 @@ void Board::Discard() {
 	num_on_board.clear();
 	result_of_calc.fill(0);
 	row_valid.fill(true);
+	expression_cell_usage.fill(BoardCalculationRules::ExpressionCellUsage::NonExpression);
 	BoardCalculationRules::AdvanceDelayedEffects(
 		board_effect_front, board_effect_back, board_effect_committed);
 	RebuildBoardDerivedState();

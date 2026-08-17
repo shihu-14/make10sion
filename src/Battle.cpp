@@ -702,6 +702,8 @@ void Battle::drawHandCards() const
 // 戦闘画面全体の描画。常に呼び出す。
 bool Battle::drawDefault() const
 {
+	constexpr int32 enemy_intent_icon_x = 1450;
+	constexpr int32 enemy_intent_value_x = 1530;
     if (is_gamewin)
     {
         // 背景をぼかすための処理
@@ -725,16 +727,16 @@ bool Battle::drawDefault() const
             // 敵の攻撃アイコンの描画
             if (m_currentAnimState == BattleAnimationState::Idle || 
                 m_currentAnimState == BattleAnimationState::CombatEnemyEffect){
-                m_attackIcon.scaled(1.6).draw(1330, 640);
-                m_numFont(U"{}"_fmt(ene_attack)).draw(1410, 640, Palette::Black);
+                m_attackIcon.scaled(1.6).draw(enemy_intent_icon_x, 640);
+                m_numFont(U"{}"_fmt(ene_attack)).draw(enemy_intent_value_x, 640, Palette::Black);
             }
             if (m_currentAnimState == BattleAnimationState::Idle || 
                 m_currentAnimState == BattleAnimationState::CombatEnemyEffect ||
                 m_currentAnimState == BattleAnimationState::CombatMyEffect ||
                 m_currentAnimState == BattleAnimationState::DiscardEffect) {
                 // 敵の防御アイコンの描画
-                m_defenceIcon.scaled(1.5).draw(1330, 720);
-                m_numFont(U"{}"_fmt(ene_defense)).draw(1410, 720, Palette::Black);
+                m_defenceIcon.scaled(1.5).draw(enemy_intent_icon_x, 720);
+                m_numFont(U"{}"_fmt(ene_defense)).draw(enemy_intent_value_x, 720, Palette::Black);
             }
             // 自分の防御アイコンの描画
             if (m_currentAnimState == BattleAnimationState::CombatEnemyEffect || 
@@ -772,16 +774,16 @@ bool Battle::drawDefault() const
         // 敵の攻撃アイコンの描画
         if (m_currentAnimState == BattleAnimationState::Idle || 
             m_currentAnimState == BattleAnimationState::CombatEnemyEffect){
-            m_attackIcon.scaled(1.6).draw(1330, 640);
-            m_numFont(U"{}"_fmt(ene_attack)).draw(1410, 640, Palette::Black);
+            m_attackIcon.scaled(1.6).draw(enemy_intent_icon_x, 640);
+            m_numFont(U"{}"_fmt(ene_attack)).draw(enemy_intent_value_x, 640, Palette::Black);
         }
         if (m_currentAnimState == BattleAnimationState::Idle || 
             m_currentAnimState == BattleAnimationState::CombatEnemyEffect ||
             m_currentAnimState == BattleAnimationState::CombatMyEffect ||
             m_currentAnimState == BattleAnimationState::DiscardEffect) {
             // 敵の防御アイコンの描画
-            m_defenceIcon.scaled(1.5).draw(1330, 720);
-            m_numFont(U"{}"_fmt(ene_defense)).draw(1410, 720, Palette::Black);
+            m_defenceIcon.scaled(1.5).draw(enemy_intent_icon_x, 720);
+            m_numFont(U"{}"_fmt(ene_defense)).draw(enemy_intent_value_x, 720, Palette::Black);
         }
         // 自分の防御アイコンの描画
         if (m_currentAnimState == BattleAnimationState::CombatEnemyEffect || 

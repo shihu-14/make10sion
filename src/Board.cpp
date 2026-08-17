@@ -15,6 +15,7 @@ void Board::BeginBattle(const GameStateRules::BoardProgress& progress) {
 	board_effect_front.fill(0);
 	board_effect_committed.fill(0);
 	board_content.fill('\0');
+	expression_cell_usage.fill(BoardCalculationRules::ExpressionCellUsage::NonExpression);
 	num_on_board.clear();
 	board_multiply = board_multiply_base;
 	board_multiply_effect.fill(0);
@@ -113,7 +114,8 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 			const BoardBlockState& state = board_blocks[i];
 			if (state.block && (BattleCardRules::GetCardDrawLayer(state.lifecycle)
 				== BattleCardRules::CardDrawLayer::StaticBoard)) {
-				state.block->Draw(state.block->GetPos(), img_scale, 0.0, 1.0);
+				const Grid<double> piece_alphas = GetBoardPieceAlphas(state);
+				state.block->Draw(state.block->GetPos(), img_scale, 0.0, 1.0, &piece_alphas);
 			}
 		}
 		Array<int32> dy = { 10,10, 10, -10,-10,-10 };
@@ -121,12 +123,19 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 			Point num = board_coordinate[i][6];
 			num.x += cell_size;
 			num.y -= dy[i];
+			const ColorF row_color = (board_off_def[i] == 1)
+				? ColorF{ 1.0, 0.5, 0.5 }
+				: ColorF{ 0.5, 1.0, 1.0 };
 			if (board_off_def[i] == 1) {
-				font(result_of_calc[i]).drawAt(TextStyle::Outline(0.2, ColorF{ 0.0 }), 85, num, ColorF{ 1.0, 0.5, 0.5 });
+				font(result_of_calc[i]).drawAt(TextStyle::Outline(0.2, ColorF{ 0.0 }), 85, num, row_color);
 			}
 			if (board_off_def[i] == 0) {
-				font(result_of_calc[i]).drawAt(TextStyle::Outline(0.2, ColorF{ 0.0 }), 85, num, ColorF{ 0.5, 1.0, 1.0 });
+				font(result_of_calc[i]).drawAt(TextStyle::Outline(0.2, ColorF{ 0.0 }), 85, num, row_color);
 			}
+			const double multiplier = BoardCalculationRules::FinalRowMultiplier(
+				board_multiply[i], board_multiply_effect[i]);
+			font(U"×{:.1f}"_fmt(multiplier)).drawAt(
+				TextStyle::Outline(0.2, ColorF{ 0.0 }), 42, num + Point{ 105,0 }, row_color);
 		}
 	} else if (idx == 1) {
 		DrawAddPlaceBoard();
@@ -139,7 +148,12 @@ void Board::DrawInteractionOverlay() const {
 			!= BattleCardRules::CardDrawLayer::ReturningOverlay)) continue;
 		const double scale = (state.lifecycle == BattleCardRules::CardLifecycle::ReturningToHand)
 			? 1.0 : img_scale;
-		state.block->Draw(state.block->GetPos(), scale, 0.0, 1.0);
+		if (state.lifecycle == BattleCardRules::CardLifecycle::ReturningToBoard) {
+			const Grid<double> piece_alphas = GetBoardPieceAlphas(state);
+			state.block->Draw(state.block->GetPos(), scale, 0.0, 1.0, &piece_alphas);
+		} else {
+			state.block->Draw(state.block->GetPos(), scale, 0.0, 1.0);
+		}
 	}
 
 	if (drag_context.active) {
@@ -151,6 +165,27 @@ void Board::DrawInteractionOverlay() const {
 			dragged.block->Draw(dragged.block->GetPos(), img_scale, 0.0, 1.0);
 		}
 	}
+}
+
+Grid<double> Board::GetBoardPieceAlphas(const BoardBlockState& state) const {
+	if (!state.block) return {};
+	const auto [width, height] = state.block->Size();
+	Grid<double> alphas{ Size{ width, height }, 1.0 };
+	if ((state.board_anchor.x < 0) || (state.board_anchor.y < 0)) return alphas;
+	for (int32 y = 0; y < height; ++y) {
+		for (int32 x = 0; x < width; ++x) {
+			const Point board_cell = state.board_anchor + Point{ x,y };
+			if ((board_cell.x < 0)
+				|| (static_cast<int32>(expression_cell_usage.width()) <= board_cell.x)
+				|| (board_cell.y < 0)
+				|| (static_cast<int32>(expression_cell_usage.height()) <= board_cell.y)) continue;
+			if (expression_cell_usage[board_cell.y][board_cell.x]
+				== BoardCalculationRules::ExpressionCellUsage::Ignored) {
+				alphas[y][x] = 0.35;
+			}
+		}
+	}
+	return alphas;
 }
 
 void Board::UpdateVisualMotions(double delta_seconds) {

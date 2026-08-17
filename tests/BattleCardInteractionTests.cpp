@@ -442,6 +442,7 @@ void TestCardSymbolRules() {
 
 void TestBoardCalculationRules() {
 	using namespace BoardCalculationRules;
+	using Usage = ExpressionCellUsage;
 	Board board{ 7, 6 };
 	board.Set(0, 0, '7');
 	board.Set(1, 0, '*');
@@ -486,6 +487,28 @@ void TestBoardCalculationRules() {
 	const auto tolerant = Evaluate(board);
 	Expect((tolerant.row_values[0] == 5) && tolerant.row_valid[0],
 		"leading repeated and trailing operators are ignored as in the historical evaluator");
+	Expect(tolerant.ExpressionUsageAt(0, 0) == Usage::Ignored
+		&& tolerant.ExpressionUsageAt(1, 0) == Usage::Used
+		&& tolerant.ExpressionUsageAt(2, 0) == Usage::Used
+		&& tolerant.ExpressionUsageAt(3, 0) == Usage::Ignored
+		&& tolerant.ExpressionUsageAt(4, 0) == Usage::Used
+		&& tolerant.ExpressionUsageAt(5, 0) == Usage::Ignored,
+		"tolerant evaluation reports which operators and numbers actually form the expression");
+
+	board = Board{ 7, 6 };
+	board.Set(0, 0, '2');
+	board.Set(1, 0, '3');
+	board.Set(2, 0, '4');
+	board.Set(3, 0, '+');
+	board.Set(4, 0, '5');
+	const auto repeated_numbers = Evaluate(board);
+	Expect(repeated_numbers.row_values[0] == 7
+		&& repeated_numbers.ExpressionUsageAt(0, 0) == Usage::Used
+		&& repeated_numbers.ExpressionUsageAt(1, 0) == Usage::Ignored
+		&& repeated_numbers.ExpressionUsageAt(2, 0) == Usage::Ignored
+		&& repeated_numbers.ExpressionUsageAt(3, 0) == Usage::Used
+		&& repeated_numbers.ExpressionUsageAt(4, 0) == Usage::Used,
+		"adjacent numbers expose their historical used and ignored classification");
 
 	board = Board{ 7, 6 };
 	board.Set(0, 0, '2');
@@ -506,6 +529,46 @@ void TestBoardCalculationRules() {
 	Expect(aggregate.row_values[2] == 4, "Max uses numeric cells from the whole board");
 	Expect(aggregate.row_values[3] == 0, "Min includes numeric zero");
 	Expect(aggregate.row_values[4] == 2, "Ave uses the whole-board population and truncates toward zero");
+	Expect(aggregate.ExpressionUsageAt(0, 2) == Usage::Used
+		&& aggregate.ExpressionUsageAt(0, 3) == Usage::Used
+		&& aggregate.ExpressionUsageAt(0, 4) == Usage::Used,
+		"accepted aggregate cards are reported as used expression cells");
+	for (const char aggregate_symbol : { 'g', 'h', 'e' }) {
+		Board ignored_aggregate{ 2, 1 };
+		ignored_aggregate.Set(0, 0, '2');
+		ignored_aggregate.Set(1, 0, aggregate_symbol);
+		Expect(Evaluate(ignored_aggregate).ExpressionUsageAt(1, 0) == Usage::Ignored,
+			"an aggregate skipped by expression construction is reported as ignored");
+	}
+
+	board = Board{ 7, 6 };
+	for (int32_t x = 0; x < 7; ++x) board.Set(x, 0, "abcfiA$"[x]);
+	for (int32_t x = 0; x < 7; ++x) board.Set(x, 1, "BCDEFGH"[x]);
+	const auto non_expression = Evaluate(board);
+	bool all_non_expression = true;
+	for (int32_t y = 0; y < 2; ++y) {
+		for (int32_t x = 0; x < 7; ++x) {
+			all_non_expression = all_non_expression
+				&& (non_expression.ExpressionUsageAt(x, y) == Usage::NonExpression);
+		}
+	}
+	Expect(all_non_expression
+		&& non_expression.ExpressionUsageAt(-1, 0) == Usage::NonExpression
+		&& non_expression.ExpressionUsageAt(7, 0) == Usage::NonExpression,
+		"multipliers row modes occupied-only cells holes and out-of-range lookups are not expression failures");
+
+	board = Board{ 7, 6 };
+	for (int32_t x = 0; x < 6; ++x) {
+		board.Set(x, 0, "jklopq"[x]);
+	}
+	const auto delayed_usage = Evaluate(board);
+	Expect(delayed_usage.ExpressionUsageAt(0, 0) == Usage::Used
+		&& delayed_usage.ExpressionUsageAt(1, 0) == Usage::Ignored
+		&& delayed_usage.ExpressionUsageAt(2, 0) == Usage::Ignored
+		&& delayed_usage.ExpressionUsageAt(3, 0) == Usage::Ignored
+		&& delayed_usage.ExpressionUsageAt(4, 0) == Usage::Ignored
+		&& delayed_usage.ExpressionUsageAt(5, 0) == Usage::Ignored,
+		"next-turn cards retain ordinary number participation in expression construction");
 
 	board = Board{ 7, 6 };
 	board.Set(0, 0, 'a');
@@ -552,6 +615,15 @@ void TestBoardCalculationRules() {
 	const auto invalid_operand = Evaluate(board);
 	Expect((invalid_operand.row_values[0] == 0) && !invalid_operand.row_valid[0],
 		"an out-of-range operand is rejected before multiplication can hide it");
+	Expect(invalid_operand.ExpressionUsageAt(0, 0) == Usage::Used
+		&& invalid_operand.ExpressionUsageAt(1, 0) == Usage::Used
+		&& invalid_operand.ExpressionUsageAt(2, 0) == Usage::Used,
+		"evaluation failure does not relabel expression tokens as ignored");
+	Expect(FinalRowMultiplier(2.0, 1.5) == 3.5,
+		"UI and confirmation share the final row multiplier rule");
+	const auto fresh_evaluation = Evaluate(Board{ 7, 6 });
+	Expect(fresh_evaluation.ExpressionUsageAt(0, 0) == Usage::NonExpression,
+		"a fresh evaluation never retains cell usage from an earlier board");
 	int32_t total = std::numeric_limits<int32_t>::max();
 	Expect(!CheckedAdd(total, 1) && total == std::numeric_limits<int32_t>::max(),
 		"overflowing total is rejected without changing the prior total");
@@ -579,7 +651,9 @@ void TestDelayedEffectLifecycle() {
 		const auto definition = CardSymbolRules::Decode(delayed.symbol);
 		Board current_turn{ 2, 1 };
 		current_turn.Set(0, 0, delayed.symbol);
-		Expect(Evaluate(current_turn).row_values[0] == delayed.current_value,
+		const auto current_result = Evaluate(current_turn);
+		Expect(current_result.row_values[0] == delayed.current_value
+			&& current_result.ExpressionUsageAt(0, 0) == ExpressionCellUsage::Used,
 			"a delayed card contributes its documented current-turn value");
 		current[0] = definition.next_turn_bonus;
 		CommitDelayedEffects(current, committed);

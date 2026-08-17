@@ -45,7 +45,8 @@ public:
 	int GetStat() const { return stat; }
 	void SetStat(int newStat) { stat = newStat; }
 	bool IsHovered(Point cursor_pos) const;
-	void Draw(std::pair<int, int> pos, double size = 1.0, double angle = 0.0, double alpha = 1.0) const;
+	void Draw(std::pair<int, int> pos, double size = 1.0, double angle = 0.0,
+		double alpha = 1.0, const Grid<double>* piece_alphas = nullptr) const;
 
 	Block& operator=(const Block& other);
 	Block& operator=(const std::string& value);

@@ -6,6 +6,7 @@
 #include <array>
 #include <Siv3D.hpp>
 #include "Block.hpp"
+#include "BoardCalculationRules.hpp"
 #include "BattleCardRules.hpp"
 #include "GameStateRules.hpp"
 #include "leric.hpp"
@@ -75,6 +76,7 @@ private:
 	Grid<int32> board_effect_committed;
 	Grid<char> board_content;
 	Grid<Point> board_coordinate;
+	Grid<BoardCalculationRules::ExpressionCellUsage> expression_cell_usage;
 	Array<int32> num_on_board;
 	const Array<double> board_multiply_base = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };
 	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };
@@ -142,6 +144,7 @@ private:
 	void TakeOutBlock(Point pos, Point cursor_pos);
 	void RebuildBoardDerivedState();
 	void CalcRow();
+	Grid<double> GetBoardPieceAlphas(const BoardBlockState& state) const;
 	void DrawOnlyBoard() const;
 	void DrawBlock(Block block_on_board);
 	void DrawAddPlaceBoard() const;
@@ -157,7 +160,8 @@ public:
 		board_effect_front(Size{ 7,6 }, 0),
 		board_effect_committed(Size{ 7,6 }, 0),
 		board_content(Size{ 7,6 }, '\0'),
-		board_coordinate(Size{ 7,6 }, Point{ 0,0 })
+		board_coordinate(Size{ 7,6 }, Point{ 0,0 }),
+		expression_cell_usage(Size{ 7,6 }, BoardCalculationRules::ExpressionCellUsage::NonExpression)
 		{};
 
 	//functions

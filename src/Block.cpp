@@ -108,7 +108,7 @@ bool Block::IsHovered(Point cursor_pos) const {
 }
 
 void Block::Draw(pair<int, int> pos, double size, double angle, double alpha,
-	const Grid<double>* piece_alphas) const {
+	const Grid<double>* symbol_alphas) const {
 	for (int y = 0; y < sizeY; y++) {
 		for (int x = 0; x < sizeX; x++) {
 			const Piece& p = contents[x][y];
@@ -132,27 +132,29 @@ void Block::Draw(pair<int, int> pos, double size, double angle, double alpha,
 			double draw_angle = atan2(p.y, p.x) + angle; // 回転角度を加える
 			double draw_x = (double)pos.first + cos(draw_angle) * distance;
 			double draw_y = (double)pos.second + sin(draw_angle) * distance;
-			double piece_alpha = alpha;
-			if (piece_alphas
-				&& (x < static_cast<int>(piece_alphas->width()))
-				&& (y < static_cast<int>(piece_alphas->height()))) {
-				piece_alpha *= (*piece_alphas)[y][x];
+			double symbol_alpha = alpha;
+			if (symbol_alphas
+				&& (x < static_cast<int>(symbol_alphas->width()))
+				&& (y < static_cast<int>(symbol_alphas->height()))) {
+				symbol_alpha *= (*symbol_alphas)[y][x];
 			}
 
-			card_tile_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, piece_alpha * (mode_alpha ? 0.3 : 1.0) });
-			img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, piece_alpha * (mode_alpha ? 0.3 : 1.0) });
+			card_tile_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y,
+				ColorF{ 1.0, 1.0, 1.0, alpha * (mode_alpha ? 0.3 : 1.0) });
+			img.scaled(size).rotated(angle).drawAt(draw_x, draw_y,
+				ColorF{ 1.0, 1.0, 1.0, symbol_alpha * (mode_alpha ? 0.3 : 1.0) });
 			// 境界を描画
 			if ((x == 0) || (x > 0 && contents[x - 1][y].content == '$')) {
-				left_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, piece_alpha });
+				left_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, alpha });
 			}
 			if ((x == sizeX - 1) || (x < sizeX - 1 && contents[x + 1][y].content == '$')) {
-				right_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, piece_alpha });
+				right_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, alpha });
 			}
 			if ((y == 0) || (y > 0 && contents[x][y - 1].content == '$')) {
-				top_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, piece_alpha });
+				top_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, alpha });
 			}
 			if ((y == sizeY - 1) || ((y < sizeY - 1) && contents[x][y + 1].content == '$')) {
-				bottom_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, piece_alpha });
+				bottom_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, alpha });
 			}
 		}
 	}

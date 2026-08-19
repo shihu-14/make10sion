@@ -114,28 +114,24 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 			const BoardBlockState& state = board_blocks[i];
 			if (state.block && (BattleCardRules::GetCardDrawLayer(state.lifecycle)
 				== BattleCardRules::CardDrawLayer::StaticBoard)) {
-				const Grid<double> piece_alphas = GetBoardPieceAlphas(state);
-				state.block->Draw(state.block->GetPos(), img_scale, 0.0, 1.0, &piece_alphas);
+				const Grid<double> symbol_alphas = GetBoardSymbolAlphas(state);
+				state.block->Draw(state.block->GetPos(), img_scale, 0.0, 1.0, &symbol_alphas);
 			}
 		}
 		Array<int32> dy = { 10,10, 10, -10,-10,-10 };
 		for (int i = 0; i < 6; i++) {
 			Point num = board_coordinate[i][6];
-			num.x += cell_size;
 			num.y -= dy[i];
 			const ColorF row_color = (board_off_def[i] == 1)
 				? ColorF{ 1.0, 0.5, 0.5 }
 				: ColorF{ 0.5, 1.0, 1.0 };
-			if (board_off_def[i] == 1) {
-				font(result_of_calc[i]).drawAt(TextStyle::Outline(0.2, ColorF{ 0.0 }), 85, num, row_color);
-			}
-			if (board_off_def[i] == 0) {
-				font(result_of_calc[i]).drawAt(TextStyle::Outline(0.2, ColorF{ 0.0 }), 85, num, row_color);
-			}
+			font(result_of_calc[i]).draw(TextStyle::Outline(0.2, ColorF{ 0.0 }), 85,
+				Arg::rightCenter = Vec2{ BattleLayoutRules::ResultColumnRight, num.y }, row_color);
 			const double multiplier = BoardCalculationRules::FinalRowMultiplier(
 				board_multiply[i], board_multiply_effect[i]);
-			font(U"×{:.1f}"_fmt(multiplier)).drawAt(
-				TextStyle::Outline(0.2, ColorF{ 0.0 }), 42, num + Point{ 105,0 }, row_color);
+			font(U"×{:.1f}"_fmt(multiplier)).draw(
+				TextStyle::Outline(0.2, ColorF{ 0.0 }), 42,
+				Arg::leftCenter = Vec2{ BattleLayoutRules::MultiplierColumnLeft, num.y }, row_color);
 		}
 	} else if (idx == 1) {
 		DrawAddPlaceBoard();
@@ -149,8 +145,8 @@ void Board::DrawInteractionOverlay() const {
 		const double scale = (state.lifecycle == BattleCardRules::CardLifecycle::ReturningToHand)
 			? 1.0 : img_scale;
 		if (state.lifecycle == BattleCardRules::CardLifecycle::ReturningToBoard) {
-			const Grid<double> piece_alphas = GetBoardPieceAlphas(state);
-			state.block->Draw(state.block->GetPos(), scale, 0.0, 1.0, &piece_alphas);
+			const Grid<double> symbol_alphas = GetBoardSymbolAlphas(state);
+			state.block->Draw(state.block->GetPos(), scale, 0.0, 1.0, &symbol_alphas);
 		} else {
 			state.block->Draw(state.block->GetPos(), scale, 0.0, 1.0);
 		}
@@ -167,7 +163,7 @@ void Board::DrawInteractionOverlay() const {
 	}
 }
 
-Grid<double> Board::GetBoardPieceAlphas(const BoardBlockState& state) const {
+Grid<double> Board::GetBoardSymbolAlphas(const BoardBlockState& state) const {
 	if (!state.block) return {};
 	const auto [width, height] = state.block->Size();
 	Grid<double> alphas{ Size{ width, height }, 1.0 };

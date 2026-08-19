@@ -263,6 +263,7 @@
     <ClInclude Include="..\src\Banner.hpp" />
     <ClInclude Include="..\src\Battle.hpp" />
     <ClInclude Include="..\src\BattleCardRules.hpp" />
+	<ClInclude Include="..\src\BattleLayoutRules.hpp" />
 	<ClInclude Include="..\src\DebugScenarioFactory.hpp" />
     <ClInclude Include="..\src\Block.hpp" />
     <ClInclude Include="..\src\Board.hpp" />

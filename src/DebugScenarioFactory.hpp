@@ -19,6 +19,10 @@ inline std::shared_ptr<GameData> CreateMidgame()
 	data->MaxHP = scenario.max_hp;
 	data->money = scenario.money;
 	data->enemy = scenario.enemy_type;
+	data->debug_battle_overrides = GameData::DebugBattleOverrides{
+		scenario.hand_limit_override,
+		Unicode::Widen(std::string{ scenario.enemy_texture_path }),
+	};
 	data->Deck.clear();
 	data->Deck.reserve(scenario.deck.size());
 	for (const auto definition : scenario.deck) data->Deck.emplace_back(std::string{ definition });

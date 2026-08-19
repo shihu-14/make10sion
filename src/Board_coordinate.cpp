@@ -49,10 +49,8 @@ bool Board::IsDragContextValid() const {
 }
 
 Point Board::GetBoardCellCenter(Point cell) const {
-    return offset + Point{
-        cell.x * cell_size + cell_size / 2,
-        cell.y * cell_size + cell_size / 2
-    };
+	const auto center = BattleLayoutRules::BoardCellCenter({ cell.x, cell.y });
+	return { center.x, center.y };
 }
 
 Point Board::GetScaledPieceOffset(const Piece& piece) const {
@@ -68,12 +66,8 @@ Point Board::GetBoardBlockScreenPosition(const Block& block, Point anchor) const
 }
 
 Point Board::ScreenToBoardCell(Point screen_pos) const {
-    const Point relative_pos = screen_pos - offset;
-    const int32 board_width = static_cast<int32>(board_usage.width());
-    const int32 board_height = static_cast<int32>(board_usage.height());
-    if ((relative_pos.x < 0) || (board_width * cell_size <= relative_pos.x)
-        || (relative_pos.y < 0) || (board_height * cell_size <= relative_pos.y)) return { -1,-1 };
-    return relative_pos / cell_size;
+	const auto cell = BattleLayoutRules::BoardCellAt({ screen_pos.x, screen_pos.y });
+	return { cell.x, cell.y };
 }
 
 Point Board::GetBoardAnchorFromScreenPosition(const Block& block, Point screen_pos) const {

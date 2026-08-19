@@ -1,4 +1,5 @@
 #include "../src/BattleCardRules.hpp"
+#include "../src/BattleLayoutRules.hpp"
 #include "../src/BoardCalculationRules.hpp"
 #include "../src/CardSymbolRules.hpp"
 #include "../src/DebugScenarioRules.hpp"
@@ -349,6 +350,10 @@ void TestBoardProgress() {
 	Expect(fully_unlocked.UnlockedCount() == BoardProgress::CellCount,
 		"board progress can unlock every cell without stale counts");
 	Expect(CalculateHandLimit(fully_unlocked) == 15, "hand limit remains capped at fifteen");
+	Expect(ResolveBattleHandLimit(fully_unlocked, 0) == 15,
+		"normal battles keep the fifteen-card maximum");
+	Expect(ResolveBattleHandLimit(fully_unlocked, 18) == 18,
+		"an explicit debug override can expose eighteen hand cards");
 	BoardProgress debug_progress;
 	debug_progress.UnlockAll();
 	Expect((debug_progress.UnlockedCount() == BoardProgress::CellCount)
@@ -748,11 +753,62 @@ void TestDebugScenarioRules() {
 		"midgame debug starts in a late non-boss battle");
 	Expect((scenario.hp == 100) && (scenario.max_hp == 100) && (scenario.money == 300),
 		"midgame debug resources are deterministic");
-	Expect((scenario.seed == 0x4D313053ULL) && (scenario.deck.size() == 15),
-		"midgame debug uses a fixed seed and exactly fifteen cards");
-	Expect((scenario.deck[0] == "2\n3") && (scenario.deck[1] == "0\n7")
-		&& (scenario.deck[12] == "q\nj") && (scenario.deck[14] == "E\n6"),
-		"midgame debug deck includes numeric and special regression cards in fixed order");
+	Expect((scenario.seed == 0x4D313053ULL) && (scenario.deck.size() == 18),
+		"midgame debug uses a fixed seed and exactly eighteen cards");
+	Expect((scenario.hand_limit_override == 18)
+		&& (scenario.enemy_texture_path == "../../image/boss_1.png"),
+		"midgame debug explicitly overrides the hand limit and enemy visual");
+	bool has_uppercase_symbol = false;
+	for (const auto definition : scenario.deck) {
+		for (const char symbol : definition) {
+			if (('A' <= symbol) && (symbol <= 'H')) has_uppercase_symbol = true;
+		}
+	}
+	Expect(!has_uppercase_symbol,
+		"midgame debug avoids intrinsically translucent uppercase symbols");
+	GameStateRules::BattleDeckState deck;
+	deck.Initialize(static_cast<int32_t>(scenario.deck.size()));
+	for (int32_t card_id = 0; card_id < scenario.hand_limit_override; ++card_id) {
+		Expect(deck.Move(card_id, GameStateRules::CardZone::DrawPile,
+			GameStateRules::CardZone::Hand), "midgame debug can draw every visible test card");
+	}
+	Expect(deck.Validate() && (deck.Cards(GameStateRules::CardZone::Hand).size() == 18),
+		"midgame debug starts with eighteen uniquely owned hand cards");
+}
+
+void TestBattleLayoutRules() {
+	using namespace BattleLayoutRules;
+	std::array<ScreenRect, 18> hand_bounds{};
+	for (int32_t slot = 0; slot < 18; ++slot) {
+		hand_bounds[static_cast<std::size_t>(slot)] = HandCardBounds(slot);
+		Expect(SceneBounds().Contains(hand_bounds[static_cast<std::size_t>(slot)]),
+			"every debug hand card remains inside the logical scene");
+		if (slot != 0) {
+			Expect(HandPosition(slot).x != HandPosition(slot - 1).x,
+				"adjacent debug hand slots have distinct horizontal positions");
+		}
+	}
+	Expect(!hand_bounds.back().Intersects(EqualButtonBounds()),
+		"the eighteenth hand card does not overlap the attack button");
+	Expect(!hand_bounds.back().Intersects(DiscardPileBounds()),
+		"the eighteenth hand card does not overlap the discard pile");
+	Expect(SceneBounds().Contains(EqualButtonBounds()),
+		"the attack button stays fully inside the logical scene");
+	Expect((PlayerPosition().y == 230) && (PlayerHpPosition().y == 700)
+		&& (EnemyPosition().y == 350) && (EnemyHpPosition().y == 700)
+		&& (BoardOffset().y == 170) && (HandPosition(0).y == 900)
+		&& (EqualButtonBounds().y == 750),
+		"horizontal layout changes preserve all requested vertical positions");
+	for (int32_t y = 0; y < BoardHeight; ++y) {
+		for (int32_t x = 0; x < BoardWidth; ++x) {
+			const BattleLayoutRules::BoardCell cell{ x, y };
+			Expect(BoardCellAt(BoardCellCenter(cell)) == cell,
+				"board cell centers round-trip through the shared transform");
+		}
+	}
+	Expect(BoardCellAt({ BoardOffset().x - 1, BoardOffset().y })
+		== BattleLayoutRules::BoardCell{ -1, -1 },
+		"screen-to-board conversion does not clamp outside coordinates");
 }
 
 void TestShopRules() {
@@ -783,6 +839,7 @@ int main() {
 	TestDelayedEffectLifecycle();
 	TestEnemyIntentRules();
 	TestDebugScenarioRules();
+	TestBattleLayoutRules();
 	TestShopRules();
 	if (failures != 0) return EXIT_FAILURE;
 	std::cout << "All battle card interaction tests passed\n";

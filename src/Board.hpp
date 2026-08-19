@@ -8,6 +8,7 @@
 #include "Block.hpp"
 #include "BoardCalculationRules.hpp"
 #include "BattleCardRules.hpp"
+#include "BattleLayoutRules.hpp"
 #include "GameStateRules.hpp"
 #include "leric.hpp"
 
@@ -84,7 +85,7 @@ private:
 	Array<int32> board_off_def = { 1,1,1,0,0,0 };//攻1守0
 	Array<int32> result_of_calc = { 0,0,0,0,0,0 };
 	Array<bool> row_valid = { true,true,true,true,true,true };
-	const Point offset = { 600,170 };//Boardの左上の絶対座標(バトル時)
+	const Point offset = { BattleLayoutRules::BoardOffset().x, BattleLayoutRules::BoardOffset().y };//Boardの左上の絶対座標(バトル時)
 	//const Point offset_u = {0,0};//Boardの左上の絶対座標(アンロック時)(使わないかも)
 	const double img_scale = 1.8;
 	const int32 cell_size = int(50 * img_scale);
@@ -144,7 +145,7 @@ private:
 	void TakeOutBlock(Point pos, Point cursor_pos);
 	void RebuildBoardDerivedState();
 	void CalcRow();
-	Grid<double> GetBoardPieceAlphas(const BoardBlockState& state) const;
+	Grid<double> GetBoardSymbolAlphas(const BoardBlockState& state) const;
 	void DrawOnlyBoard() const;
 	void DrawBlock(Block block_on_board);
 	void DrawAddPlaceBoard() const;

@@ -7,6 +7,7 @@
 # include "Enemy.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
 # include "Banner.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
 # include "BattleCardRules.hpp"
+# include "BattleLayoutRules.hpp"
 # include "EnemyIntentRules.hpp"
 #include "HPBar.hpp"
 
@@ -89,7 +90,6 @@ private:
 	Texture m_attackIcon;
 	Texture m_defenceIcon;
 	Texture m_reward_money; // 報酬のテクスチャ
-	Rect m_button_hantei; // =ボタンの判定
 	// Array<Rect> m_tehuda_hantei; // 手札の判定
 	Font m_rewardFont; // 報酬のフォント
 	Font m_numFont; // 攻撃・防御の数字のフォント
@@ -131,9 +131,12 @@ private:
 	double yamahuda_angle = 0.0;
 	double sutehuda_angle = 0.0;
 	double tehuda_rate = 0.0;
+	Vec2 m_discardStart = { 0.0, 0.0 };
 
 	// コンストラクタで呼ばれる関数
 	int32 getTableSize() const;
+	Point GetHandPosition(int32 slot) const;
+	Rect GetAttackButtonRect() const;
 	void setupEnemy(int32 type, int32 layer);
 
 	// これらはupdate()から呼ばれ、アニメーションの状態を更新し、完了時に次の状態へ遷移させる

@@ -89,6 +89,11 @@ private:
 	return std::min<int32_t>(15, progress.UnlockedCount() / 2 + 2);
 }
 
+[[nodiscard]] inline int32_t ResolveBattleHandLimit(const BoardProgress& progress,
+	const int32_t explicit_override) noexcept {
+	return (0 < explicit_override) ? explicit_override : CalculateHandLimit(progress);
+}
+
 [[nodiscard]] inline uint64_t ElapsedMillis(const uint64_t now, const uint64_t start) noexcept {
 	return (start <= now) ? (now - start) : 0;
 }

@@ -8,6 +8,7 @@
 #include "../src/ShopRules.hpp"
 
 #include <array>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -851,6 +852,18 @@ void TestDebugScenarioRules() {
 
 void TestBattleLayoutRules() {
 	using namespace BattleLayoutRules;
+	const double normal_enemy_scale = EnemyDisplayScale(400, 1.0);
+	const double boss_enemy_scale = EnemyDisplayScale(700, 1.0);
+	Expect(std::abs(normal_enemy_scale * 400.0 - EnemyDisplayHeight) < 0.0001
+		&& std::abs(boss_enemy_scale * 700.0 - EnemyDisplayHeight) < 0.0001,
+		"normal and boss textures share one normalized display height");
+	Expect(std::abs((800.0 * EnemyBaseScale(400)) / EnemyDisplayHeight - 2.0) < 0.0001,
+		"enemy normalization preserves the source aspect ratio");
+	Expect(std::abs(EnemyDisplayScale(400, EnemyHitScaleMultiplier) - 0.7) < 0.0001
+		&& std::abs(EnemyDisplayScale(700, EnemyHitScaleMultiplier) * 700.0 - 280.0) < 0.0001,
+		"the hit animation is relative to each texture's normalized base scale");
+	Expect(EnemyBaseScale(0) == 1.0,
+		"an unavailable enemy texture has a safe neutral scale");
 	std::array<ScreenRect, 18> hand_bounds{};
 	for (int32_t slot = 0; slot < 18; ++slot) {
 		hand_bounds[static_cast<std::size_t>(slot)] = HandCardBounds(slot);

@@ -63,6 +63,8 @@ void Battle::setupEnemy(int32 type, int32 layer)
 		&& !getData().debug_battle_overrides->enemy_texture_path.isEmpty()
 		? getData().debug_battle_overrides->enemy_texture_path : data.texturePath;
     m_enemy.texture = Texture(texture_path);
+	enemy_base_scale = BattleLayoutRules::EnemyBaseScale(m_enemy.texture.height());
+	enemy_scale_multiplier = 1.0;
     m_enemy.type = data.type;
     m_enemy.maxHp = data.maxHp;
     m_enemy.hp = data.maxHp;
@@ -312,7 +314,8 @@ void Battle::updateCombatEnemyEffect()
         m_animeStopwatch.restart(); // ストップウォッチをリセット
         return;
     }
-    enemy_scale = Min(0.85, enemy_scale + Scene::DeltaTime());
+    enemy_scale_multiplier = Min(1.0,
+        enemy_scale_multiplier + Scene::DeltaTime() * BattleLayoutRules::EnemyScaleRecoveryRate);
     // damage_effectを表示するための制御
     if (my_attack_type == 3 && ene_damage_effect_cnt < ene_damage_max_cnt) {
         if (m_animeStopwatch.sF() > 0.20 * ene_damage_effect_cnt) {
@@ -321,7 +324,7 @@ void Battle::updateCombatEnemyEffect()
 			ene_effect_x = Random(1320, 1710); // エフェクトのX座標をランダムに設定
             ene_effect_y = Random(200, 450); // エフェクトのY座標をランダムに設定
             ene_damage_effect_cnt++;
-            enemy_scale = 0.7;
+            enemy_scale_multiplier = BattleLayoutRules::EnemyHitScaleMultiplier;
             // SE再生
             attack_se.playOneShot();
         }
@@ -336,7 +339,7 @@ void Battle::updateCombatEnemyEffect()
     }
     flag_once_draw = 0;
     my_damage_effect_cnt = 0;
-    enemy_scale = 0.85; // エフェクトの拡大を元に戻す
+    enemy_scale_multiplier = 1.0;
     m_currentAnimState = BattleAnimationState::CombatMyEffect;
     m_animeStopwatch.restart();
 }
@@ -741,6 +744,7 @@ bool Battle::drawDefault() const
 	const auto draw_pile_position = BattleLayoutRules::DrawPilePosition();
 	const auto discard_pile_position = BattleLayoutRules::DiscardPilePosition();
 	const auto equal_button = BattleLayoutRules::EqualButtonBounds();
+	const double enemy_display_scale = enemy_base_scale * enemy_scale_multiplier;
     if (is_gamewin)
     {
         // 背景をぼかすための処理
@@ -752,7 +756,8 @@ bool Battle::drawDefault() const
             // プレイヤーのキャラクターを描画
             m_myTexture.scaled(0.75).rotated(my_angle).draw(player_position.x, player_position.y);
             // 敵の情報を描画
-            m_enemy.texture.scaled(enemy_scale).draw(enemy_position.x, enemy_position.y, ColorF(1.0, 1.0, 1.0, enemy_image_alpha));
+            m_enemy.texture.scaled(enemy_display_scale).drawAt(enemy_position.x, enemy_position.y,
+				ColorF(1.0, 1.0, 1.0, enemy_image_alpha));
             // 山札のテクスチャを描画
             m_yamahudaTexture.scaled(0.75).rotated(yamahuda_angle).draw(draw_pile_position.x, draw_pile_position.y);
             // 捨て札のテクスチャを描画
@@ -799,7 +804,8 @@ bool Battle::drawDefault() const
         // プレイヤーのキャラクターを描画
         m_myTexture.scaled(0.75).rotated(my_angle).draw(player_position.x, player_position.y);
         // 敵の情報を描画
-        m_enemy.texture.scaled(enemy_scale).draw(enemy_position.x, enemy_position.y, ColorF(1.0, 1.0, 1.0, enemy_image_alpha));
+        m_enemy.texture.scaled(enemy_display_scale).drawAt(enemy_position.x, enemy_position.y,
+			ColorF(1.0, 1.0, 1.0, enemy_image_alpha));
         // 山札のテクスチャを描画
         m_yamahudaTexture.scaled(0.75).rotated(yamahuda_angle).draw(draw_pile_position.x, draw_pile_position.y);
         // 捨て札のテクスチャを描画

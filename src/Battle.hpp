@@ -110,7 +110,8 @@ private:
 	int32 ene_attack_type = 0;
 
 	// damage_effectの演出のための変数
-	double enemy_scale = 0.85;
+	double enemy_base_scale = 1.0;
+	double enemy_scale_multiplier = 1.0;
 	double my_angle = 0.0;
 	int32 damage_effect_width = 8;
 	int32 my_damage_effect_cnt = 0;

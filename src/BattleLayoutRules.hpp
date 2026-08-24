@@ -88,6 +88,20 @@ inline constexpr int32_t EnemyCombatValueX = 1530;
 [[nodiscard]] inline constexpr ScreenPoint PlayerDefenseTarget() noexcept { return { PlayerCombatIconX, 760 }; }
 [[nodiscard]] inline constexpr ScreenPoint PlayerHitTarget() noexcept { return { 80, 250 }; }
 
+inline constexpr double EnemyDisplayHeight = 340.0;
+inline constexpr double EnemyLegacyBaseScale = 0.85;
+inline constexpr double EnemyHitScaleMultiplier = 0.7 / EnemyLegacyBaseScale;
+inline constexpr double EnemyScaleRecoveryRate = 1.0 / EnemyLegacyBaseScale;
+
+[[nodiscard]] inline constexpr double EnemyBaseScale(const int32_t texture_height) noexcept {
+	return (0 < texture_height) ? (EnemyDisplayHeight / texture_height) : 1.0;
+}
+
+[[nodiscard]] inline constexpr double EnemyDisplayScale(
+	const int32_t texture_height, const double animation_multiplier) noexcept {
+	return EnemyBaseScale(texture_height) * animation_multiplier;
+}
+
 } // namespace BattleLayoutRules
 
 #endif

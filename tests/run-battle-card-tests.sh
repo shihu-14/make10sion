@@ -16,3 +16,4 @@ xcrun clang++ \
 	-o "$test_binary"
 
 "$test_binary"
+zsh "$script_dir/run-debug-tooling-tests.sh"

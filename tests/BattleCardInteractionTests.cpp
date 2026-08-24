@@ -749,6 +749,11 @@ void TestEnemyIntentRules() {
 
 void TestDebugScenarioRules() {
 	const auto& scenario = DebugScenarioRules::Midgame();
+	constexpr std::array<std::string_view, 18> expected_deck{
+		"b\n5\n+", "3\n*", "4\nf", "7\n*\n2", "+\n6", "/\n3",
+		"q\n+\n5", "*\no", "-\n3", "i\ng\n-", "2\n+", "4\na",
+		"c\ne\n+", "6\n/", "3\ni", "h\n+\nm", "-\n4", "*\n2",
+	};
 	Expect((scenario.layer == 22) && (scenario.enemy_type == 0),
 		"midgame debug starts in a late non-boss battle");
 	Expect((scenario.hp == 100) && (scenario.max_hp == 100) && (scenario.money == 300),
@@ -756,24 +761,92 @@ void TestDebugScenarioRules() {
 	Expect((scenario.seed == 0x4D313053ULL) && (scenario.deck.size() == 18),
 		"midgame debug uses a fixed seed and exactly eighteen cards");
 	Expect((scenario.hand_limit_override == 18)
-		&& (scenario.enemy_texture_path == "../../image/boss_1.png"),
+		&& (scenario.enemy_texture_path == "../../image/boss_1.png")
+		&& scenario.preserve_deck_order,
 		"midgame debug explicitly overrides the hand limit and enemy visual");
 	bool has_uppercase_symbol = false;
+	bool all_cards_are_valid = true;
+	bool has_single_cell_card = false;
+	int32_t occupied_cell_count = 0;
+	bool deck_matches_expected_order = (scenario.deck.size() == expected_deck.size());
+	for (std::size_t card_index = 0;
+		card_index < std::min(scenario.deck.size(), expected_deck.size()); ++card_index) {
+		deck_matches_expected_order = deck_matches_expected_order
+			&& (scenario.deck[card_index] == expected_deck[card_index]);
+	}
 	for (const auto definition : scenario.deck) {
+		all_cards_are_valid = all_cards_are_valid
+			&& CardSymbolRules::IsValidCardDefinition(definition);
+		int32_t card_cell_count = 0;
 		for (const char symbol : definition) {
 			if (('A' <= symbol) && (symbol <= 'H')) has_uppercase_symbol = true;
+			if ((symbol != '\n') && (symbol != '$')) ++card_cell_count;
 		}
+		has_single_cell_card = has_single_cell_card || (card_cell_count == 1);
+		occupied_cell_count += card_cell_count;
 	}
-	Expect(!has_uppercase_symbol,
-		"midgame debug avoids intrinsically translucent uppercase symbols");
+	Expect(deck_matches_expected_order,
+		"midgame debug exposes the requested cards in the requested order");
+	Expect(!has_uppercase_symbol && !has_single_cell_card,
+		"midgame debug avoids uppercase and single-cell cards");
+	Expect(all_cards_are_valid && (occupied_cell_count == 42),
+		"midgame debug uses only known symbols and exactly fills forty-two cells");
+
+	const auto preserved_order = GameStateRules::CreateInitialDrawOrder(
+		static_cast<int32_t>(scenario.deck.size()), scenario.preserve_deck_order);
+	Expect(!GameStateRules::ShouldShuffleInitialDrawOrder(scenario.preserve_deck_order)
+		&& GameStateRules::ShouldShuffleInitialDrawOrder(false),
+		"only the explicit debug override disables the normal deck shuffle");
 	GameStateRules::BattleDeckState deck;
-	deck.Initialize(static_cast<int32_t>(scenario.deck.size()));
-	for (int32_t card_id = 0; card_id < scenario.hand_limit_override; ++card_id) {
+	deck.Initialize(static_cast<int32_t>(scenario.deck.size()), preserved_order);
+	bool hand_matches_scenario_order = true;
+	for (int32_t expected_card_id = 0;
+		expected_card_id < scenario.hand_limit_override; ++expected_card_id) {
+		const int32_t card_id = deck.Cards(GameStateRules::CardZone::DrawPile).back();
+		hand_matches_scenario_order = hand_matches_scenario_order
+			&& (card_id == expected_card_id);
 		Expect(deck.Move(card_id, GameStateRules::CardZone::DrawPile,
 			GameStateRules::CardZone::Hand), "midgame debug can draw every visible test card");
 	}
-	Expect(deck.Validate() && (deck.Cards(GameStateRules::CardZone::Hand).size() == 18),
+	Expect(hand_matches_scenario_order && deck.Validate()
+		&& (deck.Cards(GameStateRules::CardZone::Hand).size() == 18),
 		"midgame debug starts with eighteen uniquely owned hand cards");
+
+	BoardCalculationRules::Board completed_board{ 7, 6 };
+	constexpr std::array<std::string_view, 6> rows{
+		"b5+3*4f", "7*2+6/3", "q+5*o-3",
+		"ig-2+4a", "ce+6/3i", "h+m-4*2",
+	};
+	for (int32_t y = 0; y < static_cast<int32_t>(rows.size()); ++y) {
+		for (int32_t x = 0; x < static_cast<int32_t>(rows[y].size()); ++x) {
+			completed_board.Set(x, y, rows[y][x]);
+		}
+	}
+	const auto result = BoardCalculationRules::Evaluate(completed_board);
+	Expect(result.row_values == std::vector<int32_t>{ 17, 16, 8, 14, 6, 5 },
+		"the completed debug board produces the documented row values including Ave");
+	Expect(result.row_multiplier_effects[0] == 1.5 && result.row_modes[0] == 0,
+		"the first debug row applies b and switches to defense");
+	Expect(result.row_multiplier_effects[3] == 1.0 && result.row_modes[3] == 1,
+		"the fourth debug row applies a and switches to attack");
+	Expect(result.row_multiplier_effects[4] == 2.0 && result.row_modes[4] == 1,
+		"the fifth debug row applies c and switches to attack");
+	bool expression_classification_is_expected = true;
+	for (int32_t y = 0; y < static_cast<int32_t>(rows.size()); ++y) {
+		for (int32_t x = 0; x < static_cast<int32_t>(rows[y].size()); ++x) {
+			const auto kind = CardSymbolRules::Decode(rows[y][x]).kind;
+			const auto usage = result.ExpressionUsageAt(x, y);
+			const bool is_expression = (kind == CardSymbolRules::Kind::Number)
+				|| (kind == CardSymbolRules::Kind::Operator)
+				|| (kind == CardSymbolRules::Kind::Aggregate);
+			expression_classification_is_expected = expression_classification_is_expected
+				&& (usage == (is_expression
+					? BoardCalculationRules::ExpressionCellUsage::Used
+					: BoardCalculationRules::ExpressionCellUsage::NonExpression));
+		}
+	}
+	Expect(expression_classification_is_expected,
+		"the completed debug board uses every expression symbol without fading effects or row modes");
 }
 
 void TestBattleLayoutRules() {

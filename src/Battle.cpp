@@ -36,12 +36,17 @@ Battle::Battle(const InitData& init)
     action_cycle = static_cast<int32>(m_enemy.actionPattern.size()); // 敵の行動パターンのサイクルを設定
     reward_money = m_enemy.type == 0 ? 20 : m_enemy.type == 1 ? 40 : 100; // 報酬の金額を設定
     // --- デッキの初期化 ---
-    Array<int32> draw_order;
+    const bool preserve_deck_order = getData().debug_battle_overrides
+        && getData().debug_battle_overrides->preserve_deck_order;
+    const auto initial_draw_order = GameStateRules::CreateInitialDrawOrder(
+        deck_size, preserve_deck_order);
+    Array<int32> draw_order{ initial_draw_order.begin(), initial_draw_order.end() };
     for (int32 i = 0; i < deck_size; i++) {
         m_cards[i].ResetRuntimeState();
-        draw_order.push_back(i);
     }
-    draw_order.shuffle();
+    if (GameStateRules::ShouldShuffleInitialDrawOrder(preserve_deck_order)) {
+        draw_order.shuffle();
+    }
     m_deckState.Initialize(deck_size,
         std::vector<int32>{ draw_order.begin(), draw_order.end() });
 

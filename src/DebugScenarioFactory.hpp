@@ -21,6 +21,7 @@ inline std::shared_ptr<GameData> CreateMidgame()
 	data->enemy = scenario.enemy_type;
 	data->debug_battle_overrides = GameData::DebugBattleOverrides{
 		scenario.hand_limit_override,
+		scenario.preserve_deck_order,
 		Unicode::Widen(std::string{ scenario.enemy_texture_path }),
 	};
 	data->Deck.clear();

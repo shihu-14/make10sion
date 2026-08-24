@@ -54,6 +54,7 @@ struct GameData
 {
 	struct DebugBattleOverrides {
 		int hand_limit = 0;
+		bool preserve_deck_order = false;
 		String enemy_texture_path;
 	};
 

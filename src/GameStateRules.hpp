@@ -94,6 +94,19 @@ private:
 	return (0 < explicit_override) ? explicit_override : CalculateHandLimit(progress);
 }
 
+[[nodiscard]] inline std::vector<int32_t> CreateInitialDrawOrder(
+	const int32_t card_count, const bool preserve_deck_order) {
+	std::vector<int32_t> result(static_cast<std::size_t>(std::max(card_count, 0)));
+	std::iota(result.begin(), result.end(), 0);
+	if (preserve_deck_order) std::reverse(result.begin(), result.end());
+	return result;
+}
+
+[[nodiscard]] inline bool ShouldShuffleInitialDrawOrder(
+	const bool preserve_deck_order) noexcept {
+	return !preserve_deck_order;
+}
+
 [[nodiscard]] inline uint64_t ElapsedMillis(const uint64_t now, const uint64_t start) noexcept {
 	return (start <= now) ? (now - start) : 0;
 }

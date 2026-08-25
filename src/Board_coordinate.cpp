@@ -381,6 +381,45 @@ Board::DropPlan Board::AnalyzeDrop(Point candidate_anchor, Point release_cursor,
         }
         break;
     }
+	case BattleCardRules::DropResult::BoardSwap: {
+		if (!drag_context.from_board) break;
+		const int32 target_index = FindBoardBlockIndex(plan.target_deck_index);
+		if (!IsBoardBlockPlaced(target_index)
+			|| !BattleCardRules::CanBeHandSwapTarget(board_blocks[target_index].lifecycle)) {
+			plan.type = DropType::RestoreToBoard;
+			break;
+		}
+		BattleCardRules::BoardSwapRequest swap_request;
+		swap_request.first_card_id = selected_block.GetStat() == 2
+			? drag_context.deck_index : BattleCardRules::EmptyCardId;
+		swap_request.first_destination_anchor = {
+			board_blocks[target_index].board_anchor.x, board_blocks[target_index].board_anchor.y };
+		for (int32 y = 0; y < selected_block.Size().second; ++y) {
+			for (int32 x = 0; x < selected_block.Size().first; ++x) {
+				if (selected_block.GetPiece(x, y).content != '$') {
+					swap_request.first_footprint.push_back({ x, y });
+				}
+			}
+		}
+		const BoardBlockState& target = board_blocks[target_index];
+		swap_request.second_card_id = target.deck_index;
+		swap_request.second_destination_anchor = {
+			drag_context.board_anchor.x, drag_context.board_anchor.y };
+		for (int32 y = 0; y < target.block->Size().second; ++y) {
+			for (int32 x = 0; x < target.block->Size().first; ++x) {
+				if (target.block->GetPiece(x, y).content != '$') {
+					swap_request.second_footprint.push_back({ x, y });
+				}
+			}
+		}
+		if (BattleCardRules::CanSwapBoardCards(swap_request, snapshot)) {
+			plan.type = DropType::BoardSwap;
+			plan.anchor = target.board_anchor;
+		} else {
+			plan.type = DropType::RestoreToBoard;
+		}
+		break;
+	}
     }
     return plan;
 }
@@ -508,6 +547,53 @@ void Board::SetBlockRotation(int32 index, int32 rotation) {
         state.block->Rotate();
         state.rotation = (state.rotation + 1) % 4;
 	}
+}
+
+bool Board::RotateDraggedBlock() {
+	if (!IsDragContextValid()) return false;
+	const int32 selected_index = ResolveDragBlockIndex();
+	if (!IsBoardBlockIndexValid(selected_index)) return false;
+	BoardBlockState& selected = board_blocks[selected_index];
+	selected.block->Rotate();
+	selected.rotation = (selected.rotation + 1) % 4;
+	drag_context.rotation_steps = (drag_context.rotation_steps + 1) % 4;
+	TraceTransition(U"drag-rotate", selected.deck_index, U"rotation=" + Format(selected.rotation));
+	return true;
+}
+
+bool Board::SwapBoardBlocks(const int32 selected_index, const int32 target_index) {
+	if (!IsDragContextValid() || !drag_context.from_board
+		|| !IsBoardBlockIndexValid(selected_index) || !IsBoardBlockIndexValid(target_index)
+		|| (selected_index == target_index)) return false;
+	BoardBlockState& selected = board_blocks[selected_index];
+	BoardBlockState& target = board_blocks[target_index];
+	const Point selected_anchor = drag_context.board_anchor;
+	const Point target_anchor = target.board_anchor;
+	if (!CanPlaceBlock(selected_index, target_anchor, selected_index, target_index)
+		|| !CanPlaceBlock(target_index, selected_anchor, selected_index, target_index)) return false;
+
+	if (!ClearBoardBlock(selected_index) || !ClearBoardBlock(target_index)
+		|| !UpdateBoardNum(selected_index, target_anchor)
+		|| !UpdateBoardNum(target_index, selected_anchor)) {
+		ClearBoardBlock(selected_index);
+		ClearBoardBlock(target_index);
+		SetBlockRotation(selected_index, drag_context.start_rotation);
+		const bool selected_restored = UpdateBoardNum(selected_index, selected_anchor);
+		const bool target_restored = UpdateBoardNum(target_index, target_anchor);
+		if (selected_restored) SetBoardBlockPosition(selected_index, selected_anchor);
+		if (target_restored) SetBoardBlockPosition(target_index, target_anchor);
+		return false;
+	}
+
+	SetBoardBlockPosition(selected_index, target_anchor);
+	SetBoardBlockPosition(target_index, selected_anchor);
+	selected.block->SetStat(2);
+	target.block->SetStat(2);
+	selected.lifecycle = BattleCardRules::CardLifecycle::OnBoard;
+	target.lifecycle = BattleCardRules::CardLifecycle::OnBoard;
+	selected.visual_motion = {};
+	target.visual_motion = {};
+	return true;
 }
 
 void Board::StartVisualReturn(int32 index, BattleCardRules::CardLifecycle lifecycle, Point end_pos) {
@@ -641,9 +727,25 @@ void Board::PutBlock(Point release_cursor, Point release_screen_pos) {//blockが
         RollbackDraggedBlock();
         return;
     }
-	const DropPlan plan = AnalyzeDrop(PutBlockAt(release_screen_pos), release_cursor, release_screen_pos);
+	DropPlan plan = AnalyzeDrop(PutBlockAt(release_screen_pos), release_cursor, release_screen_pos);
 	const int32 selected_index = drag_context.board_block_index;
 	BoardBlockState& selected = board_blocks[selected_index];
+	if (plan.type == DropType::ReturnToHand) {
+		const int32 original_rotation = selected.rotation;
+		if (RotateDraggedBlock()) {
+			const DropPlan rotated_plan = AnalyzeDrop(PutBlockAt(release_screen_pos),
+				release_cursor, release_screen_pos);
+			if (BattleCardRules::ShouldUseAutoRotatedPlacement(
+				BattleCardRules::DropResult::ReturnToHand,
+				rotated_plan.type == DropType::Place
+					? BattleCardRules::DropResult::Place : BattleCardRules::DropResult::ReturnToHand)) {
+				plan = rotated_plan;
+			} else {
+				SetBlockRotation(selected_index, original_rotation);
+				drag_context.rotation_steps = (selected.rotation - drag_context.start_rotation + 4) % 4;
+			}
+		}
+	}
 	TraceTransition(U"drop-resolved", selected.deck_index,
 		U"result=" + Format(static_cast<int32>(plan.type))
 		+ U", anchor=" + Format(plan.anchor) + U", target=" + Format(plan.target_deck_index));
@@ -674,7 +776,7 @@ void Board::PutBlock(Point release_cursor, Point release_screen_pos) {//blockが
 			QueueZoneChange(selected.deck_index, GameStateRules::CardZone::Hand,
 				GameStateRules::CardZone::Board);
 		}
-    } else if ((plan.type == DropType::Swap) && !drag_context.from_board) {
+	    } else if ((plan.type == DropType::Swap) && !drag_context.from_board) {
         const int32 target_index = FindBoardBlockIndex(plan.target_deck_index);
         if (!IsBoardBlockPlaced(target_index)
             || !CanPlaceBlock(selected_index, plan.anchor, selected_index, target_index)) {
@@ -738,7 +840,15 @@ void Board::PutBlock(Point release_cursor, Point release_screen_pos) {//blockが
 		QueueZoneChange(target.deck_index, GameStateRules::CardZone::Board,
 			GameStateRules::CardZone::Hand);
 		TraceTransition(U"swap-place", selected.deck_index, U"target=" + Format(target.deck_index));
-    } else {
+	} else if ((plan.type == DropType::BoardSwap) && drag_context.from_board) {
+		const int32 target_index = FindBoardBlockIndex(plan.target_deck_index);
+		if (!SwapBoardBlocks(selected_index, target_index)) {
+			RestoreDraggedBlockToBoard();
+			return;
+		}
+		TraceTransition(U"board-swap", selected.deck_index,
+			U"target=" + Format(plan.target_deck_index));
+	    } else {
         RollbackDraggedBlock();
         return;
     }

@@ -17,7 +17,7 @@ struct BoardInputFrame {
 	bool left_down = false;
 	bool left_pressed = false;
 	bool left_up = false;
-	bool right_down = false;
+	bool rotate_pressed = false;
 	bool focused = true;
 	uint64 frame_number = 0;
 	double delta_seconds = 0.0;
@@ -56,6 +56,7 @@ private:
 		RestoreToBoard,
 		Place,
 		Swap,
+		BoardSwap,
 	};
 
 	struct DropPlan {
@@ -133,6 +134,8 @@ private:
 	bool UpdateBoardNum(int32 index, Point putAt);
 	void SetBoardBlockPosition(int32 index, Point anchor);
 	void SetBlockRotation(int32 index, int32 rotation);
+	bool RotateDraggedBlock();
+	bool SwapBoardBlocks(int32 selected_index, int32 target_index);
 	bool ReturnDraggedBlockToHand();
 	bool RestoreDraggedBlockToBoard();
 	bool RestoreDraggedBlockAfterFailedCommit();

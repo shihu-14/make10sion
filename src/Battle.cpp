@@ -315,25 +315,20 @@ void Battle::attack()
         // 盤面から攻撃力と防御力を取得
         tie(my_attack, my_defense) = m_board.Confirm();
         // プレイヤー->敵の攻撃力を計算
-        my_real_attack = Max(0, my_attack - ene_defense); // プレイヤーの攻撃力から敵の防御力を引く
-        m_enemy.hp -= my_real_attack; // プレイヤーのHPを減らす
-        // 敵->プレイヤーの攻撃力を計算
-        ene_real_attack = Max(0, ene_attack - my_defense); // 敵の攻撃力から防御力を引く
-        getData().HP -= ene_real_attack; // 敵のHPを減らす
-        if (getData().HP < 0) getData().HP = 0; // プレイヤーのHPが負にならないようにする
+		const int32 player_damage = Max(0, my_attack - ene_defense);
+		my_real_attack = is_boss3 ? 0 : Min(player_damage, m_enemy.hp);
+		// 敵->プレイヤーの攻撃力を計算
+		ene_real_attack = Min(Max(0, ene_attack - my_defense), getData().HP);
         // 自分・敵の防御力を減らすエフェクトのための変数を設定
         ene_defense_effect = ene_defense; // 敵の防御力を減らすエフェクトのための変数
         my_defense_effect = my_defense; // 自分の防御力を減
-        // 敵がボス3の場合、敵のHPを増やす
-        if (is_boss3) {
-            m_enemy.hp += my_real_attack;
-        }
-        // damage-effectの演出のための制御変数を設定
-        my_res_real_attack = my_real_attack % damage_effect_width;
-        ene_res_real_attack = ene_real_attack % damage_effect_width;
-        ene_damage_effect_cnt = 0;
-        ene_damage_max_cnt = (my_real_attack+damage_effect_width-1) / damage_effect_width;
-        my_damage_max_cnt = (ene_real_attack+damage_effect_width-1) / damage_effect_width;
+		// damage-effectの演出のための制御変数を設定
+		m_enemyDamageHits = BattleDamageRules::SplitDamage(my_real_attack, m_enemy.maxHp);
+		m_playerDamageHits = BattleDamageRules::SplitDamage(ene_real_attack, getData().MaxHP);
+		ene_damage_effect_cnt = 0;
+		my_damage_effect_cnt = 0;
+		ene_effect_x = ene_effect_y = -1;
+		my_effect_x = my_effect_y = -1;
         // attack/defecce の演出のための変数を設定
 		const auto player_attack_start = BattleLayoutRules::PlayerAttackStart();
 		const auto enemy_defense_target = BattleLayoutRules::EnemyDefenseTarget();
@@ -406,18 +401,26 @@ void Battle::updateCombatEnemyEffect()
     enemy_scale_multiplier = Min(1.0,
         enemy_scale_multiplier + Scene::DeltaTime() * BattleLayoutRules::EnemyScaleRecoveryRate);
     // damage_effectを表示するための制御
-    if (my_attack_type == 3 && ene_damage_effect_cnt < ene_damage_max_cnt) {
-        if (m_animeStopwatch.sF() > 0.20 * ene_damage_effect_cnt) {
-            if (ene_damage_effect_cnt == 0 && my_res_real_attack) ene_hpbar.damage(my_res_real_attack); // 敵のHPバーを減らす
-            else ene_hpbar.damage(damage_effect_width); // 敵のHPバーを減らす
+	if (my_attack_type == 3
+		&& ene_damage_effect_cnt < static_cast<int32>(m_enemyDamageHits.size())) {
+		if (m_animeStopwatch.sF() > 0.20 * ene_damage_effect_cnt) {
+			const int32 hit_damage = m_enemyDamageHits[ene_damage_effect_cnt];
+			m_enemy.hp = BattleDamageRules::ApplyHit(m_enemy.hp, hit_damage);
+			ene_hpbar.damage(hit_damage);
 			ene_effect_x = Random(1320, 1710); // エフェクトのX座標をランダムに設定
-            ene_effect_y = Random(200, 450); // エフェクトのY座標をランダムに設定
-            ene_damage_effect_cnt++;
+			ene_effect_y = Random(200, 450); // エフェクトのY座標をランダムに設定
+			ene_damage_effect_cnt++;
             enemy_scale_multiplier = BattleLayoutRules::EnemyHitScaleMultiplier;
-            // SE再生
-            attack_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume));
-        }
-        return;
+			// SE再生
+			attack_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume));
+			if (!BattleDamageRules::ShouldContinueHits(m_enemy.hp)) {
+				ene_damage_effect_cnt = static_cast<int32>(m_enemyDamageHits.size());
+				m_currentAnimState = BattleAnimationState::WinEffect;
+				m_animeStopwatch.restart();
+				return;
+			}
+		}
+		return;
     }
     // 敵を倒したかの判定
     bool isWin = m_enemy.hp <= 0;
@@ -473,17 +476,25 @@ void Battle::updateCombatMyEffect()
     }
     my_angle = Min(0.0, my_angle + Scene::DeltaTime());
     // damage_effectを表示するための制御
-    if (ene_attack_type == 3 && my_damage_effect_cnt < my_damage_max_cnt) {
-        if ((m_animeStopwatch.sF()) > 0.20 * my_damage_effect_cnt) {
-            if (my_damage_effect_cnt == 0 && ene_res_real_attack) my_hpbar.damage(ene_res_real_attack); // 自分のHPバーを減らす
-            else my_hpbar.damage(damage_effect_width); // 自分のHPバーを減らす
+	if (ene_attack_type == 3
+		&& my_damage_effect_cnt < static_cast<int32>(m_playerDamageHits.size())) {
+		if ((m_animeStopwatch.sF()) > 0.20 * my_damage_effect_cnt) {
+			const int32 hit_damage = m_playerDamageHits[my_damage_effect_cnt];
+			getData().HP = BattleDamageRules::ApplyHit(getData().HP, hit_damage);
+			my_hpbar.damage(hit_damage);
 			my_effect_x = Random(50, 200); // エフェクトのX座標をランダムに設定
             my_effect_y = Random(130, 230); // エフェクトのY座標をランダムに設定
             my_damage_effect_cnt++;
             my_angle = Random(-0.52, -0.1); // -π/4 ~ -π/6の範囲でプレイヤーを傾かさせる
-            // SE再生
-            attack_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume));
-        }
+			// SE再生
+			attack_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume));
+			if (!BattleDamageRules::ShouldContinueHits(getData().HP)) {
+				my_damage_effect_cnt = static_cast<int32>(m_playerDamageHits.size());
+				m_currentAnimState = BattleAnimationState::GameOver;
+				m_animeStopwatch.restart();
+				return;
+			}
+		}
         return;
     }
     // 勝利判定を行う
@@ -654,7 +665,7 @@ void Battle::update()
         MouseL.down(),
         MouseL.pressed(),
         MouseL.up(),
-		MouseR.down(),
+			KeyR.down(),
 		Window::GetState().focused,
 		m_frameNumber,
 		Scene::DeltaTime(),
@@ -862,7 +873,7 @@ bool Battle::drawDefault() const
             m_board.DrawBoard(0);
             drawHandCards();
             // プレイヤーのキャラクターを描画
-            m_myTexture.scaled(0.75).rotated(my_angle).draw(player_position.x, player_position.y);
+            m_myTexture.scaled(1.3).rotated(my_angle).draw(player_position.x, player_position.y);
             // 敵の情報を描画
             m_enemy.texture.scaled(enemy_display_scale).drawAt(enemy_position.x, enemy_position.y,
 				ColorF(1.0, 1.0, 1.0, enemy_image_alpha));
@@ -967,7 +978,8 @@ void Battle::drawCombatEnemyEffect() const
         m_numFont(U"{}"_fmt(my_attack)).draw(my_attack_icon_pos+Vec2{80, 0}, Palette::Black);
     }
     else if (my_attack_type == 3){ // attack_effect
-        if (ene_effect_x != -1 && ene_effect_y != -1) {
+        if (BattleDamageRules::ShouldDrawHitEffect(
+			static_cast<int32>(m_enemyDamageHits.size()), ene_effect_x, ene_effect_y)) {
             m_effectTexture.scaled(0.5).draw(ene_effect_x, ene_effect_y);
         } 
     }
@@ -990,7 +1002,8 @@ void Battle::drawCombatMyEffect() const
         m_numFont(U"{}"_fmt(ene_attack)).draw(ene_attack_icon_pos+Vec2{80, 0}, Palette::Black);
     }
     else if (ene_attack_type == 3){ // attack_effect
-        if (my_effect_x != -1 && my_effect_y != -1) {
+        if (BattleDamageRules::ShouldDrawHitEffect(
+			static_cast<int32>(m_playerDamageHits.size()), my_effect_x, my_effect_y)) {
             m_effectTexture.scaled(0.5).draw(my_effect_x, my_effect_y);
 
         } 

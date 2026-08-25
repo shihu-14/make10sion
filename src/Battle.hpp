@@ -10,6 +10,7 @@
 # include "BattleLayoutRules.hpp"
 # include "EnemyIntentRules.hpp"
 #include "HPBar.hpp"
+#include "BattleDamageRules.hpp"
 
 // Data Manager の Deck を模倣したグローバル変数
 // 実際には Data Manager クラス (DataManager.hpp) で定義し、ここからインクルードするのが望ましい
@@ -55,8 +56,6 @@ private:
 	int32 ene_attack = 0;
 	int32 ene_defense = 0;
 	int32 ene_real_attack = 0;
-	int32 my_res_real_attack = 0;
-	int32 ene_res_real_attack = 0;
 	int32 my_defense_effect = 0; // 自分の防御力を減らすエフェクトのための変数
 	int32 ene_defense_effect = 0; // 敵の防御力のへらすエフェクトのための変数
 	int32 reward_money = 0; // 報酬の金額
@@ -116,11 +115,10 @@ private:
 	double enemy_base_scale = 1.0;
 	double enemy_scale_multiplier = 1.0;
 	double my_angle = 0.0;
-	int32 damage_effect_width = 8;
 	int32 my_damage_effect_cnt = 0;
 	int32 ene_damage_effect_cnt = 0;
-	int32 my_damage_max_cnt = 0;
-	int32 ene_damage_max_cnt = 0;
+	std::vector<int32> m_playerDamageHits;
+	std::vector<int32> m_enemyDamageHits;
 	int32 my_effect_x = -1, my_effect_y = -1; // エフェクトの位置
 	int32 ene_effect_x = -1, ene_effect_y = -1; // エフェクトの位置
 	int32 flag_once_draw = 0; // 一回だけ描画させるための制御変数

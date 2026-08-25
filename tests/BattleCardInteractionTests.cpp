@@ -1,4 +1,5 @@
 #include "../src/BattleCardRules.hpp"
+#include "../src/BattleDamageRules.hpp"
 #include "../src/BattleLayoutRules.hpp"
 #include "../src/BoardCalculationRules.hpp"
 #include "../src/CardSymbolRules.hpp"
@@ -107,12 +108,12 @@ void TestBoardDrops() {
 
 	At(board, { 4, 2 }).occupant = 8;
 	Expect(ResolveDrop(Request(DragOrigin::Board, { 3, 2 }, { { 0, 0 }, { 1, 0 } }), board).result
-		== DropResult::RestoreToBoard, "board cards never swap on partial overlap");
+		== DropResult::BoardSwap, "one overlapping board card becomes a swap candidate");
 
 	auto partial_outside_with_overlap = Request(DragOrigin::Board, { 6, 2 }, { { 0, 0 }, { 1, 0 } });
 	At(board, { 6, 2 }).occupant = 8;
-	Expect(ResolveDrop(partial_outside_with_overlap, board).result == DropResult::RestoreToBoard,
-		"other-card overlap takes priority over a partial board exit");
+	Expect(ResolveDrop(partial_outside_with_overlap, board).result == DropResult::BoardSwap,
+		"one board-card overlap is classified before reciprocal placement validation");
 	At(board, { 6, 2 }).occupant = EmptyCardId;
 	Expect(ResolveDrop(partial_outside_with_overlap, board).result == DropResult::ReturnToHand,
 		"board card returns to hand when partially outside");
@@ -132,6 +133,14 @@ void TestBoardDrops() {
 
 void TestRotationAndFastRelease() {
 	auto board = MakeBoard();
+	Expect(ShouldRotateDraggedCard(true, true),
+		"R rotates a card while a drag is active");
+	Expect(!ShouldRotateDraggedCard(false, true) && !ShouldRotateDraggedCard(true, false),
+		"rotation input is ignored outside an active drag or without an R press");
+	Expect(!CanResetCardRotation(true),
+		"an occupied board card cannot reset its rotation before detach");
+	Expect(CanResetCardRotation(false),
+		"a board card can reset its rotation after its occupancy is cleared");
 	auto horizontal = Request(DragOrigin::Hand, { 5, 1 }, { { 0, 0 }, { 1, 0 } });
 	Expect(ResolveDrop(horizontal, board).result == DropResult::Place,
 		"horizontal rotated footprint fits");
@@ -143,6 +152,81 @@ void TestRotationAndFastRelease() {
 	release_frame.pointer_on_board = false;
 	Expect(ResolveDrop(release_frame, board).result == DropResult::ReturnToHand,
 		"release-frame coordinates determine a fast invalid drop");
+}
+
+void TestBoardCardSwapRules() {
+	auto board = MakeBoard();
+	At(board, { 1, 1 }).occupant = 4;
+	At(board, { 2, 1 }).occupant = 4;
+	At(board, { 4, 2 }).occupant = 8;
+	At(board, { 4, 3 }).occupant = 8;
+	At(board, { 4, 4 }).occupant = 8;
+
+	const auto overlap = Request(DragOrigin::Board, { 4, 2 }, { { 0, 0 }, { 1, 0 } });
+	const DropDecision decision = ResolveDrop(overlap, board);
+	Expect((decision.result == DropResult::BoardSwap) && (decision.target_card_id == 8),
+		"a board card overlapping one board card becomes a board swap candidate");
+
+	BoardSwapRequest swap;
+	swap.first_card_id = 4;
+	swap.first_destination_anchor = { 4, 2 };
+	swap.first_footprint = { { 0, 0 }, { 1, 0 } };
+	swap.second_card_id = 8;
+	swap.second_destination_anchor = { 1, 1 };
+	swap.second_footprint = { { 0, 0 }, { 0, 1 }, { 0, 2 } };
+	Expect(CanSwapBoardCards(swap, board),
+		"different board card shapes can swap when both destinations are legal");
+
+	At(board, { 5, 2 }).occupant = 12;
+	Expect(!CanSwapBoardCards(swap, board),
+		"a board swap fails when either destination collides with a third card");
+	At(board, { 5, 2 }).occupant = EmptyCardId;
+	At(board, { 1, 2 }).usable = false;
+	Expect(!CanSwapBoardCards(swap, board),
+		"a board swap fails when either destination uses a locked cell");
+
+	Expect(ShouldUseAutoRotatedPlacement(DropResult::ReturnToHand, DropResult::Place),
+		"an invalid placement may use one legal automatic quarter-turn");
+	Expect(!ShouldUseAutoRotatedPlacement(DropResult::BoardSwap, DropResult::Place),
+		"a board swap candidate is never silently replaced by automatic rotation");
+}
+
+void TestDamageHitRules() {
+	using namespace BattleDamageRules;
+	Expect(HitCountForDamage(15, 100) == 1, "fifteen percent damage uses one hit");
+	Expect(HitCountForDamage(16, 100) == 2, "damage above fifteen percent uses two hits");
+	Expect(HitCountForDamage(30, 100) == 2, "thirty percent damage uses two hits");
+	Expect(HitCountForDamage(31, 100) == 3, "damage above thirty percent uses three hits");
+	Expect(HitCountForDamage(45, 100) == 3, "forty-five percent damage uses three hits");
+	Expect(HitCountForDamage(46, 100) == 4, "damage above forty-five percent uses four hits");
+	Expect(HitCountForDamage(60, 100) == 4, "sixty percent damage uses four hits");
+	Expect(HitCountForDamage(61, 100) == 5, "damage above sixty percent uses five hits");
+
+	const auto hits = SplitDamage(17, 100);
+	Expect((hits.size() == 2) && (hits[0] == 9) && (hits[1] == 8),
+		"actual damage is split as evenly as possible");
+	int32_t total = 0;
+	for (const auto hit : hits) total += hit;
+	Expect(total == 17, "split hit damage sums exactly to the actual damage");
+	const auto tiny_hits = SplitDamage(2, 2);
+	Expect((tiny_hits.size() == 2) && (tiny_hits[0] == 1) && (tiny_hits[1] == 1),
+		"hit count never creates zero-damage effects");
+
+	int32_t hp = 5;
+	int32_t applied_hits = 0;
+	for (const int32_t hit : std::array<int32_t, 3>{ 4, 4, 4 }) {
+		hp = ApplyHit(hp, hit);
+		++applied_hits;
+		if (!ShouldContinueHits(hp)) break;
+	}
+	Expect((hp == 0) && (applied_hits == 2),
+		"remaining hit effects stop immediately when HP reaches zero");
+	Expect(!ShouldDrawHitEffect(0, 120, 180),
+		"zero damage does not redraw a stale hit effect position");
+	Expect(!ShouldDrawHitEffect(1, -1, 180) && !ShouldDrawHitEffect(1, 120, -1),
+		"a hit effect requires a valid screen position");
+	Expect(ShouldDrawHitEffect(1, 120, 180),
+		"a real damage hit with a valid position draws its effect");
 }
 
 void TestInputOwnership() {
@@ -271,18 +355,28 @@ void TestForcedMotionCompletion() {
 		"focus loss or scene transition completes a board return");
 }
 
-void TestRepeatedBoardOverlapReturn() {
+void TestRepeatedFailedBoardSwapReturn() {
 	for (int iteration = 0; iteration < 500; iteration++) {
 		auto board = MakeBoard();
 		At(board, { 2, 2 }).occupant = 4;
 		At(board, { 3, 2 }).occupant = 4;
 		At(board, { 4, 2 }).occupant = 8;
+		At(board, { 5, 2 }).occupant = 12;
 		const BoardSnapshot before = board;
 
 		const DropDecision decision = ResolveDrop(
 			Request(DragOrigin::Board, { 3, 2 }, { { 0, 0 }, { 1, 0 } }), board);
-		Expect(decision.result == DropResult::RestoreToBoard,
-			"board overlap resolves to a board restore");
+		Expect(decision.result == DropResult::BoardSwap,
+			"board overlap resolves to a board swap candidate");
+		BoardSwapRequest swap;
+		swap.first_card_id = 4;
+		swap.first_destination_anchor = { 4, 2 };
+		swap.first_footprint = { { 0, 0 }, { 1, 0 } };
+		swap.second_card_id = 8;
+		swap.second_destination_anchor = { 2, 2 };
+		swap.second_footprint = { { 0, 0 } };
+		Expect(!CanSwapBoardCards(swap, board),
+			"an illegal reciprocal placement restores the dragged board card");
 
 		CardLifecycle returning_card = CardLifecycle::ReturningToBoard;
 		CardLifecycle other_card = CardLifecycle::OnBoard;
@@ -929,10 +1023,10 @@ void TestBattleLayoutRules() {
 	Expect(SceneBounds().Contains(EqualButtonBounds()),
 		"the attack button stays fully inside the logical scene");
 	Expect((PlayerPosition().y == 230) && (PlayerHpPosition().y == 700)
-		&& (EnemyPosition().y == 350) && (EnemyHpPosition().y == 700)
-		&& (BoardOffset().y == 170) && (HandPosition(0).y == 900)
+		&& (EnemyPosition().y == 500) && (EnemyHpPosition().y == 700)
+		&& (BoardOffset().y == 190) && (HandPosition(0).y == 900)
 		&& (EqualButtonBounds().y == 750),
-		"horizontal layout changes preserve all requested vertical positions");
+		"battle layout preserves the selected vertical positions");
 	for (int32_t y = 0; y < BoardHeight; ++y) {
 		for (int32_t x = 0; x < BoardWidth; ++x) {
 			const BattleLayoutRules::BoardCell cell{ x, y };
@@ -960,12 +1054,14 @@ int main() {
 	TestHandDrops();
 	TestBoardDrops();
 	TestRotationAndFastRelease();
+	TestBoardCardSwapRules();
+	TestDamageHitRules();
 	TestInputOwnership();
 	TestInteractionDrawLayers();
 	TestStableIdentityAndReservations();
 	TestConcurrentReturnMotions();
 	TestForcedMotionCompletion();
-	TestRepeatedBoardOverlapReturn();
+	TestRepeatedFailedBoardSwapReturn();
 	TestBoardProgress();
 	TestBattleDeckState();
 	TestTurnDrawRefreshRules();

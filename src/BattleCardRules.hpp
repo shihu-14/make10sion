@@ -50,6 +50,7 @@ enum class DropResult {
 	RestoreToBoard,
 	Place,
 	Swap,
+	BoardSwap,
 };
 
 struct DropRequest {
@@ -103,8 +104,13 @@ struct DropDecision {
 	}
 
 	if (request.origin == DragOrigin::Board) {
-		if (!overlapping_cards.empty()) {
+		if (1 < overlapping_cards.size()) {
 			decision.result = DropResult::RestoreToBoard;
+			return decision;
+		}
+		if (overlapping_cards.size() == 1) {
+			decision.result = DropResult::BoardSwap;
+			decision.target_card_id = overlapping_cards.front();
 			return decision;
 		}
 		if (invalid) {
@@ -127,6 +133,61 @@ struct DropDecision {
 	decision.result = DropResult::Swap;
 	decision.target_card_id = overlapping_cards.front();
 	return decision;
+}
+
+struct BoardSwapRequest {
+	CardId first_card_id = EmptyCardId;
+	Cell first_destination_anchor;
+	std::vector<Cell> first_footprint;
+	CardId second_card_id = EmptyCardId;
+	Cell second_destination_anchor;
+	std::vector<Cell> second_footprint;
+};
+
+[[nodiscard]] inline bool CanSwapBoardCards(
+	const BoardSwapRequest& request, const BoardSnapshot& board) {
+	if ((request.first_card_id == EmptyCardId) || (request.second_card_id == EmptyCardId)
+		|| (request.first_card_id == request.second_card_id)
+		|| request.first_footprint.empty() || request.second_footprint.empty()) return false;
+	std::vector<Cell> first_cells;
+	first_cells.reserve(request.first_footprint.size());
+	for (const Cell local_cell : request.first_footprint) {
+		const Cell cell{ request.first_destination_anchor.x + local_cell.x,
+			request.first_destination_anchor.y + local_cell.y };
+		const BoardCell* board_cell = board.at(cell);
+		if ((board_cell == nullptr) || !board_cell->usable
+			|| ((board_cell->occupant != EmptyCardId)
+				&& (board_cell->occupant != request.first_card_id)
+				&& (board_cell->occupant != request.second_card_id))) return false;
+		first_cells.push_back(cell);
+	}
+	for (const Cell local_cell : request.second_footprint) {
+		const Cell cell{ request.second_destination_anchor.x + local_cell.x,
+			request.second_destination_anchor.y + local_cell.y };
+		const BoardCell* board_cell = board.at(cell);
+		if ((board_cell == nullptr) || !board_cell->usable
+			|| ((board_cell->occupant != EmptyCardId)
+				&& (board_cell->occupant != request.first_card_id)
+				&& (board_cell->occupant != request.second_card_id))) return false;
+		for (const Cell first_cell : first_cells) {
+			if (first_cell == cell) return false;
+		}
+	}
+	return true;
+}
+
+[[nodiscard]] inline bool ShouldUseAutoRotatedPlacement(
+	const DropResult current, const DropResult rotated) noexcept {
+	return (current == DropResult::ReturnToHand) && (rotated == DropResult::Place);
+}
+
+[[nodiscard]] inline bool ShouldRotateDraggedCard(
+	const bool drag_active, const bool rotate_pressed) noexcept {
+	return drag_active && rotate_pressed;
+}
+
+[[nodiscard]] inline bool CanResetCardRotation(const bool has_board_occupancy) noexcept {
+	return !has_board_occupancy;
 }
 
 enum class PointerInputOwner {

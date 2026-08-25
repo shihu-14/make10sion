@@ -44,10 +44,6 @@ void Board::BeginTurn() {//毎ターン開始時に呼び出してもらう
 void Board::EndTurn() {
 	CancelActiveDrag();
 	BoardCalculationRules::CommitDelayedEffects(board_effect_back, board_effect_committed);
-	for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {
-		if (!IsBoardBlockIndexValid(i)) continue;
-		SetBlockRotation(i, 0);
-	}
 }
 
 void Board::BeginUnlockSelection(const GameStateRules::BoardProgress& progress) {
@@ -76,14 +72,10 @@ void Board::Update(int32 idx, vector<int32> relics, const BoardInputFrame& input
 				} else {
 					BoardBlockState& selected = board_blocks[drag_context.board_block_index];
 					const Point drag_pos = input.cursor + drag_context.cursor_offset;
+					if (BattleCardRules::ShouldRotateDraggedCard(
+						drag_context.active, input.rotate_pressed)) RotateDraggedBlock();
 					if (input.left_pressed || input.left_up) {
 						selected.block->SetPos(drag_pos.x, drag_pos.y);
-
-						if (input.left_pressed && input.right_down) {//blockの回転
-							selected.block->Rotate();
-							selected.rotation = (selected.rotation + 1) % 4;
-							drag_context.rotation_steps = (drag_context.rotation_steps + 1) % 4;
-						}
 					}
 					if (input.left_up) {
 						PutBlock(input.cursor, drag_pos);
@@ -235,6 +227,8 @@ bool Board::DetachCard(const int32 deck_index) {
 	if (!IsBoardBlockIndexValid(index)) return true;
 	const bool occupancy_changed = HasBoardOccupancy(index);
 	if (!ClearBoardBlock(index)) return false;
+	if (!BattleCardRules::CanResetCardRotation(HasBoardOccupancy(index))) return false;
+	SetBlockRotation(index, 0);
 	if (drag_context.active && (drag_context.deck_index == deck_index)) ClearDrag();
 	pending_zone_changes.erase(std::remove_if(pending_zone_changes.begin(), pending_zone_changes.end(),
 		[deck_index](const GameStateRules::CardZoneChange& change) {

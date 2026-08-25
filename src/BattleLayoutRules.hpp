@@ -44,10 +44,10 @@ inline constexpr int32_t BoardHeight = 6;
 inline constexpr int32_t BoardCellSize = 90;
 
 [[nodiscard]] inline constexpr ScreenRect SceneBounds() noexcept { return { 0, 0, SceneWidth, SceneHeight }; }
-[[nodiscard]] inline constexpr ScreenPoint BoardOffset() noexcept { return { 400, 170 }; }
-[[nodiscard]] inline constexpr ScreenPoint PlayerPosition() noexcept { return { 50, 230 }; }
+[[nodiscard]] inline constexpr ScreenPoint BoardOffset() noexcept { return { 480, 190 }; }
+[[nodiscard]] inline constexpr ScreenPoint PlayerPosition() noexcept { return { 90, 230 }; }
 [[nodiscard]] inline constexpr ScreenPoint PlayerHpPosition() noexcept { return { 20, 700 }; }
-[[nodiscard]] inline constexpr ScreenPoint EnemyPosition() noexcept { return { 1320, 350 }; }
+[[nodiscard]] inline constexpr ScreenPoint EnemyPosition() noexcept { return { 1750, 500}; }
 [[nodiscard]] inline constexpr ScreenPoint EnemyHpPosition() noexcept { return { 1570, 700 }; }
 [[nodiscard]] inline constexpr ScreenPoint DrawPilePosition() noexcept { return { 50, 800 }; }
 [[nodiscard]] inline constexpr ScreenPoint DiscardPilePosition() noexcept { return { 1720, 880 }; }
@@ -77,10 +77,10 @@ inline constexpr int32_t BoardCellSize = 90;
 inline constexpr int32_t BoardRight = BoardOffset().x + BoardWidth * BoardCellSize;
 inline constexpr int32_t ResultColumnRight = BoardRight + 145;
 inline constexpr int32_t MultiplierColumnLeft = BoardRight + 170;
-inline constexpr int32_t PlayerCombatIconX = 320;
-inline constexpr int32_t PlayerCombatValueX = 400;
-inline constexpr int32_t EnemyCombatIconX = 1450;
-inline constexpr int32_t EnemyCombatValueX = 1530;
+inline constexpr int32_t PlayerCombatIconX = 350;
+inline constexpr int32_t PlayerCombatValueX = 430;
+inline constexpr int32_t EnemyCombatIconX = 1390;
+inline constexpr int32_t EnemyCombatValueX = 1470;
 [[nodiscard]] inline constexpr ScreenPoint PlayerAttackStart() noexcept { return { PlayerCombatIconX, 640 }; }
 [[nodiscard]] inline constexpr ScreenPoint EnemyDefenseTarget() noexcept { return { EnemyCombatIconX, 760 }; }
 [[nodiscard]] inline constexpr ScreenPoint EnemyHitTarget() noexcept { return { 1500, 400 }; }

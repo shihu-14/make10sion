@@ -81,9 +81,23 @@ inline constexpr int32_t PlayerCombatIconX = 350;
 inline constexpr int32_t PlayerCombatValueX = 430;
 inline constexpr int32_t EnemyCombatIconX = 1390;
 inline constexpr int32_t EnemyCombatValueX = 1470;
+inline constexpr double PlayerDisplayScale = 0.85;
+inline constexpr int32_t EnemyHitOffsetX = -250;
+inline constexpr int32_t EnemyHitOffsetY = -100;
+inline constexpr int32_t EnemyDamageEffectMinOffsetX = -430;
+inline constexpr int32_t EnemyDamageEffectMinOffsetY = -300;
+inline constexpr int32_t EnemyDamageEffectWidth = 390;
+inline constexpr int32_t EnemyDamageEffectHeight = 250;
 [[nodiscard]] inline constexpr ScreenPoint PlayerAttackStart() noexcept { return { PlayerCombatIconX, 640 }; }
 [[nodiscard]] inline constexpr ScreenPoint EnemyDefenseTarget() noexcept { return { EnemyCombatIconX, 760 }; }
-[[nodiscard]] inline constexpr ScreenPoint EnemyHitTarget() noexcept { return { 1500, 400 }; }
+[[nodiscard]] inline constexpr ScreenPoint EnemyHitTarget() noexcept {
+	return { EnemyPosition().x + EnemyHitOffsetX, EnemyPosition().y + EnemyHitOffsetY };
+}
+[[nodiscard]] inline constexpr ScreenRect EnemyDamageEffectBounds() noexcept {
+	return { EnemyPosition().x + EnemyDamageEffectMinOffsetX,
+		EnemyPosition().y + EnemyDamageEffectMinOffsetY,
+		EnemyDamageEffectWidth, EnemyDamageEffectHeight };
+}
 [[nodiscard]] inline constexpr ScreenPoint EnemyAttackStart() noexcept { return { EnemyCombatIconX, 640 }; }
 [[nodiscard]] inline constexpr ScreenPoint PlayerDefenseTarget() noexcept { return { PlayerCombatIconX, 760 }; }
 [[nodiscard]] inline constexpr ScreenPoint PlayerHitTarget() noexcept { return { 80, 250 }; }

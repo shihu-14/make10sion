@@ -13,7 +13,9 @@
 #include <cstdlib>
 #include <iostream>
 #include <limits>
+#include <string>
 #include <string_view>
+#include <vector>
 
 namespace {
 
@@ -893,9 +895,21 @@ void TestEnemyIntentRules() {
 void TestDebugScenarioRules() {
 	const auto& scenario = DebugScenarioRules::Midgame();
 	constexpr std::array<std::string_view, 18> expected_deck{
-		"b\n5\n+", "3\n*", "4\nf", "7\n*\n2", "+\n6", "/\n3",
-		"q\n+\n5", "*\no", "-\n3", "i\ng\n-", "2\n+", "4\na",
-		"c\ne\n+", "6\n/", "3\ni", "h\n+\nm", "-\n4", "*\n2",
+		"b5\n7$", "*$\n2+", "$+\n*3", "4/\n$6", "33f", "q\n+",
+		"5*", "o\n-", "i\ng\n-", "2+", "a4", "ce",
+		"m+", "6\n-", "4/", "3\n*", "2i", "h\n+",
+	};
+	struct DebugPlacement {
+		int32_t rotations;
+		int32_t anchor_x;
+		int32_t anchor_y;
+	};
+	constexpr std::array<DebugPlacement, 18> placements{
+		DebugPlacement{ 0, 0, 0 }, { 1, 1, 0 }, { 2, 3, 0 }, { 3, 4, 0 },
+		{ 1, 6, 0 }, { 1, 0, 2 }, { 0, 2, 2 }, { 1, 4, 2 },
+		{ 1, 0, 3 }, { 0, 3, 3 }, { 2, 5, 3 }, { 0, 0, 4 },
+		{ 1, 2, 4 }, { 0, 3, 4 }, { 1, 4, 4 }, { 0, 5, 4 },
+		{ 1, 6, 4 }, { 1, 0, 5 },
 	};
 	Expect((scenario.layer == 22) && (scenario.enemy_type == 0),
 		"midgame debug starts in a late non-boss battle");
@@ -934,6 +948,12 @@ void TestDebugScenarioRules() {
 		"midgame debug avoids uppercase and single-cell cards");
 	Expect(all_cards_are_valid && (occupied_cell_count == 42),
 		"midgame debug uses only known symbols and exactly fills forty-two cells");
+	int32_t cards_with_holes = 0;
+	for (const auto definition : scenario.deck) {
+		cards_with_holes += (definition.find('$') != std::string_view::npos) ? 1 : 0;
+	}
+	Expect(cards_with_holes == 4,
+		"midgame debug includes four concave L or key-shaped cards");
 
 	const auto preserved_order = GameStateRules::CreateInitialDrawOrder(
 		static_cast<int32_t>(scenario.deck.size()), scenario.preserve_deck_order);
@@ -955,16 +975,53 @@ void TestDebugScenarioRules() {
 		&& (deck.Cards(GameStateRules::CardZone::Hand).size() == 18),
 		"midgame debug starts with eighteen uniquely owned hand cards");
 
-	BoardCalculationRules::Board completed_board{ 7, 6 };
 	constexpr std::array<std::string_view, 6> rows{
 		"b5+3*4f", "7*2+6/3", "q+5*o-3",
 		"ig-2+4a", "ce+6/3i", "h+m-4*2",
 	};
-	for (int32_t y = 0; y < static_cast<int32_t>(rows.size()); ++y) {
-		for (int32_t x = 0; x < static_cast<int32_t>(rows[y].size()); ++x) {
-			completed_board.Set(x, y, rows[y][x]);
+	BoardCalculationRules::Board completed_board{ 7, 6 };
+	bool legal_completed_board = true;
+	for (std::size_t card_index = 0; card_index < scenario.deck.size(); ++card_index) {
+		std::vector<std::string> card_rows(1);
+		for (const char symbol : scenario.deck[card_index]) {
+			if (symbol == '\n') card_rows.emplace_back();
+			else card_rows.back().push_back(symbol);
+		}
+		for (int32_t rotation = 0; rotation < placements[card_index].rotations; ++rotation) {
+			const int32_t old_height = static_cast<int32_t>(card_rows.size());
+			const int32_t old_width = static_cast<int32_t>(card_rows.front().size());
+			std::vector<std::string> rotated(static_cast<std::size_t>(old_width),
+				std::string(static_cast<std::size_t>(old_height), '$'));
+			for (int32_t y = 0; y < old_height; ++y) {
+				for (int32_t x = 0; x < old_width; ++x) {
+					rotated[static_cast<std::size_t>(old_width - 1 - x)]
+						[static_cast<std::size_t>(y)] = card_rows[static_cast<std::size_t>(y)]
+							[static_cast<std::size_t>(x)];
+				}
+			}
+			card_rows = std::move(rotated);
+		}
+		for (int32_t y = 0; y < static_cast<int32_t>(card_rows.size()); ++y) {
+			for (int32_t x = 0; x < static_cast<int32_t>(card_rows[y].size()); ++x) {
+				const char symbol = card_rows[y][x];
+				if (symbol == '$') continue;
+				const int32_t board_x = placements[card_index].anchor_x + x;
+				const int32_t board_y = placements[card_index].anchor_y + y;
+				legal_completed_board = legal_completed_board
+					&& (0 <= board_x) && (board_x < 7) && (0 <= board_y) && (board_y < 6)
+					&& !completed_board.At(board_x, board_y).occupied;
+				if (legal_completed_board) completed_board.Set(board_x, board_y, symbol);
+			}
 		}
 	}
+	for (int32_t y = 0; y < static_cast<int32_t>(rows.size()); ++y) {
+		for (int32_t x = 0; x < static_cast<int32_t>(rows[y].size()); ++x) {
+			legal_completed_board = legal_completed_board
+				&& (completed_board.At(x, y).symbol == rows[y][x]);
+		}
+	}
+	Expect(legal_completed_board,
+		"the documented rotations and anchors legally tile the entire debug board");
 	const auto result = BoardCalculationRules::Evaluate(completed_board);
 	Expect(result.row_values == std::vector<int32_t>{ 17, 16, 8, 14, 6, 5 },
 		"the completed debug board produces the documented row values including Ave");
@@ -994,6 +1051,15 @@ void TestDebugScenarioRules() {
 
 void TestBattleLayoutRules() {
 	using namespace BattleLayoutRules;
+	Expect(std::abs(PlayerDisplayScale - 0.85) < 0.0001,
+		"all battle player draws use the shared 0.85 scale");
+	Expect((EnemyHitTarget().x - EnemyPosition().x == EnemyHitOffsetX)
+		&& (EnemyHitTarget().y - EnemyPosition().y == EnemyHitOffsetY),
+		"enemy attack impact follows the shared enemy position");
+	const auto enemy_effect_bounds = EnemyDamageEffectBounds();
+	Expect((enemy_effect_bounds.x - EnemyPosition().x == EnemyDamageEffectMinOffsetX)
+		&& (enemy_effect_bounds.y - EnemyPosition().y == EnemyDamageEffectMinOffsetY),
+		"enemy damage effects follow the shared enemy position");
 	const double normal_enemy_scale = EnemyDisplayScale(400, 1.0);
 	const double boss_enemy_scale = EnemyDisplayScale(700, 1.0);
 	Expect(std::abs(normal_enemy_scale * 400.0 - EnemyDisplayHeight) < 0.0001

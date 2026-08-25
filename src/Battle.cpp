@@ -407,8 +407,9 @@ void Battle::updateCombatEnemyEffect()
 			const int32 hit_damage = m_enemyDamageHits[ene_damage_effect_cnt];
 			m_enemy.hp = BattleDamageRules::ApplyHit(m_enemy.hp, hit_damage);
 			ene_hpbar.damage(hit_damage);
-			ene_effect_x = Random(1320, 1710); // エフェクトのX座標をランダムに設定
-			ene_effect_y = Random(200, 450); // エフェクトのY座標をランダムに設定
+			const auto effect_bounds = BattleLayoutRules::EnemyDamageEffectBounds();
+			ene_effect_x = Random(effect_bounds.x, effect_bounds.x + effect_bounds.width);
+			ene_effect_y = Random(effect_bounds.y, effect_bounds.y + effect_bounds.height);
 			ene_damage_effect_cnt++;
             enemy_scale_multiplier = BattleLayoutRules::EnemyHitScaleMultiplier;
 			// SE再生
@@ -873,7 +874,8 @@ bool Battle::drawDefault() const
             m_board.DrawBoard(0);
             drawHandCards();
             // プレイヤーのキャラクターを描画
-            m_myTexture.scaled(1.3).rotated(my_angle).draw(player_position.x, player_position.y);
+            m_myTexture.scaled(BattleLayoutRules::PlayerDisplayScale).rotated(my_angle)
+				.draw(player_position.x, player_position.y);
             // 敵の情報を描画
             m_enemy.texture.scaled(enemy_display_scale).drawAt(enemy_position.x, enemy_position.y,
 				ColorF(1.0, 1.0, 1.0, enemy_image_alpha));
@@ -921,7 +923,8 @@ bool Battle::drawDefault() const
         m_board.DrawBoard(0);
         drawHandCards();
         // プレイヤーのキャラクターを描画
-        m_myTexture.scaled(0.75).rotated(my_angle).draw(player_position.x, player_position.y);
+        m_myTexture.scaled(BattleLayoutRules::PlayerDisplayScale).rotated(my_angle)
+			.draw(player_position.x, player_position.y);
         // 敵の情報を描画
         m_enemy.texture.scaled(enemy_display_scale).drawAt(enemy_position.x, enemy_position.y,
 			ColorF(1.0, 1.0, 1.0, enemy_image_alpha));

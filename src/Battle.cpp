@@ -1,8 +1,18 @@
 #include "Battle.hpp"
 #include "Board.hpp" // BoardクラスのConfirm()などを使うためにインクルード
 #include <cassert>
+#include <numeric>
 #include <tuple> // tie関数を使用するためにインクルード
 using std::tie; // std::tieを使用するために名前空間を指定
+
+namespace {
+
+const RectF SettingsPanel{ 560, 245, 800, 560 };
+const RectF BgmSliderTrack{ 780, 420, 420, 12 };
+const RectF SeSliderTrack{ 780, 560, 420, 12 };
+const RectF SettingsCloseButton{ 850, 690, 220, 70 };
+
+}
 
 // Constructor
 Battle::Battle(const InitData& init)
@@ -50,6 +60,7 @@ Battle::Battle(const InitData& init)
     m_deckState.Initialize(deck_size,
         std::vector<int32>{ draw_order.begin(), draw_order.end() });
 
+    ApplyAudioSettings();
     //音楽再生！
     battle_bgm.play(); // 音楽を再生
 }
@@ -98,6 +109,84 @@ void Battle::updateTableDeck()
 {
     ApplyBoardZoneChanges();
     AssertCardOwnership("updateTableDeck");
+}
+
+void Battle::PrepareDrawPileForTurn()
+{
+	const auto occupied_cells = [this](const std::vector<int32>& cards) {
+		int32 total = 0;
+		for (const int32 card_id : cards) {
+			if ((0 <= card_id) && (card_id < static_cast<int32>(m_cards.size()))) {
+				total += m_cards[card_id].OccupiedCellCount();
+			}
+		}
+		return total;
+	};
+	const int32 remaining_cells = occupied_cells(Cards(GameStateRules::CardZone::DrawPile));
+	std::vector<int32> all_cards(static_cast<std::size_t>(Max(deck_size, 0)));
+	std::iota(all_cards.begin(), all_cards.end(), 0);
+	const int32 full_deck_cells = occupied_cells(all_cards);
+	if (!GameStateRules::ShouldRefreshDrawPile(remaining_cells, full_deck_cells,
+		getData().board_progress.UnlockedCount())) return;
+
+	const bool preserve_deck_order = getData().debug_battle_overrides
+		&& getData().debug_battle_overrides->preserve_deck_order;
+	const auto initial_order = GameStateRules::CreateInitialDrawOrder(deck_size, preserve_deck_order);
+	Array<int32> draw_order{ initial_order.begin(), initial_order.end() };
+	if (GameStateRules::ShouldShuffleInitialDrawOrder(preserve_deck_order)) draw_order.shuffle();
+	const bool refreshed = m_deckState.RefreshDrawPile(
+		std::vector<int32>{ draw_order.begin(), draw_order.end() });
+#ifndef NDEBUG
+	if (!refreshed) assert(false && "Draw pile refresh failed at a turn boundary");
+#endif
+	if (!refreshed) return;
+	for (const int32 card_id : Cards(GameStateRules::CardZone::DrawPile)) {
+		m_cards[card_id].SetStat(0);
+	}
+	AssertCardOwnership("PrepareDrawPileForTurn");
+}
+
+void Battle::ApplyAudioSettings() const
+{
+	const auto& settings = getData().audio_settings;
+	battle_bgm.setVolume(GameStateRules::ClampVolume(settings.bgm_volume));
+	draw_card_se.setVolume(GameStateRules::ClampVolume(settings.se_volume));
+	drag_card_se.setVolume(GameStateRules::ClampVolume(settings.se_volume));
+	attack_se.setVolume(GameStateRules::ClampVolume(settings.se_volume));
+}
+
+void Battle::updateSettingsOverlay(const BoardInputFrame& input)
+{
+	if (!input.focused) m_activeVolumeSlider = VolumeSlider::None;
+	if (KeyEscape.down() || (input.left_down && SettingsCloseButton.contains(input.cursor))) {
+		is_settings_open = false;
+		m_activeVolumeSlider = VolumeSlider::None;
+		m_animeStopwatch.resume();
+		return;
+	}
+
+	if (input.left_down) {
+		if (BgmSliderTrack.stretched(20).contains(input.cursor)) {
+			m_activeVolumeSlider = VolumeSlider::Bgm;
+		} else if (SeSliderTrack.stretched(20).contains(input.cursor)) {
+			m_activeVolumeSlider = VolumeSlider::Se;
+		}
+	}
+	if ((input.left_down || input.left_pressed) && (m_activeVolumeSlider != VolumeSlider::None)) {
+		auto& settings = getData().audio_settings;
+		const RectF& track = (m_activeVolumeSlider == VolumeSlider::Bgm)
+			? BgmSliderTrack : SeSliderTrack;
+		const double volume = GameStateRules::SliderVolumeAt(input.cursor.x, track.x, track.w);
+		if (m_activeVolumeSlider == VolumeSlider::Bgm) settings.bgm_volume = volume;
+		else settings.se_volume = volume;
+		ApplyAudioSettings();
+	}
+	if (input.left_up) m_activeVolumeSlider = VolumeSlider::None;
+
+	const bool interactive = SettingsCloseButton.contains(input.cursor)
+		|| BgmSliderTrack.stretched(20).contains(input.cursor)
+		|| SeSliderTrack.stretched(20).contains(input.cursor);
+	if (interactive) Cursor::RequestStyle(CursorStyle::Hand);
 }
 
 const std::vector<int32>& Battle::Cards(const GameStateRules::CardZone zone) const
@@ -326,7 +415,7 @@ void Battle::updateCombatEnemyEffect()
             ene_damage_effect_cnt++;
             enemy_scale_multiplier = BattleLayoutRules::EnemyHitScaleMultiplier;
             // SE再生
-            attack_se.playOneShot();
+            attack_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume));
         }
         return;
     }
@@ -393,7 +482,7 @@ void Battle::updateCombatMyEffect()
             my_damage_effect_cnt++;
             my_angle = Random(-0.52, -0.1); // -π/4 ~ -π/6の範囲でプレイヤーを傾かさせる
             // SE再生
-            attack_se.playOneShot();
+            attack_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume));
         }
         return;
     }
@@ -455,6 +544,7 @@ void Battle::updateDiscardEffect()
     for (const int32 deck_index : board_cards) {
         MoveCard(deck_index, GameStateRules::CardZone::Board, GameStateRules::CardZone::Discard);
     }
+    PrepareDrawPileForTurn();
     m_board.BeginTurn();
     sutehuda_angle = 0.0;
     table_id = 0;
@@ -485,7 +575,7 @@ void Battle::updateCardDrawEffect()
             yamahuda_angle = 90_deg;
             if (tehuda_rate == 0.0) {
                 //効果音
-                draw_card_se.playOneShot(); // カードドローの効果音を再生
+                draw_card_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume)); // カードドローの効果音を再生
             }
             tehuda_rate = Min(1.0, m_animeStopwatch.sF() / 0.3);
             Vec2 from{ 50, 900 };
@@ -591,6 +681,24 @@ void Battle::update()
 		if (!is_deck) m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
 		return;
 	}
+	if (is_settings_open) {
+		updateSettingsOverlay(input);
+		return;
+	}
+	if (input.focused && m_banner.IsSettingButtonHovered(input.cursor)) {
+		Cursor::RequestStyle(CursorStyle::Hand);
+	}
+	if (!m_board.IsDragging() && input.focused && input.left_down
+		&& m_banner.IsSettingButtonHovered(input.cursor)) {
+		m_board.CompleteVisualMotions();
+		ApplyBoardZoneChanges();
+		m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
+		m_banner.CancelPointerGesture();
+		m_activeVolumeSlider = VolumeSlider::None;
+		is_settings_open = true;
+		m_animeStopwatch.pause();
+		return;
+	}
 
 	if (m_board.IsDragging()) m_pointerInputOwner = BattleCardRules::PointerInputOwner::Card;
 	if (can_accept_board_input) {
@@ -679,7 +787,7 @@ void Battle::update()
 			&& input.left_down && !m_board.IsDragging()) {
 			Block& block = m_cards[hand_hit_index];
 			if (m_board.PassBlock(block, hand_hit_index, input.cursor)) {
-                drag_card_se.playOneShot(); // ドラッグの効果音を再生
+                drag_card_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume)); // ドラッグの効果音を再生
             } else {
                 hand_capture_failed = true;
             }
@@ -852,7 +960,7 @@ void Battle::drawCombatEnemyEffect() const
         if (m_animeStopwatch.sF() < 0.2){
             m_effectTexture.scaled(0.4).draw(BattleLayoutRules::EnemyCombatIconX, 720);
             if (flag_once_draw == 0){
-                attack_se.playOneShot();
+                attack_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume));
             }
         }
         m_attackIcon.scaled(1.6).draw(my_attack_icon_pos);
@@ -875,7 +983,7 @@ void Battle::drawCombatMyEffect() const
         if (m_animeStopwatch.sF() < 0.2){
             m_effectTexture.scaled(0.4).draw(BattleLayoutRules::PlayerCombatIconX, 720);
             if (flag_once_draw == 0){
-                attack_se.playOneShot();
+                attack_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume));
             }
         }
         m_attackIcon.scaled(1.6).draw(ene_attack_icon_pos);
@@ -927,6 +1035,34 @@ void Battle::drawWinEffect() const
     return;
 }
 
+void Battle::drawSettingsOverlay() const
+{
+	RectF{ 0, 0, Scene::Width(), Scene::Height() }.draw(ColorF{ 0.0, 0.0, 0.0, 0.58 });
+	SettingsPanel.draw(ColorF{ 0.96, 0.94, 0.88 });
+	SettingsPanel.drawFrame(4, ColorF{ 0.18 });
+	m_numFont(U"設定").drawAt(SettingsPanel.center().x, SettingsPanel.y + 70, Palette::Black);
+
+	const auto draw_slider = [this](const StringView label, const RectF& track,
+		const double volume) {
+		m_numFont(label).draw(650, track.y - 28, Palette::Black);
+		track.rounded(6).draw(ColorF{ 0.62 });
+		RectF{ track.x, track.y, track.w * GameStateRules::ClampVolume(volume), track.h }
+			.rounded(6).draw(ColorF{ 0.25, 0.52, 0.82 });
+		Circle{ track.x + track.w * GameStateRules::ClampVolume(volume),
+			track.y + track.h / 2.0, 16 }.draw(Palette::White).drawFrame(3, ColorF{ 0.25 });
+		m_numFont(U"{}%"_fmt(GameStateRules::VolumePercent(volume)))
+			.draw(1230, track.y - 28, Palette::Black);
+	};
+	draw_slider(U"BGM", BgmSliderTrack, getData().audio_settings.bgm_volume);
+	draw_slider(U"SE", SeSliderTrack, getData().audio_settings.se_volume);
+
+	const bool close_hovered = SettingsCloseButton.contains(Cursor::Pos());
+	SettingsCloseButton.rounded(12).draw(close_hovered
+		? ColorF{ 0.62, 0.72, 0.86 } : ColorF{ 0.72, 0.78, 0.88 });
+	SettingsCloseButton.rounded(12).drawFrame(3, ColorF{ 0.2 });
+	m_numFont(U"戻る").drawAt(SettingsCloseButton.center(), Palette::Black);
+}
+
 void Battle::draw() const
 {
     if (drawDefault()) return;
@@ -954,4 +1090,5 @@ void Battle::draw() const
         break;
     }
 	m_board.DrawInteractionOverlay();
+	if (is_settings_open) drawSettingsOverlay();
 }

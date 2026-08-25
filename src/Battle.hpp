@@ -34,6 +34,9 @@ private:
 	bool is_board_locked = false; // 盤面の操作がロックされているかどうか
 	bool is_exit = false; // 敵が逃走するか
 	bool is_boss3 = false;
+	bool is_settings_open = false;
+	enum class VolumeSlider { None, Bgm, Se };
+	VolumeSlider m_activeVolumeSlider = VolumeSlider::None;
 	EnemyIntentRules::TurnState m_enemyIntentState;
 	bool is_scene_transition_started = false;
 	BattleCardRules::PointerInputOwner m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
@@ -144,6 +147,7 @@ private:
 	void getEnemyInfo();
 	void attack();
 	void updateTableDeck();
+	void PrepareDrawPileForTurn();
 	bool MoveCard(int32 card_id, GameStateRules::CardZone expected, GameStateRules::CardZone destination);
 	bool ApplyBoardZoneChanges();
 	const std::vector<int32>& Cards(GameStateRules::CardZone zone) const;
@@ -153,6 +157,8 @@ private:
 	void updateCardDrawEffect();
 	void updateWinEffect();
 	void updateGameOverEffect();
+	void updateSettingsOverlay(const BoardInputFrame& input);
+	void ApplyAudioSettings() const;
 	void AssertCardOwnership(const char* context) const;
 	// void finish();
 
@@ -165,6 +171,7 @@ private:
 	void drawDiscardEffect() const;
 	void drawCardDrawEffect() const;
 	void drawWinEffect() const;
+	void drawSettingsOverlay() const;
 
 
 public:

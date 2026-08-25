@@ -350,15 +350,15 @@ void TestBoardProgress() {
 	}
 	Expect(fully_unlocked.UnlockedCount() == BoardProgress::CellCount,
 		"board progress can unlock every cell without stale counts");
-	Expect(CalculateHandLimit(fully_unlocked) == 15, "hand limit remains capped at fifteen");
-	Expect(ResolveBattleHandLimit(fully_unlocked, 0) == 15,
-		"normal battles keep the fifteen-card maximum");
+	Expect(CalculateHandLimit(fully_unlocked) == 18, "hand limit is capped at eighteen");
+	Expect(ResolveBattleHandLimit(fully_unlocked, 0) == 18,
+		"normal battles use the eighteen-card maximum");
 	Expect(ResolveBattleHandLimit(fully_unlocked, 18) == 18,
 		"an explicit debug override can expose eighteen hand cards");
 	BoardProgress debug_progress;
 	debug_progress.UnlockAll();
 	Expect((debug_progress.UnlockedCount() == BoardProgress::CellCount)
-		&& (CalculateHandLimit(debug_progress) == 15),
+		&& (CalculateHandLimit(debug_progress) == 18),
 		"debug board progress unlocks all forty-two cells directly");
 	Expect(ElapsedMillis(150, 100) == 50, "elapsed milliseconds preserve unsigned precision");
 	Expect(ElapsedMillis(50, 100) == 0, "clock rollback cannot underflow elapsed milliseconds");
@@ -392,6 +392,54 @@ void TestBattleDeckState() {
 		"placing a hand card keeps the same Board registration");
 	Expect(!NeedsBoardDetach(CardZone::Board, CardZone::Hand),
 		"returning a board card keeps its reserved hand registration");
+}
+
+void TestTurnDrawRefreshRules() {
+	using namespace GameStateRules;
+	Expect(RequiredBoardFillCells(6) == 3 && RequiredBoardFillCells(7) == 4
+		&& RequiredBoardFillCells(BoardProgress::CellCount) == 21,
+		"turn refresh requires half the unlocked board rounded up");
+	Expect(CountOccupiedCells("12\n3$") == 3,
+		"occupied-cell counting excludes holes and line separators");
+	Expect(ShouldRefreshDrawPile(2, 8, 6),
+		"a draw pile below the playable-cell threshold refreshes when the full deck can satisfy it");
+	Expect(!ShouldRefreshDrawPile(3, 8, 6),
+		"a draw pile at the threshold is kept");
+	Expect(!ShouldRefreshDrawPile(1, 2, 6),
+		"an undersized full deck does not trigger an endless refresh");
+
+	BattleDeckState deck;
+	deck.Initialize(4, { 3, 2, 1, 0 });
+	Expect(deck.Move(0, CardZone::DrawPile, CardZone::Hand)
+		&& !deck.RefreshDrawPile({ 3, 2, 1, 0 }),
+		"a refresh is rejected while a card is still in hand");
+	Expect(deck.Move(0, CardZone::Hand, CardZone::Discard)
+		&& deck.Move(1, CardZone::DrawPile, CardZone::Discard),
+		"turn cards can enter discard before refresh");
+	Expect(deck.RefreshDrawPile({ 3, 2, 1, 0 }),
+		"a turn-boundary refresh rebuilds the full draw pile in the requested order");
+	Expect(deck.Validate() && deck.Cards(CardZone::Discard).empty()
+		&& deck.Cards(CardZone::DrawPile) == std::vector<int32_t>{ 3, 2, 1, 0 },
+		"refresh preserves every card exactly once and supports fixed debug order");
+}
+
+void TestAudioSettingsRules() {
+	using namespace GameStateRules;
+	AudioSettings settings;
+	Expect(settings.bgm_volume == 1.0 && settings.se_volume == 1.0,
+		"shared BGM and SE settings start independently at one hundred percent");
+	settings.bgm_volume = 0.25;
+	Expect(settings.se_volume == 1.0,
+		"changing BGM does not change the independent SE volume");
+	Expect(ClampVolume(-0.5) == 0.0 && ClampVolume(1.5) == 1.0,
+		"shared audio volumes stay inside zero and one");
+	Expect(VolumePercent(0.0) == 0 && VolumePercent(0.555) == 56
+		&& VolumePercent(1.0) == 100,
+		"shared audio volumes produce rounded percentage labels");
+	Expect(SliderVolumeAt(50.0, 100.0, 400.0) == 0.0
+		&& SliderVolumeAt(300.0, 100.0, 400.0) == 0.5
+		&& SliderVolumeAt(600.0, 100.0, 400.0) == 1.0,
+		"volume sliders clamp pointer positions to their tracks");
 }
 
 void TestCardSymbolRules() {
@@ -920,6 +968,8 @@ int main() {
 	TestRepeatedBoardOverlapReturn();
 	TestBoardProgress();
 	TestBattleDeckState();
+	TestTurnDrawRefreshRules();
+	TestAudioSettingsRules();
 	TestCardSymbolRules();
 	TestBoardCalculationRules();
 	TestDelayedEffectLifecycle();

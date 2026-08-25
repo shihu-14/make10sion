@@ -36,6 +36,7 @@ public:
 	Block(const std::string& value);
 	Block(const Block&) = default;
 	std::pair<int, int> Size() const { return { sizeX, sizeY }; }
+	int32 OccupiedCellCount() const;
 	std::pair<int, int> GetPos() const { return { posX, posY }; }
 	void SetPos(int x, int y) { posX = x; posY = y; }
 	void ResetRuntimeState() { posX = 0; posY = 0; stat = 0; }

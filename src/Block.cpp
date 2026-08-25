@@ -1,6 +1,7 @@
 #include <Siv3D.hpp> // Siv3D v0.6.16
 #include "Block.hpp"
 #include "CardSymbolRules.hpp"
+#include "GameStateRules.hpp"
 using namespace std;
 
 Block::Block() : sizeX(0), sizeY(0), stat(0), number_imgs(8), special_imgs(17), posX(0), posY(0) {
@@ -80,6 +81,16 @@ bool Block::operator==(const Block& other) const {
 		}
 	}
 	return true;
+}
+
+int32 Block::OccupiedCellCount() const {
+	int32 count = 0;
+	for (int y = 0; y < sizeY; ++y) {
+		for (int x = 0; x < sizeX; ++x) {
+			if (GameStateRules::IsOccupiedCardSymbol(contents[x][y].content)) ++count;
+		}
+	}
+	return count;
 }
 
 void Block::Rotate() {

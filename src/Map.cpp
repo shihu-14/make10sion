@@ -12,6 +12,11 @@ Map::Map(const InitData& init) :
 	map_nodes(10, vector<Node>(3)), // 現在区間の10層、各層に3地点のノードを初期化
 	map_nodes_source(6, vector<vector<Node>>(10, vector<Node>(3))) // 6つのパターン、10層、各層に3地点のノードを初期化
 {
+	const double se_volume = GameStateRules::ClampVolume(getData().audio_settings.se_volume);
+	shop_se.setVolume(se_volume);
+	event_se.setVolume(se_volume);
+	battle_se.setVolume(se_volume);
+	treasure_se.setVolume(se_volume);
 	//背景画像の読み込み
 	for (int i = 0; i < 3; i++)
 		background_imgs.at(i) = Texture{ Unicode::Widen("../../image/map_haikei_" + to_string(i + 1) + "sou.png") };

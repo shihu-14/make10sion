@@ -66,6 +66,7 @@ struct GameData
 	int money = 100;
 	GameStateRules::BoardProgress board_progress;
 	GameStateRules::RunOutcome run_outcome = GameStateRules::RunOutcome::None;
+	GameStateRules::AudioSettings audio_settings;
 	int enemy = 0;
 	Optional<DebugBattleOverrides> debug_battle_overrides;
 	Leric leric; // レリック

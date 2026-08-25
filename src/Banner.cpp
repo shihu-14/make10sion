@@ -7,8 +7,7 @@ bool Banner::update(vector<Block>& deck_data, bool allow_deck_open) {
 
 bool Banner::update(vector<Block>& deck_data, bool allow_deck_open, Point cursor_pos,
     bool left_down, bool left_up, bool focused) {
-    isHovered_setting = RectF{ 1720, 0, 150, 150 }.contains(cursor_pos);
-    //設定はただの飾り
+    isHovered_setting = IsSettingButtonHovered(cursor_pos);
     if (setting_alpha < 0.4 && isHovered_setting) {
         setting_alpha += 0.1;
         if (setting_alpha > 0.4) setting_alpha = 0.4;
@@ -43,6 +42,10 @@ bool Banner::update(vector<Block>& deck_data, bool allow_deck_open, Point cursor
 
 bool Banner::IsDeckButtonHovered(Point cursor_pos) const {
     return RectF{ 1520, 0, 150, 150 }.contains(cursor_pos);
+}
+
+bool Banner::IsSettingButtonHovered(Point cursor_pos) const {
+    return RectF{ 1720, 0, 150, 150 }.contains(cursor_pos);
 }
 
 void Banner::CancelPointerGesture() {

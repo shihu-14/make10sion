@@ -8,6 +8,7 @@
 #include "../src/GameStateRules.hpp"
 #include "../src/ShopRules.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdlib>
@@ -895,9 +896,9 @@ void TestEnemyIntentRules() {
 void TestDebugScenarioRules() {
 	const auto& scenario = DebugScenarioRules::Midgame();
 	constexpr std::array<std::string_view, 18> expected_deck{
-		"b5\n7$", "*$\n2+", "$+\n*3", "4/\n$6", "33f", "q\n+",
-		"5*", "o\n-", "i\ng\n-", "2+", "a4", "ce",
-		"m+", "6\n-", "4/", "3\n*", "2i", "h\n+",
+		"b5\n7$", "*$\n2+", "$+\n*3", "4/\n$6", "f\n3\n3", "q\n+",
+		"*\n5", "o\n-", "i\ng\n-", "+\n2", "4\na", "e\nc",
+		"+\nm", "6\n-", "/\n4", "3\n*", "i\n2", "h\n+",
 	};
 	struct DebugPlacement {
 		int32_t rotations;
@@ -906,10 +907,10 @@ void TestDebugScenarioRules() {
 	};
 	constexpr std::array<DebugPlacement, 18> placements{
 		DebugPlacement{ 0, 0, 0 }, { 1, 1, 0 }, { 2, 3, 0 }, { 3, 4, 0 },
-		{ 1, 6, 0 }, { 1, 0, 2 }, { 0, 2, 2 }, { 1, 4, 2 },
-		{ 1, 0, 3 }, { 0, 3, 3 }, { 2, 5, 3 }, { 0, 0, 4 },
-		{ 1, 2, 4 }, { 0, 3, 4 }, { 1, 4, 4 }, { 0, 5, 4 },
-		{ 1, 6, 4 }, { 1, 0, 5 },
+		{ 0, 6, 0 }, { 1, 0, 2 }, { 3, 2, 2 }, { 1, 4, 2 },
+		{ 1, 0, 3 }, { 3, 3, 3 }, { 1, 5, 3 }, { 3, 0, 4 },
+		{ 0, 2, 4 }, { 0, 3, 4 }, { 0, 4, 4 }, { 0, 5, 4 },
+		{ 0, 6, 4 }, { 1, 0, 5 },
 	};
 	Expect((scenario.layer == 22) && (scenario.enemy_type == 0),
 		"midgame debug starts in a late non-boss battle");
@@ -923,6 +924,7 @@ void TestDebugScenarioRules() {
 		"midgame debug explicitly overrides the hand limit and enemy visual");
 	bool has_uppercase_symbol = false;
 	bool all_cards_are_valid = true;
+	bool all_cards_use_minimum_width = true;
 	bool has_single_cell_card = false;
 	int32_t occupied_cell_count = 0;
 	bool deck_matches_expected_order = (scenario.deck.size() == expected_deck.size());
@@ -934,6 +936,13 @@ void TestDebugScenarioRules() {
 	for (const auto definition : scenario.deck) {
 		all_cards_are_valid = all_cards_are_valid
 			&& CardSymbolRules::IsValidCardDefinition(definition);
+		const std::size_t first_newline = definition.find('\n');
+		const int32_t card_width = static_cast<int32_t>(
+			(first_newline == std::string_view::npos) ? definition.size() : first_newline);
+		const int32_t card_height = 1 + static_cast<int32_t>(
+			std::count(definition.begin(), definition.end(), '\n'));
+		all_cards_use_minimum_width = all_cards_use_minimum_width
+			&& (card_width <= card_height);
 		int32_t card_cell_count = 0;
 		for (const char symbol : definition) {
 			if (('A' <= symbol) && (symbol <= 'H')) has_uppercase_symbol = true;
@@ -948,6 +957,8 @@ void TestDebugScenarioRules() {
 		"midgame debug avoids uppercase and single-cell cards");
 	Expect(all_cards_are_valid && (occupied_cell_count == 42),
 		"midgame debug uses only known symbols and exactly fills forty-two cells");
+	Expect(all_cards_use_minimum_width,
+		"midgame debug starts every card in its minimum-width orientation");
 	int32_t cards_with_holes = 0;
 	for (const auto definition : scenario.deck) {
 		cards_with_holes += (definition.find('$') != std::string_view::npos) ? 1 : 0;

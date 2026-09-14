@@ -1,5 +1,6 @@
 #include "Battle.hpp"
 #include "Board.hpp" // BoardクラスのConfirm()などを使うためにインクルード
+#include <algorithm>
 #include <cassert>
 #include <numeric>
 #include <tuple> // tie関数を使用するためにインクルード
@@ -7,10 +8,10 @@ using std::tie; // std::tieを使用するために名前空間を指定
 
 namespace {
 
-const RectF SettingsPanel{ 560, 245, 800, 560 };
-const RectF BgmSliderTrack{ 780, 420, 420, 12 };
-const RectF SeSliderTrack{ 780, 560, 420, 12 };
-const RectF SettingsCloseButton{ 850, 690, 220, 70 };
+const RectF SettingsPanel{ 560, 245, 800, 560 }; // 設定パネルの表示範囲を定義する．
+const RectF BgmSliderTrack{ 780, 420, 420, 12 }; // BGM音量スライダーの範囲を定義する．
+const RectF SeSliderTrack{ 780, 560, 420, 12 }; // 効果音量スライダーの範囲を定義する．
+const RectF SettingsCloseButton{ 850, 690, 220, 70 }; // 設定を閉じるボタンの範囲を定義する．
 
 }
 
@@ -35,6 +36,7 @@ Battle::Battle(const InitData& init)
     m_reward_money = Texture(U"../../image/UI_money.png"); // 報酬のテクスチャ
     m_rewardFont = Font{ 50, Typeface::Bold };
     m_numFont = Font{ 48, Typeface::Bold };
+	m_combatFont = Font{ BattleLayoutRules::CombatFontSize, Typeface::Bold };
     m_combatSceneBuffer = RenderTexture(Scene::Size());
     m_blurInternalBuffer = RenderTexture(Scene::Size());
 
@@ -68,6 +70,7 @@ Battle::Battle(const InitData& init)
 
 void Battle::setupEnemy(int32 type, int32 layer)
 {
+	// Enemyの静的定義をBattleの実行状態へ転写する．
     const EnemyData& data = m_enemyDB.getOneEnemy(type, layer);
     m_enemy.name = data.name;
 	const String texture_path = getData().debug_battle_overrides
@@ -93,7 +96,14 @@ int32 Battle::getTableSize() const
 
 Point Battle::GetHandPosition(const int32 slot) const
 {
-	const auto position = BattleLayoutRules::HandPosition(slot);
+	const auto& hand = Cards(GameStateRules::CardZone::Hand);
+	int32 preceding_width_cells = 0;
+	for (int32 index = 0; index < slot; ++index) {
+		preceding_width_cells += m_cards.at(hand.at(index)).Size().first;
+	}
+	const int32 card_width_cells = m_cards.at(hand.at(slot)).Size().first;
+	const auto position = BattleLayoutRules::HandPosition(
+		slot, preceding_width_cells, card_width_cells);
 	return { position.x, position.y };
 }
 
@@ -113,6 +123,7 @@ void Battle::updateTableDeck()
 
 void Battle::PrepareDrawPileForTurn()
 {
+	// 盤面の占有状況を基準に，GameStateRulesへ山札補充の要否を委譲する．
 	const auto occupied_cells = [this](const std::vector<int32>& cards) {
 		int32 total = 0;
 		for (const int32 card_id : cards) {
@@ -197,6 +208,7 @@ const std::vector<int32>& Battle::Cards(const GameStateRules::CardZone zone) con
 bool Battle::MoveCard(const int32 card_id, const GameStateRules::CardZone expected,
     const GameStateRules::CardZone destination)
 {
+	// DeckStateの整合性を保ちながら，Boardを含むカード領域を遷移させる．
 	if (!m_deckState.CanMove(card_id, expected, destination)) return false;
 	if (GameStateRules::NeedsBoardDetach(expected, destination)
 		&& !m_board.DetachCard(card_id)) return false;
@@ -216,6 +228,7 @@ bool Battle::MoveCard(const int32 card_id, const GameStateRules::CardZone expect
 
 bool Battle::ApplyBoardZoneChanges()
 {
+	// Boardの通知をBattleDeckStateへ反映し，カード表示状態も同期する．
 	const auto changes = m_board.ConsumeZoneChanges();
 	std::vector<bool> changed(static_cast<size_t>(Max(deck_size, 0)), false);
 	for (const auto& change : changes) {
@@ -241,6 +254,7 @@ bool Battle::ApplyBoardZoneChanges()
 
 void Battle::AssertCardOwnership(const char* context) const
 {
+	// DeckState，Blockの状態，Boardのライフサイクルが一致することを確認する．
 #ifndef NDEBUG
     String diagnostic;
     const auto visit = [&](const std::vector<int32>& cards, const int32 expected_stat, const StringView area) {
@@ -278,6 +292,7 @@ void Battle::AssertCardOwnership(const char* context) const
 
 void Battle::getEnemyInfo()
 {
+	// Enemyの行動パターンをBattleの敵意図状態へ変換する．
 	if ((m_currentAnimState != BattleAnimationState::Idle) || m_enemy.actionPattern.isEmpty()) return;
 	if (!m_enemyIntentState.has_action) {
 		const int32 pattern_size = static_cast<int32>(m_enemy.actionPattern.size());
@@ -307,13 +322,11 @@ void Battle::getEnemyInfo()
 // 「=」ボタンが押された時に呼び出される
 void Battle::attack()
 {
+	// Boardの確定値とBattleDamageRulesの結果を戦闘演出状態へ渡す．
     // 現在アニメーション中でない場合のみ処理を開始
     if (m_currentAnimState == BattleAnimationState::Idle) {
         // 盤面の操作をロックする
         is_board_locked = true; // 盤面の操作をロック
-        // 攻撃・防御の処理を行う
-        // 盤面から攻撃力と防御力を取得
-        tie(my_attack, my_defense) = m_board.Confirm();
         // プレイヤー->敵の攻撃力を計算
 		const int32 player_damage = Max(0, my_attack - ene_defense);
 		my_real_attack = is_boss3 ? 0 : Min(player_damage, m_enemy.hp);
@@ -321,7 +334,9 @@ void Battle::attack()
 		ene_real_attack = Min(Max(0, ene_attack - my_defense), getData().HP);
         // 自分・敵の防御力を減らすエフェクトのための変数を設定
         ene_defense_effect = ene_defense; // 敵の防御力を減らすエフェクトのための変数
-        my_defense_effect = my_defense; // 自分の防御力を減
+		my_defense_effect = my_defense; // 自分の防御力を減
+		my_attack_effect = my_attack;
+		ene_attack_effect = ene_attack;
 		// damage-effectの演出のための制御変数を設定
 		m_enemyDamageHits = BattleDamageRules::SplitDamage(my_real_attack, m_enemy.maxHp);
 		m_playerDamageHits = BattleDamageRules::SplitDamage(ene_real_attack, getData().MaxHP);
@@ -331,15 +346,17 @@ void Battle::attack()
 		my_effect_x = my_effect_y = -1;
         // attack/defecce の演出のための変数を設定
 		const auto player_attack_start = BattleLayoutRules::PlayerAttackStart();
-		const auto enemy_defense_target = BattleLayoutRules::EnemyDefenseTarget();
+		const auto enemy_attack_arc_target = BattleLayoutRules::EnemyAttackArcTarget();
 		const auto enemy_attack_start = BattleLayoutRules::EnemyAttackStart();
-		const auto player_defense_target = BattleLayoutRules::PlayerDefenseTarget();
+		const auto player_attack_arc_target = BattleLayoutRules::PlayerAttackArcTarget();
         my_attack_icon_start = Vec2{ player_attack_start.x, player_attack_start.y };
-        my_attack_icon_end = Vec2{ enemy_defense_target.x, enemy_defense_target.y };
+        my_attack_icon_end = Vec2{ enemy_attack_arc_target.x, enemy_attack_arc_target.y };
         ene_attack_icon_start = Vec2{ enemy_attack_start.x, enemy_attack_start.y };
-        ene_attack_icon_end = Vec2{ player_defense_target.x, player_defense_target.y };
+        ene_attack_icon_end = Vec2{ player_attack_arc_target.x, player_attack_arc_target.y };
         my_attack_icon_pos = my_attack_icon_start; // 自分の攻撃アイコンの位置を初期化
         ene_attack_icon_pos = ene_attack_icon_start; // 敵の攻撃アイコン
+		my_attack_icon_scale = 1.0;
+		ene_attack_icon_scale = 1.0;
         my_attack_type = -1;
         ene_attack_type = 0;
         flag_once_draw = 0;
@@ -353,43 +370,73 @@ void Battle::attack()
 void Battle::updateCombatEnemyEffect()
 {
     // 遅延のため
-    if (my_attack_type == -1 && m_animeStopwatch.sF() < 0.4) {
+    if (my_attack_type == -1 && m_animeStopwatch.sF() < 0.4) {//攻撃演出開始前に0.4秒待つ．
         return;
     }
     if (my_attack_type == -1){
         my_attack_type = 0;
         m_animeStopwatch.restart();
     }
-    // 自分の攻撃アイコン->敵の防御アイコンへ移動させる演出
-    if (my_attack_type == 0 && m_animeStopwatch.sF() < 0.4) {
-        my_attack_icon_pos = Math::Lerp(my_attack_icon_start, my_attack_icon_end, m_animeStopwatch.sF()/0.4);
+    // 自分の攻撃アイコンを敵の左上へ弧を描いて移動させる演出
+    if (my_attack_type == 0
+		&& m_animeStopwatch.sF() < BattleLayoutRules::AttackArcTravelDuration) {
+		const auto motion = BattleLayoutRules::ResolveAttackArcMotion(
+			BattleLayoutRules::PlayerAttackStart(),
+			BattleLayoutRules::EnemyAttackArcTarget(), m_animeStopwatch.sF());
+		my_attack_icon_pos = Vec2{ motion.x, motion.y };
+		my_attack_icon_scale = motion.scale;
         return;
     }
     if (my_attack_type == 0) {
-        my_attack_type = 1;
         my_attack_icon_pos = my_attack_icon_end; // エフェクトの位置を最終位置に設定
+		my_attack_icon_scale = BattleLayoutRules::AttackArcArrivalScale;
         my_attack_icon_start = my_attack_icon_end;
 		const auto enemy_hit = BattleLayoutRules::EnemyHitTarget();
         my_attack_icon_end = Vec2{ enemy_hit.x, enemy_hit.y };
+		const auto exchange = BattleDamageRules::ResolveDefenseExchange(
+			my_attack_effect, ene_defense_effect, my_real_attack);
+		if (!exchange.has_contact) {
+			ene_defense = exchange.defense_after;
+			my_attack = exchange.attack_after;
+			my_attack_type = (my_attack == 0 ? 3 : 2);
+			m_animeStopwatch.restart();
+			return;
+		}
+		my_attack_type = 1;
         m_animeStopwatch.restart(); // ストップウォッチをリセット
         return;
     }
+	const double enemy_defense_exchange_duration =
+		BattleDamageRules::ResolveDefenseExchangeDuration(
+			my_attack_effect, ene_defense_effect, m_enemy.maxHp);
     // 敵の防御を減らす演出
-    if (my_attack_type == 1 && m_animeStopwatch.sF() < 0.7) {
+    if (my_attack_type == 1
+		&& m_animeStopwatch.sF() < enemy_defense_exchange_duration) {
         flag_once_draw++;
-        ene_defense = Math::Lerp(ene_defense_effect, Max(0, ene_defense_effect-my_attack), m_animeStopwatch.sF()/0.7);
+		const auto exchange = BattleDamageRules::ResolveDefenseExchange(
+			my_attack_effect, ene_defense_effect, my_real_attack);
+		my_attack = BattleLayoutRules::ResolveCombatValueChange(
+			my_attack_effect, exchange.attack_after, m_animeStopwatch.sF(),
+			enemy_defense_exchange_duration);
+		ene_defense = BattleLayoutRules::ResolveCombatValueChange(
+			ene_defense_effect, exchange.defense_after, m_animeStopwatch.sF(),
+			enemy_defense_exchange_duration);
         return;
     }
     if (my_attack_type == 1){
-        ene_defense = Max(0, ene_defense_effect - my_attack);
-        my_attack = my_real_attack;
+		const auto exchange = BattleDamageRules::ResolveDefenseExchange(
+			my_attack_effect, ene_defense_effect, my_real_attack);
+		ene_defense = exchange.defense_after;
+		my_attack = exchange.attack_after;
         my_attack_type = (my_attack == 0 ? 3 : 2);
         m_animeStopwatch.restart(); // ストップウォッチをリセット
         return;
     }
     // 自分の攻撃アイコン->敵の画像へ移動させる演出
-    if (my_attack_type == 2 && m_animeStopwatch.sF() < 0.35) {
-        my_attack_icon_pos = Math::Lerp(my_attack_icon_start, my_attack_icon_end, m_animeStopwatch.sF()/0.35);
+    if (my_attack_type == 2
+		&& m_animeStopwatch.sF() < BattleLayoutRules::BodyAttackTravelDuration) {
+		my_attack_icon_pos = Math::Lerp(my_attack_icon_start, my_attack_icon_end,
+			m_animeStopwatch.sF() / BattleLayoutRules::BodyAttackTravelDuration);
         return;
     }
     if (my_attack_type == 2){
@@ -403,7 +450,8 @@ void Battle::updateCombatEnemyEffect()
     // damage_effectを表示するための制御
 	if (my_attack_type == 3
 		&& ene_damage_effect_cnt < static_cast<int32>(m_enemyDamageHits.size())) {
-		if (m_animeStopwatch.sF() > 0.20 * ene_damage_effect_cnt) {
+		if (BattleLayoutRules::ShouldTriggerDamageEffect(
+			m_animeStopwatch.sF(), ene_damage_effect_cnt)) {
 			const int32 hit_damage = m_enemyDamageHits[ene_damage_effect_cnt];
 			m_enemy.hp = BattleDamageRules::ApplyHit(m_enemy.hp, hit_damage);
 			ene_hpbar.damage(hit_damage);
@@ -440,33 +488,63 @@ void Battle::updateCombatEnemyEffect()
 // 戦闘演出の更新処理
 void Battle::updateCombatMyEffect()
 {
-    if (ene_attack_type == 0 && m_animeStopwatch.sF() < 0.4) {
-        ene_attack_icon_pos = Math::Lerp(ene_attack_icon_start, ene_attack_icon_end, m_animeStopwatch.sF()/0.4);
+    if (ene_attack_type == 0
+		&& m_animeStopwatch.sF() < BattleLayoutRules::AttackArcTravelDuration) {
+		const auto motion = BattleLayoutRules::ResolveAttackArcMotion(
+			BattleLayoutRules::EnemyAttackStart(),
+			BattleLayoutRules::PlayerAttackArcTarget(), m_animeStopwatch.sF());
+		ene_attack_icon_pos = Vec2{ motion.x, motion.y };
+		ene_attack_icon_scale = motion.scale;
         return;
     }
     if (ene_attack_type == 0) {
-        ene_attack_type = 1;
         ene_attack_icon_pos = ene_attack_icon_end; // エフェクトの位置を最終位置に設定
+		ene_attack_icon_scale = BattleLayoutRules::AttackArcArrivalScale;
         ene_attack_icon_start = ene_attack_icon_end;
 		const auto player_hit = BattleLayoutRules::PlayerHitTarget();
         ene_attack_icon_end = Vec2{ player_hit.x, player_hit.y };
+		const auto exchange = BattleDamageRules::ResolveDefenseExchange(
+			ene_attack_effect, my_defense_effect, ene_real_attack);
+		if (!exchange.has_contact) {
+			my_defense = exchange.defense_after;
+			ene_attack = exchange.attack_after;
+			ene_attack_type = (ene_attack == 0 ? 3 : 2);
+			m_animeStopwatch.restart();
+			return;
+		}
+		ene_attack_type = 1;
         m_animeStopwatch.restart(); // ストップウォッチをリセット
         return;
     }
-    if (ene_attack_type == 1 && m_animeStopwatch.sF() < 0.7) {
+	const double player_defense_exchange_duration =
+		BattleDamageRules::ResolveDefenseExchangeDuration(
+			ene_attack_effect, my_defense_effect, getData().MaxHP);
+    if (ene_attack_type == 1
+		&& m_animeStopwatch.sF() < player_defense_exchange_duration) {
         flag_once_draw++;
-        my_defense = Math::Lerp(my_defense_effect, Max(0, my_defense_effect-ene_attack), m_animeStopwatch.sF()/0.7);
+		const auto exchange = BattleDamageRules::ResolveDefenseExchange(
+			ene_attack_effect, my_defense_effect, ene_real_attack);
+		ene_attack = BattleLayoutRules::ResolveCombatValueChange(
+			ene_attack_effect, exchange.attack_after, m_animeStopwatch.sF(),
+			player_defense_exchange_duration);
+		my_defense = BattleLayoutRules::ResolveCombatValueChange(
+			my_defense_effect, exchange.defense_after, m_animeStopwatch.sF(),
+			player_defense_exchange_duration);
         return;
     }
     if (ene_attack_type == 1){
-        my_defense = Max(0, my_defense_effect - ene_attack);
-        ene_attack = ene_real_attack;
+		const auto exchange = BattleDamageRules::ResolveDefenseExchange(
+			ene_attack_effect, my_defense_effect, ene_real_attack);
+		my_defense = exchange.defense_after;
+		ene_attack = exchange.attack_after;
         ene_attack_type = (ene_attack == 0 ? 3 : 2);
         m_animeStopwatch.restart(); // ストップウォッチをリセット
         return;
     }
-    if (ene_attack_type == 2 && m_animeStopwatch.sF() < 0.35) {
-        ene_attack_icon_pos = Math::Lerp(ene_attack_icon_start, ene_attack_icon_end, m_animeStopwatch.sF()/0.35);
+    if (ene_attack_type == 2
+		&& m_animeStopwatch.sF() < BattleLayoutRules::BodyAttackTravelDuration) {
+		ene_attack_icon_pos = Math::Lerp(ene_attack_icon_start, ene_attack_icon_end,
+			m_animeStopwatch.sF() / BattleLayoutRules::BodyAttackTravelDuration);
         return;
     }
     if (ene_attack_type == 2){
@@ -479,7 +557,8 @@ void Battle::updateCombatMyEffect()
     // damage_effectを表示するための制御
 	if (ene_attack_type == 3
 		&& my_damage_effect_cnt < static_cast<int32>(m_playerDamageHits.size())) {
-		if ((m_animeStopwatch.sF()) > 0.20 * my_damage_effect_cnt) {
+		if (BattleLayoutRules::ShouldTriggerDamageEffect(
+			m_animeStopwatch.sF(), my_damage_effect_cnt)) {
 			const int32 hit_damage = m_playerDamageHits[my_damage_effect_cnt];
 			getData().HP = BattleDamageRules::ApplyHit(getData().HP, hit_damage);
 			my_hpbar.damage(hit_damage);
@@ -505,8 +584,9 @@ void Battle::updateCombatMyEffect()
         m_animeStopwatch.restart();
         return;
     }
-    table_id = static_cast<int32>(Cards(GameStateRules::CardZone::Hand).size()) - 1;
     my_angle = 0.0;
+	m_discardCardMotions.clear();
+	m_discardCardMotionsInitialized = false;
     m_currentAnimState = BattleAnimationState::DiscardEffect;
     m_animeStopwatch.restart();
 }
@@ -515,40 +595,72 @@ void Battle::updateCombatMyEffect()
 void Battle::updateDiscardEffect()
 {
 	const auto& hand = Cards(GameStateRules::CardZone::Hand);
-    if ((0 <= table_id) && (table_id < static_cast<int32>(hand.size()))) {
-        if (sutehuda_angle > -90_deg) {
-            table_id = static_cast<int32>(hand.size()) - 1;
-            sutehuda_angle -= Scene::DeltaTime() * 4.0;
-            m_animeStopwatch.restart();
-        } else {
-            sutehuda_angle = -90_deg;
-			const int32 card_id = hand[table_id];
-			if (tehuda_rate == 0.0) {
-				const auto hand_position = m_cards[card_id].GetPos();
-				m_discardStart = Vec2{ hand_position.first, hand_position.second };
-			}
-            tehuda_rate = Min(1.0, m_animeStopwatch.sF() / 0.15); // 捨て札の位置を徐々に変える
-			const auto discard_target = BattleLayoutRules::DiscardTarget();
-            Vec2 to{ discard_target.x, discard_target.y };
-			Vec2 pos = m_discardStart.lerp(to, tehuda_rate);
-			if (!m_board.DetachCard(card_id)) {
+    if (!m_discardCardMotionsInitialized && !hand.empty() && (sutehuda_angle > -90_deg)) {
+		sutehuda_angle -= Scene::DeltaTime() * 4.0;//捨て札の回転速度を4.0として進める．
+		m_animeStopwatch.restart();
+		return;
+	}
+	if (!m_discardCardMotionsInitialized) {
+		if (!hand.empty()) sutehuda_angle = -90_deg;
+		m_discardCardMotions.reserve(hand.size());
+		for (const int32 card_id : hand) {
+			if ((m_cards[card_id].GetStat() != 1) || !m_board.ShouldDrawAsHand(card_id)) continue;
+			const auto hand_position = m_cards[card_id].GetPos();
+			m_discardCardMotions.push_back({
+				card_id,
+				Vec2{ hand_position.first, hand_position.second },
+			});
+		}
+		std::stable_sort(m_discardCardMotions.begin(), m_discardCardMotions.end(),
+			[](const DiscardCardMotion& left, const DiscardCardMotion& right) {
+				return left.start.x > right.start.x;
+			});
+		m_discardCardMotionsInitialized = true;
+		m_animeStopwatch.restart();
+	}
+
+	bool collection_complete = true;
+	const double elapsed_seconds = m_animeStopwatch.sF();
+	const int32 card_count = static_cast<int32>(m_discardCardMotions.size());
+	const auto discard_target = BattleLayoutRules::DiscardTarget();
+	const Vec2 target{ discard_target.x, discard_target.y };
+	for (int32 card_index = 0; card_index < card_count; ++card_index) {
+		DiscardCardMotion& motion = m_discardCardMotions[card_index];
+		if (motion.complete) continue;
+		const auto progress = BattleCardRules::ResolveDiscardCardProgress(
+			card_index, card_count, elapsed_seconds);
+		if (!progress.started) {
+			collection_complete = false;
+			continue;
+		}
+		if (!motion.detached) {
+			if (!m_board.DetachCard(motion.card_id)) {
 #ifndef NDEBUG
 				assert(false && "Failed to detach hand card before discard animation");
 #endif
 				return;
 			}
-            m_cards[card_id].SetPos(pos.x, pos.y); // 手札
-            if (tehuda_rate >= 1) {
-                MoveCard(card_id, GameStateRules::CardZone::Hand, GameStateRules::CardZone::Discard);
-                table_id = static_cast<int32>(hand.size()) - 1;
-                tehuda_rate = 0; // 捨て札の位置を固定
-                m_animeStopwatch.restart(); // ストップウォッチをリセット
-            }
-        }
-        return;
-    }
+			motion.detached = true;
+		}
+		const Vec2 pos = motion.start.lerp(target, progress.linear_progress);
+		m_cards[motion.card_id].SetPos(pos.x, pos.y);
+		if (!progress.complete) {
+			collection_complete = false;
+			continue;
+		}
+		if (!MoveCard(motion.card_id, GameStateRules::CardZone::Hand,
+			GameStateRules::CardZone::Discard)) {
+#ifndef NDEBUG
+			assert(false && "Failed to move hand card to discard after animation");
+#endif
+			return;
+		}
+		motion.complete = true;
+	}
+	if (!collection_complete) return;
+
     if (sutehuda_angle < 0.01) {
-        sutehuda_angle += Scene::DeltaTime() * 7.0; // 山札の角度を徐々に戻す
+        sutehuda_angle += Scene::DeltaTime() * 7.0; // 捨て札の回転速度を7.0として戻す．
         return;
     }
     m_board.EndTurn();
@@ -560,6 +672,9 @@ void Battle::updateDiscardEffect()
     m_board.BeginTurn();
     sutehuda_angle = 0.0;
     table_id = 0;
+	m_discardCardMotions.clear();
+	m_discardCardMotionsInitialized = false;
+	m_handDealComplete = false;
     m_currentAnimState = BattleAnimationState::CardDrawEffect;
     m_animeStopwatch.restart();
 }
@@ -573,38 +688,49 @@ void Battle::updateCardDrawEffect()
     while (!draw_pile.empty() && static_cast<int32>(hand.size()) < table_max_size) {
         const int32 id = draw_pile.back();
         MoveCard(id, GameStateRules::CardZone::DrawPile, GameStateRules::CardZone::Hand);
-        m_cards.at(id).SetPos(200, 950);
+		m_cards.at(id).SetPos(50, 900); // カードを配布アニメーションの開始位置へ置く．
     }
 
-    if ((0 <= table_id) && (table_id < static_cast<int32>(hand.size()))) // 手札のカードを山札から引く
-    {
-        if (yamahuda_angle < 90_deg) {
-            table_id = 0;
-            yamahuda_angle += Scene::DeltaTime() * 4.0;
-            tehuda_rate = 0;
-            m_animeStopwatch.restart();
-        } else {
-            yamahuda_angle = 90_deg;
-            if (tehuda_rate == 0.0) {
-                //効果音
-                draw_card_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume)); // カードドローの効果音を再生
-            }
-            tehuda_rate = Min(1.0, m_animeStopwatch.sF() / 0.3);
-            Vec2 from{ 50, 900 };
-			const Point hand_position = GetHandPosition(table_id);
-            Vec2 to{ hand_position.x, hand_position.y };
-            Vec2 pos = from.lerp(to, tehuda_rate);
-            m_cards[hand[table_id]].SetPos(pos.x, pos.y); // 手札
-            if (tehuda_rate >= 1) {
-                table_id++;
-                tehuda_rate = 0;
-                m_animeStopwatch.restart();
-            }
-        }
-        return;
-    }
-    if (yamahuda_angle > 0.01) {
-        yamahuda_angle -= Scene::DeltaTime() * 6.0; // 山札の角度を徐々に戻す
+	const auto deal_stage = BattleCardRules::ResolveHandDealStage(
+		!hand.empty(), m_handDealComplete,
+		yamahuda_angle >= 90_deg, yamahuda_angle <= 0.01);
+	if (deal_stage == BattleCardRules::HandDealStage::RotatePile) {
+		table_id = 0;
+		yamahuda_angle += Scene::DeltaTime() * 4.0;//山札の回転速度を4.0として進める．
+		m_animeStopwatch.restart();
+		return;
+	}
+
+	if (deal_stage == BattleCardRules::HandDealStage::DealCards) {
+		yamahuda_angle = 90_deg;
+		const double elapsed_seconds = m_animeStopwatch.sF();
+		while (table_id < static_cast<int32>(hand.size())
+			&& BattleCardRules::ResolveHandDealProgress(table_id, elapsed_seconds).started) {
+			if (BattleCardRules::ShouldPlayHandDealSound(table_id)) {
+				draw_card_se.playOneShot(
+					GameStateRules::ClampVolume(getData().audio_settings.se_volume));
+			}
+			table_id++;
+		}
+
+		const Vec2 from{ 50, 900 };
+		for (int32 slot = 0; slot < static_cast<int32>(hand.size()); ++slot) {
+			const auto progress = BattleCardRules::ResolveHandDealProgress(slot, elapsed_seconds);
+			if (!progress.started) continue;
+			const Point hand_position = GetHandPosition(slot);
+			const Vec2 to{ hand_position.x, hand_position.y };
+			const Vec2 pos = from.lerp(to, progress.eased_progress);
+			m_cards[hand[slot]].SetPos(pos.x, pos.y);
+		}
+
+		if (elapsed_seconds < BattleCardRules::HandDealTotalDuration(
+			static_cast<int32>(hand.size()))) return;
+		m_handDealComplete = true;
+		return;
+	}
+
+    if (deal_stage == BattleCardRules::HandDealStage::ReturnPile) {
+        yamahuda_angle -= Scene::DeltaTime() * 6.0; // 山札の回転速度を6.0として戻す．
         return;
     }
     m_currentAnimState = BattleAnimationState::Idle;
@@ -617,16 +743,17 @@ void Battle::updateCardDrawEffect()
 
 void Battle::updateWinEffect()
 {
+	// 敵撃破後の演出を完了させ，Victory結果に応じて次のシーンへ渡す．
     is_board_locked = true; // 盤面の操作をロック
     // 勝利演出の更新処理
-    if (m_animeStopwatch.sF() < 2.0) // 1秒経過したら
+    if (m_animeStopwatch.sF() < 2.0) // 2秒かけて敵をフェードアウトする．
     {   
         enemy_image_alpha = Math::Lerp(1.0, 0.0, m_animeStopwatch.sF()/2.0); // 敵の画像をフェードアウト
         return;
     }
     enemy_image_alpha = 0.0; // 敵の画像を完全にフェードアウト
     is_gamewin = true; // 勝利フラグを立てる
-    if (m_animeStopwatch.sF() < 5.0) // 2秒経過したら
+    if (m_animeStopwatch.sF() < 5.0) // 勝利演出を5秒まで待つ．
     {
         return; // 勝利演出の時間を待つ
     }
@@ -648,8 +775,9 @@ void Battle::updateWinEffect()
 
 void Battle::updateGameOverEffect()
 {
+	// 敗北演出を完了させ，RunOutcomeをResultシーンへ渡す．
     // 勝利演出の更新処理
-    if (m_animeStopwatch.sF() < 1.0) // 1秒経過したら
+    if (m_animeStopwatch.sF() < 1.0) // 1秒間ゲームオーバー演出を続ける．
     {   
         return;
     }
@@ -660,7 +788,11 @@ void Battle::updateGameOverEffect()
 
 void Battle::update()
 {
+	// ポインター所有権を確定し，Boardとバトル状態を一貫して更新する．
 	m_frameNumber++;
+	const bool was_idle = (m_currentAnimState == BattleAnimationState::Idle);
+	const bool was_dragging = m_board.IsDragging();
+	bool drag_started_this_frame = false;
 	const BoardInputFrame input{
 		Cursor::Pos(),
         MouseL.down(),
@@ -799,6 +931,7 @@ void Battle::update()
 			&& input.left_down && !m_board.IsDragging()) {
 			Block& block = m_cards[hand_hit_index];
 			if (m_board.PassBlock(block, hand_hit_index, input.cursor)) {
+				drag_started_this_frame = true;
                 drag_card_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume)); // ドラッグの効果音を再生
             } else {
                 hand_capture_failed = true;
@@ -837,21 +970,84 @@ void Battle::update()
     case BattleAnimationState::WinEffect:
         updateWinEffect();
         break;
-    case BattleAnimationState::GameOver:
-        updateGameOverEffect();
-        break;
-    }
+	case BattleAnimationState::GameOver:
+		updateGameOverEffect();
+		break;
+	}
+	const bool is_idle = (m_currentAnimState == BattleAnimationState::Idle);
+	if (is_idle) {
+		const double delta_seconds = Max(0.0, input.delta_seconds);
+		m_playerAttackStatPulseElapsed = Min(
+			BattleLayoutRules::CombatStatPulseDuration,
+			m_playerAttackStatPulseElapsed + delta_seconds);
+		m_playerDefenseStatPulseElapsed = Min(
+			BattleLayoutRules::CombatStatPulseDuration,
+			m_playerDefenseStatPulseElapsed + delta_seconds);
+	} else {
+		m_playerAttackStatPulseElapsed = BattleLayoutRules::CombatStatPulseDuration;
+		m_playerDefenseStatPulseElapsed = BattleLayoutRules::CombatStatPulseDuration;
+		m_playerCombatStatPulseChanges = {};
+	}
+	if (BattleCardRules::ShouldRefreshPlayerCombatValues(
+		is_idle, was_idle,
+		was_dragging, m_board.IsDragging(), drag_started_this_frame)) {
+		const int32 previous_attack = my_attack;
+		const int32 previous_defense = my_defense;
+		tie(my_attack, my_defense) = m_board.Confirm();
+		m_playerCombatStatPulseChanges =
+			BattleLayoutRules::ResolvePlayerCombatStatPulseChanges(
+				previous_attack, previous_defense, my_attack, my_defense);
+		m_playerAttackStatPulseElapsed =
+			m_playerCombatStatPulseChanges.attack
+			? 0.0 : BattleLayoutRules::CombatStatPulseDuration;
+		m_playerDefenseStatPulseElapsed =
+			m_playerCombatStatPulseChanges.defense
+			? 0.0 : BattleLayoutRules::CombatStatPulseDuration;
+	}
 }
 
 void Battle::drawHandCards() const
 {
-    for (const int32 deck_index : Cards(GameStateRules::CardZone::Hand)) {
+	int32 hovered_deck_index = -1;
+	const auto& hand = Cards(GameStateRules::CardZone::Hand);
+	const bool deal_in_progress = (m_currentAnimState == BattleAnimationState::CardDrawEffect)
+		&& !m_handDealComplete;
+	const bool can_highlight = BattleCardRules::CanAcceptBattleInput(
+		m_currentAnimState == BattleAnimationState::Idle,
+		is_board_locked,
+		is_scene_transition_started)
+		&& !m_board.IsDragging()
+		&& !is_settings_open
+		&& Window::GetState().focused;
+	if (can_highlight) {
+		for (int32 slot = static_cast<int32>(hand.size()) - 1; 0 <= slot; --slot) {
+			const int32 deck_index = hand[slot];
+			if ((deck_index < 0) || (static_cast<int32>(m_cards.size()) <= deck_index)) continue;
+			const Block& block = m_cards[deck_index];
+			if ((block.GetStat() != 1) || !m_board.ShouldDrawAsHand(deck_index)
+				|| !block.IsHovered(Cursor::Pos())) continue;
+			hovered_deck_index = deck_index;
+			break;
+		}
+	}
+
+	for (int32 slot = 0; slot < static_cast<int32>(hand.size()); ++slot) {
+		if (!BattleCardRules::ShouldDrawHandCardDuringDeal(
+			slot, table_id, deal_in_progress)) continue;
+		const int32 deck_index = hand[slot];
         if ((deck_index < 0) || (static_cast<int32>(m_cards.size()) <= deck_index)) continue;
         const Block& block = m_cards[deck_index];
-		if ((block.GetStat() == 1) && m_board.ShouldDrawAsHand(deck_index)) {
+		if ((deck_index != hovered_deck_index) && (block.GetStat() == 1)
+			&& m_board.ShouldDrawAsHand(deck_index)) {
             block.Draw(block.GetPos());
         }
     }
+	if (0 <= hovered_deck_index) {
+		const Block& block = m_cards[hovered_deck_index];
+		const auto [x, y] = block.GetPos();
+		block.Draw({ x, y - BattleLayoutRules::HandHoverLift },
+			BattleLayoutRules::HandHoverScale);
+	}
 }
 
 // 戦闘画面全体の描画。常に呼び出す。
@@ -865,13 +1061,40 @@ bool Battle::drawDefault() const
 	const auto discard_pile_position = BattleLayoutRules::DiscardPilePosition();
 	const auto equal_button = BattleLayoutRules::EqualButtonBounds();
 	const double enemy_display_scale = enemy_base_scale * enemy_scale_multiplier;
+	const auto player_combat_visibility = BattleLayoutRules::ResolvePlayerCombatValueVisibility(
+		m_currentAnimState == BattleAnimationState::Idle,
+		m_currentAnimState == BattleAnimationState::CombatEnemyEffect,
+		m_currentAnimState == BattleAnimationState::CombatMyEffect,
+		m_currentAnimState == BattleAnimationState::DiscardEffect);
+	const bool is_idle = (m_currentAnimState == BattleAnimationState::Idle);
+	const auto player_attack_combat_pulse = BattleLayoutRules::ResolveCombatStatPulse(
+		m_playerAttackStatPulseElapsed,
+		is_idle && m_playerCombatStatPulseChanges.attack);
+	const auto player_defense_combat_pulse = BattleLayoutRules::ResolveCombatStatPulse(
+		m_playerDefenseStatPulseElapsed,
+		is_idle && m_playerCombatStatPulseChanges.defense);
+	const auto draw_combat_stat = [this](const Texture& icon, const double icon_scale,
+		const int32 value, const BattleLayoutRules::ScreenPoint icon_position,
+		const BattleLayoutRules::ScreenPoint value_position,
+		const BattleLayoutRules::CombatStatPulse pulse) {
+		const Float2 pivot{
+			static_cast<float>((icon_position.x + value_position.x) / 2.0),
+			static_cast<float>((icon_position.y + value_position.y
+				+ BattleLayoutRules::CombatFontSize) / 2.0),
+		};
+		const Transformer2D transform{
+			Mat3x2::Scale(pulse.scale, pivot).translated(0.0, -pulse.lift) };
+		icon.scaled(icon_scale).draw(icon_position.x, icon_position.y);
+		m_combatFont(U"{}"_fmt(value)).draw(
+			value_position.x, value_position.y, Palette::Black);
+	};
     if (is_gamewin)
     {
         // 背景をぼかすための処理
         { 
             const ScopedRenderTarget2D target(m_combatSceneBuffer);
             m_backgroundTexture.scaled(0.5).draw();
-            m_board.DrawBoard(0);
+			m_board.DrawBoard(0, m_currentAnimState == BattleAnimationState::Idle);
             drawHandCards();
             // プレイヤーのキャラクターを描画
             m_myTexture.scaled(BattleLayoutRules::PlayerDisplayScale).rotated(my_angle)
@@ -885,28 +1108,36 @@ bool Battle::drawDefault() const
             m_sutehudaTexture.scaled(0.6).rotated(sutehuda_angle).draw(discard_pile_position.x, discard_pile_position.y);
             // =buttonのテクスチャを描画
             m_buttonTexture.scaled(0.7).draw(equal_button.x, equal_button.y);
-            my_hpbar.draw(RectF{ player_hp_position.x, player_hp_position.y, 320, 20 });
+            my_hpbar.draw(RectF{ player_hp_position.x, player_hp_position.y, 240, 15 });
             ene_hpbar.draw(RectF{ enemy_hp_position.x, enemy_hp_position.y, 320, 20 });
             // 敵の攻撃アイコンの描画
             if (m_currentAnimState == BattleAnimationState::Idle || 
                 m_currentAnimState == BattleAnimationState::CombatEnemyEffect){
-                m_attackIcon.scaled(1.6).draw(BattleLayoutRules::EnemyCombatIconX, 640);
-                m_numFont(U"{}"_fmt(ene_attack)).draw(BattleLayoutRules::EnemyCombatValueX, 640, Palette::Black);
+				draw_combat_stat(m_attackIcon, BattleLayoutRules::AttackIconScale,
+					ene_attack, BattleLayoutRules::EnemyCombatAttackIconPosition,
+					BattleLayoutRules::EnemyCombatAttackValuePosition, {});
             }
             if (m_currentAnimState == BattleAnimationState::Idle || 
                 m_currentAnimState == BattleAnimationState::CombatEnemyEffect ||
                 m_currentAnimState == BattleAnimationState::CombatMyEffect ||
                 m_currentAnimState == BattleAnimationState::DiscardEffect) {
                 // 敵の防御アイコンの描画
-                m_defenceIcon.scaled(1.5).draw(BattleLayoutRules::EnemyCombatIconX, 720);
-                m_numFont(U"{}"_fmt(ene_defense)).draw(BattleLayoutRules::EnemyCombatValueX, 720, Palette::Black);
+				draw_combat_stat(m_defenceIcon, BattleLayoutRules::DefenseIconScale,
+					ene_defense, BattleLayoutRules::EnemyCombatDefenseIconPosition,
+					BattleLayoutRules::EnemyCombatDefenseValuePosition, {});
             }
+			if (player_combat_visibility.attack) {
+				draw_combat_stat(m_attackIcon, BattleLayoutRules::AttackIconScale,
+					my_attack, BattleLayoutRules::PlayerCombatAttackIconPosition,
+					BattleLayoutRules::PlayerCombatAttackValuePosition,
+					player_attack_combat_pulse);
+			}
             // 自分の防御アイコンの描画
-            if (m_currentAnimState == BattleAnimationState::CombatEnemyEffect || 
-                m_currentAnimState == BattleAnimationState::CombatMyEffect ||
-                m_currentAnimState == BattleAnimationState::DiscardEffect){
-                m_defenceIcon.scaled(1.5).draw(BattleLayoutRules::PlayerCombatIconX, 720);
-                m_numFont(U"{}"_fmt(my_defense)).draw(BattleLayoutRules::PlayerCombatValueX, 720, Palette::Black);
+			if (player_combat_visibility.defense) {
+				draw_combat_stat(m_defenceIcon, BattleLayoutRules::DefenseIconScale,
+					my_defense, BattleLayoutRules::PlayerCombatDefenseIconPosition,
+					BattleLayoutRules::PlayerCombatDefenseValuePosition,
+					player_defense_combat_pulse);
             }
             m_banner.draw(getData().money, getData().Layer, getData().leric);
         }
@@ -920,7 +1151,7 @@ bool Battle::drawDefault() const
             m_banner.draw(getData().money, getData().Layer, getData().leric);
             return true;
         }
-        m_board.DrawBoard(0);
+		m_board.DrawBoard(0, m_currentAnimState == BattleAnimationState::Idle);
         drawHandCards();
         // プレイヤーのキャラクターを描画
         m_myTexture.scaled(BattleLayoutRules::PlayerDisplayScale).rotated(my_angle)
@@ -934,28 +1165,36 @@ bool Battle::drawDefault() const
         m_sutehudaTexture.scaled(0.6).rotated(sutehuda_angle).draw(discard_pile_position.x, discard_pile_position.y);
         // =buttonのテクスチャを描画
         m_buttonTexture.scaled(0.7).draw(equal_button.x, equal_button.y);
-        my_hpbar.draw(RectF{ player_hp_position.x, player_hp_position.y, 320, 20 });
+        my_hpbar.draw(RectF{ player_hp_position.x, player_hp_position.y, 240, 15 });
         ene_hpbar.draw(RectF{ enemy_hp_position.x, enemy_hp_position.y, 320, 20 });
         // 敵の攻撃アイコンの描画
         if (m_currentAnimState == BattleAnimationState::Idle || 
             m_currentAnimState == BattleAnimationState::CombatEnemyEffect){
-            m_attackIcon.scaled(1.6).draw(BattleLayoutRules::EnemyCombatIconX, 640);
-            m_numFont(U"{}"_fmt(ene_attack)).draw(BattleLayoutRules::EnemyCombatValueX, 640, Palette::Black);
+			draw_combat_stat(m_attackIcon, BattleLayoutRules::AttackIconScale,
+				ene_attack, BattleLayoutRules::EnemyCombatAttackIconPosition,
+				BattleLayoutRules::EnemyCombatAttackValuePosition, {});
         }
         if (m_currentAnimState == BattleAnimationState::Idle || 
             m_currentAnimState == BattleAnimationState::CombatEnemyEffect ||
             m_currentAnimState == BattleAnimationState::CombatMyEffect ||
             m_currentAnimState == BattleAnimationState::DiscardEffect) {
             // 敵の防御アイコンの描画
-            m_defenceIcon.scaled(1.5).draw(BattleLayoutRules::EnemyCombatIconX, 720);
-            m_numFont(U"{}"_fmt(ene_defense)).draw(BattleLayoutRules::EnemyCombatValueX, 720, Palette::Black);
+			draw_combat_stat(m_defenceIcon, BattleLayoutRules::DefenseIconScale,
+				ene_defense, BattleLayoutRules::EnemyCombatDefenseIconPosition,
+				BattleLayoutRules::EnemyCombatDefenseValuePosition, {});
         }
+		if (player_combat_visibility.attack) {
+			draw_combat_stat(m_attackIcon, BattleLayoutRules::AttackIconScale,
+				my_attack, BattleLayoutRules::PlayerCombatAttackIconPosition,
+				BattleLayoutRules::PlayerCombatAttackValuePosition,
+				player_attack_combat_pulse);
+		}
         // 自分の防御アイコンの描画
-        if (m_currentAnimState == BattleAnimationState::CombatEnemyEffect || 
-            m_currentAnimState == BattleAnimationState::CombatMyEffect ||
-            m_currentAnimState == BattleAnimationState::DiscardEffect){
-            m_defenceIcon.scaled(1.5).draw(BattleLayoutRules::PlayerCombatIconX, 720);
-            m_numFont(U"{}"_fmt(my_defense)).draw(BattleLayoutRules::PlayerCombatValueX, 720, Palette::Black);
+		if (player_combat_visibility.defense) {
+			draw_combat_stat(m_defenceIcon, BattleLayoutRules::DefenseIconScale,
+				my_defense, BattleLayoutRules::PlayerCombatDefenseIconPosition,
+				BattleLayoutRules::PlayerCombatDefenseValuePosition,
+				player_defense_combat_pulse);
         }
         m_banner.draw(getData().money, getData().Layer, getData().leric);
     }
@@ -965,20 +1204,33 @@ bool Battle::drawDefault() const
 // 戦闘演出の描画
 void Battle::drawCombatEnemyEffect() const
 {
+	const auto draw_attack = [&](const double alpha) {
+		const Float2 pivot{
+			static_cast<float>(my_attack_icon_pos.x),
+			static_cast<float>(my_attack_icon_pos.y),
+		};
+		const Transformer2D transform{
+			Mat3x2::Scale(my_attack_icon_scale, pivot) };
+		m_attackIcon.scaled(BattleLayoutRules::AttackIconScale).draw(
+			my_attack_icon_pos, ColorF{ 1.0, 1.0, 1.0, alpha });
+		m_combatFont(U"{}"_fmt(my_attack)).draw(
+			my_attack_icon_pos + Vec2{ BattleLayoutRules::CombatValueAnimationOffset.x,
+				BattleLayoutRules::CombatValueAnimationOffset.y },
+			ColorF{ 0.0, 0.0, 0.0, alpha });
+	};
     if (my_attack_type == -1 || my_attack_type == 0 || my_attack_type == 2)
     {
-        m_attackIcon.scaled(1.6).draw(my_attack_icon_pos);
-        m_numFont(U"{}"_fmt(my_attack)).draw(my_attack_icon_pos+Vec2{80, 0}, Palette::Black);
+		draw_attack((my_attack_type == 2)
+			? BattleLayoutRules::ResolveBodyAttackAlpha(m_animeStopwatch.sF()) : 1.0);
     }
     else if (my_attack_type == 1){
         if (m_animeStopwatch.sF() < 0.2){
-            m_effectTexture.scaled(0.4).draw(BattleLayoutRules::EnemyCombatIconX, 720);
+			m_effectTexture.scaled(0.4).draw(my_attack_icon_pos);
             if (flag_once_draw == 0){
                 attack_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume));
             }
         }
-        m_attackIcon.scaled(1.6).draw(my_attack_icon_pos);
-        m_numFont(U"{}"_fmt(my_attack)).draw(my_attack_icon_pos+Vec2{80, 0}, Palette::Black);
+		draw_attack(1.0);
     }
     else if (my_attack_type == 3){ // attack_effect
         if (BattleDamageRules::ShouldDrawHitEffect(
@@ -989,20 +1241,33 @@ void Battle::drawCombatEnemyEffect() const
 }
 void Battle::drawCombatMyEffect() const
 {
+	const auto draw_attack = [&](const double alpha) {
+		const Float2 pivot{
+			static_cast<float>(ene_attack_icon_pos.x),
+			static_cast<float>(ene_attack_icon_pos.y),
+		};
+		const Transformer2D transform{
+			Mat3x2::Scale(ene_attack_icon_scale, pivot) };
+		m_attackIcon.scaled(BattleLayoutRules::AttackIconScale).draw(
+			ene_attack_icon_pos, ColorF{ 1.0, 1.0, 1.0, alpha });
+		m_combatFont(U"{}"_fmt(ene_attack)).draw(
+			ene_attack_icon_pos + Vec2{ BattleLayoutRules::CombatValueAnimationOffset.x,
+				BattleLayoutRules::CombatValueAnimationOffset.y },
+			ColorF{ 0.0, 0.0, 0.0, alpha });
+	};
     if (ene_attack_type == 0 || ene_attack_type == 2)
     {
-        m_attackIcon.scaled(1.6).draw(ene_attack_icon_pos);
-        m_numFont(U"{}"_fmt(ene_attack)).draw(ene_attack_icon_pos+Vec2{80, 0}, Palette::Black);
+		draw_attack((ene_attack_type == 2)
+			? BattleLayoutRules::ResolveBodyAttackAlpha(m_animeStopwatch.sF()) : 1.0);
     }
     else if (ene_attack_type == 1){
         if (m_animeStopwatch.sF() < 0.2){
-            m_effectTexture.scaled(0.4).draw(BattleLayoutRules::PlayerCombatIconX, 720);
+			m_effectTexture.scaled(0.4).draw(ene_attack_icon_pos);
             if (flag_once_draw == 0){
                 attack_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume));
             }
         }
-        m_attackIcon.scaled(1.6).draw(ene_attack_icon_pos);
-        m_numFont(U"{}"_fmt(ene_attack)).draw(ene_attack_icon_pos+Vec2{80, 0}, Palette::Black);
+		draw_attack(1.0);
     }
     else if (ene_attack_type == 3){ // attack_effect
         if (BattleDamageRules::ShouldDrawHitEffect(

@@ -20,6 +20,13 @@ enum class ExpressionCellUsage {
 	Ignored,
 };
 
+inline constexpr double IgnoredExpressionCellAlpha = 0.35;
+
+[[nodiscard]] inline constexpr double ResolveExpressionCellAlpha(
+	const ExpressionCellUsage usage) noexcept {
+	return (usage == ExpressionCellUsage::Ignored) ? IgnoredExpressionCellAlpha : 1.0;
+}
+
 struct Cell {
 	char symbol = '\0';
 	int32_t front_bonus = 0;

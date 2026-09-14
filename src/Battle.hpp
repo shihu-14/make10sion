@@ -53,9 +53,14 @@ private:
 	int32 my_attack = 0;
 	int32 my_defense = 0;
 	int32 my_real_attack = 0;
+	int32 my_attack_effect = 0;
 	int32 ene_attack = 0;
 	int32 ene_defense = 0;
 	int32 ene_real_attack = 0;
+	int32 ene_attack_effect = 0;
+	double m_playerAttackStatPulseElapsed = BattleLayoutRules::CombatStatPulseDuration;
+	double m_playerDefenseStatPulseElapsed = BattleLayoutRules::CombatStatPulseDuration;
+	BattleLayoutRules::PlayerCombatStatPulseChanges m_playerCombatStatPulseChanges;
 	int32 my_defense_effect = 0; // 自分の防御力を減らすエフェクトのための変数
 	int32 ene_defense_effect = 0; // 敵の防御力のへらすエフェクトのための変数
 	int32 reward_money = 0; // 報酬の金額
@@ -95,6 +100,7 @@ private:
 	// Array<Rect> m_tehuda_hantei; // 手札の判定
 	Font m_rewardFont; // 報酬のフォント
 	Font m_numFont; // 攻撃・防御の数字のフォント
+	Font m_combatFont; // 攻撃・防御値専用のフォント
 
 	const Audio battle_bgm{ U"../../audio/battle_bgm.wav" , Loop::Yes };
 	const Audio draw_card_se{ U"../../audio/draw_card.mp3" , Loop::No };
@@ -108,6 +114,8 @@ private:
 	Vec2 ene_attack_icon_start;
 	Vec2 my_attack_icon_end;
 	Vec2 ene_attack_icon_end;
+	double my_attack_icon_scale = 1.0;
+	double ene_attack_icon_scale = 1.0;
 	int32 my_attack_type = 0;
 	int32 ene_attack_type = 0;
 
@@ -130,10 +138,17 @@ private:
 	RenderTexture m_blurInternalBuffer;
 
 	int32 table_id = 0; // 手札のID
+	bool m_handDealComplete = false;
 	double yamahuda_angle = 0.0;
 	double sutehuda_angle = 0.0;
-	double tehuda_rate = 0.0;
-	Vec2 m_discardStart = { 0.0, 0.0 };
+	struct DiscardCardMotion {
+		int32 card_id = -1;
+		Vec2 start;
+		bool detached = false;
+		bool complete = false;
+	};
+	std::vector<DiscardCardMotion> m_discardCardMotions;
+	bool m_discardCardMotionsInitialized = false;
 
 	// コンストラクタで呼ばれる関数
 	int32 getTableSize() const;

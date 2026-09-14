@@ -7,17 +7,47 @@
 
 namespace BattleDamageRules {
 
+inline constexpr std::int32_t MaximumDamageHitCount = 6;
+inline constexpr double MaximumDefenseExchangeDuration = 1.0;
+
+struct DefenseExchange {
+	std::int32_t attack_after = 0;
+	std::int32_t defense_after = 0;
+	bool has_contact = false;
+};
+
+[[nodiscard]] inline constexpr DefenseExchange ResolveDefenseExchange(
+	const std::int32_t attack, const std::int32_t defense,
+	const std::int32_t actual_damage) noexcept {
+	return {
+		std::max(0, actual_damage),
+		std::max(0, defense - std::max(0, attack)),
+		(0 < attack) && (0 < defense),
+	};
+}
+
+// ダメージをHP割合に応じた複数ヒットへ変換する．
 [[nodiscard]] inline std::int32_t HitCountForDamage(
 	const std::int32_t actual_damage, const std::int32_t maximum_hp) noexcept {
 	if ((actual_damage <= 0) || (maximum_hp <= 0)) return 0;
 	const std::int64_t scaled_damage = static_cast<std::int64_t>(actual_damage) * 100;
 	const std::int64_t scaled_maximum = maximum_hp;
-	std::int32_t count = 5;
-	if (scaled_damage <= 15 * scaled_maximum) count = 1;
-	else if (scaled_damage <= 30 * scaled_maximum) count = 2;
-	else if (scaled_damage <= 45 * scaled_maximum) count = 3;
-	else if (scaled_damage <= 60 * scaled_maximum) count = 4;
+	std::int32_t count = MaximumDamageHitCount;
+	if (scaled_damage <= 15 * scaled_maximum) count = 1; // 最大HPの15％以下は1回とする．
+	else if (scaled_damage <= 30 * scaled_maximum) count = 2; // 最大HPの30％以下は2回とする．
+	else if (scaled_damage <= 45 * scaled_maximum) count = 3; // 最大HPの45％以下は3回とする．
+	else if (scaled_damage <= 60 * scaled_maximum) count = 4; // 最大HPの60％以下は4回とする．
+	else if (scaled_damage <= 75 * scaled_maximum) count = 5; // 最大HPの75％以下は5回とする．
 	return std::min(count, actual_damage);
+}
+
+[[nodiscard]] inline constexpr double ResolveDefenseExchangeDuration(
+	const std::int32_t attack, const std::int32_t defense,
+	const std::int32_t maximum_hp) noexcept {
+	const std::int32_t blocked_damage = std::max(0,
+		std::min(std::max(0, attack), std::max(0, defense)));
+	const std::int32_t hit_count = HitCountForDamage(blocked_damage, maximum_hp);
+	return MaximumDefenseExchangeDuration * hit_count / MaximumDamageHitCount;
 }
 
 [[nodiscard]] inline std::vector<std::int32_t> SplitDamage(

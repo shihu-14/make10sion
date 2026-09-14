@@ -196,6 +196,22 @@ void TestBoardCardSwapRules() {
 
 void TestDamageHitRules() {
 	using namespace BattleDamageRules;
+	const auto no_defense = ResolveDefenseExchange(12, 0, 12);
+	Expect(!no_defense.has_contact && (no_defense.attack_after == 12)
+		&& (no_defense.defense_after == 0),
+		"zero defense skips the defense-contact stage");
+	const auto absorbed = ResolveDefenseExchange(8, 10, 0);
+	Expect(absorbed.has_contact && (absorbed.attack_after == 0)
+		&& (absorbed.defense_after == 2),
+		"defense contact can absorb the complete attack");
+	const auto penetrated = ResolveDefenseExchange(14, 9, 5);
+	Expect(penetrated.has_contact && (penetrated.attack_after == 5)
+		&& (penetrated.defense_after == 0),
+		"defense contact leaves the calculated remaining attack");
+	const auto zero_attack = ResolveDefenseExchange(0, 10, 0);
+	Expect(!zero_attack.has_contact && (zero_attack.attack_after == 0)
+		&& (zero_attack.defense_after == 10),
+		"zero attack skips defense contact without reducing defense");
 	Expect(HitCountForDamage(15, 100) == 1, "fifteen percent damage uses one hit");
 	Expect(HitCountForDamage(16, 100) == 2, "damage above fifteen percent uses two hits");
 	Expect(HitCountForDamage(30, 100) == 2, "thirty percent damage uses two hits");
@@ -204,6 +220,17 @@ void TestDamageHitRules() {
 	Expect(HitCountForDamage(46, 100) == 4, "damage above forty-five percent uses four hits");
 	Expect(HitCountForDamage(60, 100) == 4, "sixty percent damage uses four hits");
 	Expect(HitCountForDamage(61, 100) == 5, "damage above sixty percent uses five hits");
+	Expect(HitCountForDamage(75, 100) == 5, "seventy-five percent damage uses five hits");
+	Expect(HitCountForDamage(76, 100) == 6, "damage above seventy-five percent uses six hits");
+	const auto maximum_hits = SplitDamage(80, 100);
+	Expect(maximum_hits.size() == 6, "large damage uses the configured maximum hit count");
+	Expect(std::abs(ResolveDefenseExchangeDuration(5, 100, 100) - (1.0 / 6.0)) < 0.000001
+		&& std::abs(ResolveDefenseExchangeDuration(20, 100, 100) - (2.0 / 6.0)) < 0.000001
+		&& std::abs(ResolveDefenseExchangeDuration(100, 100, 100) - 1.0) < 0.000001,
+		"defense exchange duration grows in six damage-based steps up to one second");
+	Expect((ResolveDefenseExchangeDuration(0, 100, 100) == 0.0)
+		&& std::abs(ResolveDefenseExchangeDuration(100, 10, 100) - (1.0 / 6.0)) < 0.000001,
+		"defense exchange duration uses only the defense actually removed");
 
 	const auto hits = SplitDamage(17, 100);
 	Expect((hits.size() == 2) && (hits[0] == 9) && (hits[1] == 8),
@@ -257,6 +284,16 @@ void TestInputOwnership() {
 		"deck-owned input does not reach the board");
 	Expect(!CanProcessBoardInput(true, true, PointerInputOwner::Card),
 		"failed hand capture does not also start a board drag");
+	Expect(ShouldRefreshPlayerCombatValues(true, false, false, false, false),
+		"entering idle refreshes the player combat values");
+	Expect(ShouldRefreshPlayerCombatValues(true, true, true, false, false),
+		"finishing a board drag refreshes the player combat values");
+	Expect(ShouldRefreshPlayerCombatValues(true, true, false, false, true),
+		"a hand drag completed within one frame refreshes the player combat values");
+	Expect(!ShouldRefreshPlayerCombatValues(true, true, false, false, false),
+		"an unchanged idle board does not recalculate combat values every frame");
+	Expect(!ShouldRefreshPlayerCombatValues(false, true, true, false, false),
+		"combat animation never replaces its mutable combat values with a preview");
 	bool transition_started = false;
 	Expect(BeginOneShotTransition(transition_started), "victory transition starts once");
 	Expect(!BeginOneShotTransition(transition_started), "victory transition cannot start twice");
@@ -317,7 +354,8 @@ void TestConcurrentReturnMotions() {
 
 	Expect(!CanStartCardDrag(card_a), "returning card ignores input");
 	Expect(CanStartCardDrag(card_b), "another hand card remains interactive");
-	Expect(!AdvanceVisualMotion(motion_a, 1.0 / 60.0), "return continues across multiple frames");
+	Expect(!AdvanceVisualMotion(motion_a, 1.0 / 60.0,
+		ResolveReturnMotionEasing(card_a)), "return continues across multiple frames");
 	const ScreenPoint a_after_first_frame = motion_a.current;
 	Expect((a_after_first_frame != motion_a.start) && (a_after_first_frame != motion_a.end),
 		"returning card has a visual-only intermediate position");
@@ -328,14 +366,43 @@ void TestConcurrentReturnMotions() {
 	StartVisualMotion(motion_b, { 900, 450 }, { 425, 900 });
 	card_b = CardLifecycle::ReturningToHand;
 
-	for (int frame = 0; frame < 9; frame++) {
-		if (AdvanceVisualMotion(motion_a, 1.0 / 60.0)) SettleReturnLifecycle(card_a);
-		if (AdvanceVisualMotion(motion_b, 1.0 / 60.0)) SettleReturnLifecycle(card_b);
+	for (int frame = 0; frame < 16; frame++) {
+		if (AdvanceVisualMotion(motion_a, 1.0 / 60.0,
+			ResolveReturnMotionEasing(card_a))) SettleReturnLifecycle(card_a);
+		if (AdvanceVisualMotion(motion_b, 1.0 / 60.0,
+			ResolveReturnMotionEasing(card_b))) SettleReturnLifecycle(card_b);
 	}
 	Expect((card_a == CardLifecycle::InHand) && (motion_a.current == ScreenPoint{ 350, 900 }),
 		"first card snaps exactly to its reserved hand position");
 	Expect((card_b == CardLifecycle::InHand) && (motion_b.current == ScreenPoint{ 425, 900 }),
 		"second card returns independently to a different hand position");
+}
+
+void TestHandReturnMotionTiming() {
+	Expect(ResolveReturnMotionEasing(CardLifecycle::ReturningToHand)
+		== VisualMotionEasing::CubicEaseOut
+		&& ResolveReturnMotionEasing(CardLifecycle::ReturningToBoard)
+		== VisualMotionEasing::CubicEaseOut,
+		"hand and board returns both select cubic ease-out timing");
+
+	VisualMotion hand_motion;
+	VisualMotion board_motion;
+	StartVisualMotion(hand_motion, { 0, 0 }, { 100, 100 }, 1.0);
+	StartVisualMotion(board_motion, { 0, 0 }, { 100, 100 }, 1.0);
+	Expect(!AdvanceVisualMotion(hand_motion, 0.5, VisualMotionEasing::CubicEaseOut)
+		&& !AdvanceVisualMotion(board_motion, 0.5, VisualMotionEasing::CubicEaseOut)
+		&& (hand_motion.current == ScreenPoint{ 87, 87 })
+		&& (board_motion.current == ScreenPoint{ 87, 87 })
+		&& (hand_motion.elapsed_seconds == board_motion.elapsed_seconds)
+		&& (hand_motion.duration_seconds == board_motion.duration_seconds)
+		&& (hand_motion.end == board_motion.end),
+		"both return paths start fast while preserving duration and endpoint");
+
+	Expect(AdvanceVisualMotion(hand_motion, 0.5, VisualMotionEasing::CubicEaseOut)
+		&& AdvanceVisualMotion(board_motion, 0.5, VisualMotionEasing::CubicEaseOut)
+		&& (hand_motion.current == hand_motion.end)
+		&& (board_motion.current == board_motion.end),
+		"cubic returns still complete at the original duration and endpoint");
 }
 
 void TestForcedMotionCompletion() {
@@ -356,6 +423,80 @@ void TestForcedMotionCompletion() {
 		"focus loss or scene transition completes a hand return");
 	Expect((board_card == CardLifecycle::OnBoard) && (board_motion.current == board_motion.end),
 		"focus loss or scene transition completes a board return");
+}
+
+void TestHandDealAnimationRules() {
+	Expect(ResolveHandDealStage(true, false, false, false) == HandDealStage::RotatePile
+		&& ResolveHandDealStage(true, false, true, false) == HandDealStage::DealCards,
+		"hand dealing rotates the pile once before launching cards");
+	Expect(ResolveHandDealStage(true, true, false, false) == HandDealStage::ReturnPile
+		&& ResolveHandDealStage(true, true, false, true) == HandDealStage::Complete,
+		"completed hand dealing returns the pile without restarting card launches");
+
+	Expect(!ShouldDrawHandCardDuringDeal(0, 0, true)
+		&& ShouldDrawHandCardDuringDeal(0, 1, true)
+		&& !ShouldDrawHandCardDuringDeal(1, 1, true)
+		&& ShouldDrawHandCardDuringDeal(1, 0, false),
+		"deal rendering reveals only cards whose launch has started");
+	Expect(ShouldPlayHandDealSound(0) && ShouldPlayHandDealSound(7)
+		&& !ShouldPlayHandDealSound(8) && !ShouldPlayHandDealSound(14),
+		"hand deal sound plays for only the first eight launched cards");
+
+	const auto second_before_start = ResolveHandDealProgress(1, 0.099);
+	const auto second_at_start = ResolveHandDealProgress(1, 0.10);
+	Expect(!second_before_start.started && (second_before_start.linear_progress == 0.0)
+		&& second_at_start.started && (second_at_start.linear_progress == 0.0),
+		"hand cards preserve the configured one hundred millisecond stagger interval");
+
+	const auto first_in_flight = ResolveHandDealProgress(0, 0.15);
+	const auto second_in_flight = ResolveHandDealProgress(1, 0.15);
+	Expect(first_in_flight.started && second_in_flight.started
+		&& !first_in_flight.complete && !second_in_flight.complete,
+		"successive hand cards overlap in flight instead of waiting for each other");
+
+	const auto quarter = ResolveHandDealProgress(0, 0.075);
+	const auto midpoint = ResolveHandDealProgress(0, 0.15);
+	const auto three_quarters = ResolveHandDealProgress(0, 0.225);
+	Expect(std::abs(quarter.eased_progress - 0.578125) < 0.000001
+		&& std::abs(midpoint.eased_progress - 0.875) < 0.000001
+		&& std::abs(three_quarters.eased_progress - 0.984375) < 0.000001,
+		"hand card travel starts fast and decelerates with cubic ease-out");
+
+	const auto last_complete = ResolveHandDealProgress(14, 1.7);
+	Expect(last_complete.complete && (last_complete.eased_progress == 1.0)
+		&& (std::abs(HandDealTotalDuration(1) - 0.30) < 0.000001)
+		&& (std::abs(HandDealTotalDuration(15) - 1.7) < 0.000001)
+		&& (HandDealTotalDuration(0) == 0.0),
+		"deal duration preserves the current user-adjusted timing parameters");
+}
+
+void TestDiscardCollectionTiming() {
+	Expect(std::abs(DiscardCardStartIntervalSeconds(0, 15) - 0.30) < 0.000001
+		&& std::abs(DiscardCardStartIntervalSeconds(13, 15) - 0.04) < 0.000001,
+		"discard launch intervals run from three hundred to forty milliseconds");
+	double previous_interval = DiscardCardStartIntervalSeconds(0, 15);
+	for (int32_t interval_index = 1; interval_index < 14; ++interval_index) {
+		const double interval = DiscardCardStartIntervalSeconds(interval_index, 15);
+		Expect(interval < previous_interval,
+			"each later discard card starts sooner than the previous one");
+		previous_interval = interval;
+	}
+
+	const auto first_halfway = ResolveDiscardCardProgress(0, 15, 0.075);
+	const auto second_before_start = ResolveDiscardCardProgress(1, 15, 0.299);
+	const auto second_at_start = ResolveDiscardCardProgress(1, 15, 0.30);
+	const auto second_halfway = ResolveDiscardCardProgress(1, 15, 0.375);
+	Expect(first_halfway.started && !first_halfway.complete
+		&& std::abs(first_halfway.linear_progress - 0.5) < 0.000001
+		&& !second_before_start.started
+		&& second_at_start.started && (second_at_start.linear_progress == 0.0)
+		&& second_halfway.started && !second_halfway.complete
+		&& std::abs(second_halfway.linear_progress - 0.5) < 0.000001,
+		"discard cards keep the same linear travel while only launch timing changes");
+	Expect(std::abs(DiscardCollectionTotalDuration(15) - 2.53) < 0.000001
+		&& std::abs(DiscardCollectionTotalDuration(1) - 0.15) < 0.000001
+		&& (DiscardCollectionTotalDuration(0) == 0.0),
+		"discard collection duration follows card count and accelerating intervals");
 }
 
 void TestRepeatedFailedBoardSwapReturn() {
@@ -389,7 +530,7 @@ void TestRepeatedFailedBoardSwapReturn() {
 		const int other_rotation = 1;
 		const int other_hand_slot = 3;
 
-		for (int frame = 0; frame < 10; frame++) {
+		for (int frame = 0; frame < 16; frame++) {
 			if (frame == 1) {
 				Expect(CanStartCardDrag(other_card),
 					"another board card remains draggable during a return");
@@ -397,7 +538,8 @@ void TestRepeatedFailedBoardSwapReturn() {
 			}
 			Expect(CanProcessBoardInput(true, false, PointerInputOwner::Card),
 				"returning visual does not roll back another active drag");
-			if (AdvanceVisualMotion(return_motion, 1.0 / 60.0)) {
+			if (AdvanceVisualMotion(return_motion, 1.0 / 60.0,
+				ResolveReturnMotionEasing(returning_card))) {
 				SettleReturnLifecycle(returning_card);
 			}
 			Expect(board.cells == before.cells,
@@ -594,6 +736,10 @@ void TestCardSymbolRules() {
 void TestBoardCalculationRules() {
 	using namespace BoardCalculationRules;
 	using Usage = ExpressionCellUsage;
+	Expect(ResolveExpressionCellAlpha(Usage::Ignored) == 0.15
+		&& ResolveExpressionCellAlpha(Usage::Used) == 1.0
+		&& ResolveExpressionCellAlpha(Usage::NonExpression) == 1.0,
+		"only ignored expression cells use the disabled cell alpha");
 	Board board{ 7, 6 };
 	board.Set(0, 0, '7');
 	board.Set(1, 0, '*');
@@ -918,7 +1064,7 @@ void TestDebugScenarioRules() {
 		"midgame debug resources are deterministic");
 	Expect((scenario.seed == 0x4D313053ULL) && (scenario.deck.size() == 18),
 		"midgame debug uses a fixed seed and exactly eighteen cards");
-	Expect((scenario.hand_limit_override == 18)
+	Expect((scenario.hand_limit_override == 15)
 		&& (scenario.enemy_texture_path == "../../image/boss_1.png")
 		&& scenario.preserve_deck_order,
 		"midgame debug explicitly overrides the hand limit and enemy visual");
@@ -983,8 +1129,9 @@ void TestDebugScenarioRules() {
 			GameStateRules::CardZone::Hand), "midgame debug can draw every visible test card");
 	}
 	Expect(hand_matches_scenario_order && deck.Validate()
-		&& (deck.Cards(GameStateRules::CardZone::Hand).size() == 18),
-		"midgame debug starts with eighteen uniquely owned hand cards");
+		&& (deck.Cards(GameStateRules::CardZone::Hand).size() == 15)
+		&& (deck.Cards(GameStateRules::CardZone::DrawPile).size() == 3),
+		"midgame debug starts with fifteen hand cards and keeps three in the draw pile");
 
 	constexpr std::array<std::string_view, 6> rows{
 		"b5+3*4f", "7*2+6/3", "q+5*o-3",
@@ -1062,8 +1209,69 @@ void TestDebugScenarioRules() {
 
 void TestBattleLayoutRules() {
 	using namespace BattleLayoutRules;
-	Expect(std::abs(PlayerDisplayScale - 0.85) < 0.0001,
-		"all battle player draws use the shared 0.85 scale");
+	Expect((ResolveBodyAttackAlpha(0.0) == 1.0)
+		&& (ResolveBodyAttackAlpha(0.25) == 0.5)
+		&& (ResolveBodyAttackAlpha(0.5) == 0.0)
+		&& (ResolveBodyAttackAlpha(1.0) == 0.0),
+		"body attack fades completely over half a second");
+	Expect((DamageEffectTriggerTime(0) == 0.0)
+		&& (std::abs(DamageEffectTriggerTime(5) - 1.5) < 0.000001),
+		"six damage effects use three hundred millisecond intervals");
+	Expect(!ShouldTriggerDamageEffect(0.299, 1)
+		&& ShouldTriggerDamageEffect(0.3, 1),
+		"damage effects trigger exactly at each configured interval");
+	const auto player_arc_start = ResolveAttackArcMotion(
+		PlayerAttackStart(), EnemyAttackArcTarget(), 0.0);
+	const auto player_arc_midpoint = ResolveAttackArcMotion(
+		PlayerAttackStart(), EnemyAttackArcTarget(), AttackArcTravelDuration / 2.0);
+	const auto player_arc_end = ResolveAttackArcMotion(
+		PlayerAttackStart(), EnemyAttackArcTarget(), AttackArcTravelDuration);
+	const double player_linear_midpoint_y =
+		(PlayerAttackStart().y + EnemyAttackArcTarget().y) / 2.0;
+	Expect((player_arc_start.x == PlayerAttackStart().x)
+		&& (player_arc_start.y == PlayerAttackStart().y)
+		&& (player_arc_end.x == EnemyAttackArcTarget().x)
+		&& (player_arc_end.y == EnemyAttackArcTarget().y)
+		&& (player_arc_midpoint.y < player_linear_midpoint_y),
+		"player attack follows an upward arc to the enemy upper-left");
+	Expect((player_arc_start.scale == 1.0)
+		&& (player_arc_midpoint.scale > player_arc_start.scale)
+		&& (player_arc_midpoint.scale < player_arc_end.scale)
+		&& (player_arc_end.scale == 1.3),
+		"attack icon and value grow gradually along the arc");
+	const auto enemy_arc_midpoint = ResolveAttackArcMotion(
+		EnemyAttackStart(), PlayerAttackArcTarget(), AttackArcTravelDuration / 2.0);
+	const double enemy_linear_midpoint_y =
+		(EnemyAttackStart().y + PlayerAttackArcTarget().y) / 2.0;
+	Expect((PlayerAttackArcTarget().x > PlayerPosition().x)
+		&& (PlayerAttackArcTarget().y < PlayerPosition().y)
+		&& (enemy_arc_midpoint.y < enemy_linear_midpoint_y),
+		"enemy attack mirrors the upward arc toward the player upper-right");
+	Expect((ResolveCombatValueChange(100, 0, 0.5, 1.0) == 50)
+		&& (ResolveCombatValueChange(10, 0, 0.5, 1.0) == 5)
+		&& (ResolveCombatValueChange(100, 0, 1.0, 1.0) == 0)
+		&& (ResolveCombatValueChange(10, 0, 1.0, 1.0) == 0),
+		"combat values share the selected animation duration");
+	Expect((ResolveCombatValueChange(100, 0, 0.25, 0.5) == 50)
+		&& (ResolveCombatValueChange(100, 0, 0.5, 0.5) == 0),
+		"combat values use the selected damage-based exchange duration");
+	const auto idle_player_values = ResolvePlayerCombatValueVisibility(
+		true, false, false, false);
+	Expect(idle_player_values.attack && idle_player_values.defense,
+		"idle battle shows the board-derived player attack and defense");
+	const auto enemy_effect_values = ResolvePlayerCombatValueVisibility(
+		false, true, false, false);
+	const auto player_effect_values = ResolvePlayerCombatValueVisibility(
+		false, false, true, false);
+	const auto discard_values = ResolvePlayerCombatValueVisibility(
+		false, false, false, true);
+	const auto hidden_values = ResolvePlayerCombatValueVisibility(
+		false, false, false, false);
+	Expect(!enemy_effect_values.attack && enemy_effect_values.defense
+		&& !player_effect_values.attack && player_effect_values.defense
+		&& !discard_values.attack && discard_values.defense
+		&& !hidden_values.attack && !hidden_values.defense,
+		"combat and discard phases preserve the existing player value visibility");
 	Expect((EnemyHitTarget().x - EnemyPosition().x == EnemyHitOffsetX)
 		&& (EnemyHitTarget().y - EnemyPosition().y == EnemyHitOffsetY),
 		"enemy attack impact follows the shared enemy position");
@@ -1073,37 +1281,37 @@ void TestBattleLayoutRules() {
 		"enemy damage effects follow the shared enemy position");
 	const double normal_enemy_scale = EnemyDisplayScale(400, 1.0);
 	const double boss_enemy_scale = EnemyDisplayScale(700, 1.0);
-	Expect(std::abs(normal_enemy_scale * 400.0 - EnemyDisplayHeight) < 0.0001
-		&& std::abs(boss_enemy_scale * 700.0 - EnemyDisplayHeight) < 0.0001,
+	Expect(std::abs(normal_enemy_scale * 400.0 - boss_enemy_scale * 700.0) < 0.0001,
 		"normal and boss textures share one normalized display height");
-	Expect(std::abs((800.0 * EnemyBaseScale(400)) / EnemyDisplayHeight - 2.0) < 0.0001,
-		"enemy normalization preserves the source aspect ratio");
-	Expect(std::abs(EnemyDisplayScale(400, EnemyHitScaleMultiplier) - 0.7) < 0.0001
-		&& std::abs(EnemyDisplayScale(700, EnemyHitScaleMultiplier) * 700.0 - 280.0) < 0.0001,
-		"the hit animation is relative to each texture's normalized base scale");
+	const double normal_hit_scale = EnemyDisplayScale(400, EnemyHitScaleMultiplier);
+	const double boss_hit_scale = EnemyDisplayScale(700, EnemyHitScaleMultiplier);
+	Expect(std::abs((normal_hit_scale / normal_enemy_scale)
+		- (boss_hit_scale / boss_enemy_scale)) < 0.0001,
+		"hit animation applies the same normalized multiplier to each texture");
 	Expect(EnemyBaseScale(0) == 1.0,
 		"an unavailable enemy texture has a safe neutral scale");
-	std::array<ScreenRect, 18> hand_bounds{};
-	for (int32_t slot = 0; slot < 18; ++slot) {
-		hand_bounds[static_cast<std::size_t>(slot)] = HandCardBounds(slot);
-		Expect(SceneBounds().Contains(hand_bounds[static_cast<std::size_t>(slot)]),
-			"every debug hand card remains inside the logical scene");
-		if (slot != 0) {
-			Expect(HandPosition(slot).x != HandPosition(slot - 1).x,
-				"adjacent debug hand slots have distinct horizontal positions");
-		}
-	}
-	Expect(!hand_bounds.back().Intersects(EqualButtonBounds()),
-		"the eighteenth hand card does not overlap the attack button");
-	Expect(!hand_bounds.back().Intersects(DiscardPileBounds()),
-		"the eighteenth hand card does not overlap the discard pile");
-	Expect(SceneBounds().Contains(EqualButtonBounds()),
-		"the attack button stays fully inside the logical scene");
-	Expect((PlayerPosition().y == 230) && (PlayerHpPosition().y == 700)
-		&& (EnemyPosition().y == 500) && (EnemyHpPosition().y == 700)
-		&& (BoardOffset().y == 190) && (HandPosition(0).y == 900)
-		&& (EqualButtonBounds().y == 750),
-		"battle layout preserves the selected vertical positions");
+	const auto unchanged_changes = ResolvePlayerCombatStatPulseChanges(12, 7, 12, 7);
+	const auto attack_only_change = ResolvePlayerCombatStatPulseChanges(12, 7, 18, 7);
+	const auto defense_only_change = ResolvePlayerCombatStatPulseChanges(12, 7, 12, 3);
+	const auto mixed_changes = ResolvePlayerCombatStatPulseChanges(12, 7, 18, 3);
+	Expect(!unchanged_changes.attack && !unchanged_changes.defense,
+		"unchanged player combat values do not animate");
+	Expect(attack_only_change.attack && !attack_only_change.defense
+		&& !defense_only_change.attack && defense_only_change.defense
+		&& mixed_changes.attack && mixed_changes.defense,
+		"player attack and defense detect value changes independently");
+	const auto increase_peak = ResolveCombatStatPulse(
+		CombatStatPulseDuration / 2.0, mixed_changes.attack);
+	const auto decrease_peak = ResolveCombatStatPulse(
+		CombatStatPulseDuration / 2.0, mixed_changes.defense);
+	const auto unchanged_peak = ResolveCombatStatPulse(
+		CombatStatPulseDuration / 2.0, unchanged_changes.attack);
+	Expect(increase_peak.scale == 1.1
+		&& increase_peak.scale > 1.0 && increase_peak.lift == CombatStatPulseLift
+		&& decrease_peak.scale == 1.1
+		&& decrease_peak.scale > 1.0 && decrease_peak.lift == CombatStatPulseLift
+		&& unchanged_peak.scale == 1.0 && unchanged_peak.lift == 0.0,
+		"changed values grow to the shared peak and unchanged values remain still");
 	for (int32_t y = 0; y < BoardHeight; ++y) {
 		for (int32_t x = 0; x < BoardWidth; ++x) {
 			const BattleLayoutRules::BoardCell cell{ x, y };
@@ -1137,7 +1345,10 @@ int main() {
 	TestInteractionDrawLayers();
 	TestStableIdentityAndReservations();
 	TestConcurrentReturnMotions();
+	TestHandReturnMotionTiming();
 	TestForcedMotionCompletion();
+	TestHandDealAnimationRules();
+	TestDiscardCollectionTiming();
 	TestRepeatedFailedBoardSwapReturn();
 	TestBoardProgress();
 	TestBattleDeckState();

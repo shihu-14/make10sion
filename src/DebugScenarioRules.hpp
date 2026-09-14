@@ -28,7 +28,7 @@ struct Scenario {
 		100,
 		300,
 		0x4D313053ULL,
-		18,
+		15,
 		true,
 		"../../image/boss_1.png",
 		{

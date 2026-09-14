@@ -7,7 +7,7 @@
 #include <vector>
 using namespace std;
 
-//private variables
+// 盤面カードの検索と座標変換を行う．
 int32 Board::FindBoardBlockIndex(int32 deck_index) const {
     for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {
         if (board_blocks[i].deck_index == deck_index) return i;
@@ -71,6 +71,7 @@ Point Board::ScreenToBoardCell(Point screen_pos) const {
 }
 
 Point Board::GetBoardAnchorFromScreenPosition(const Block& block, Point screen_pos) const {
+	// 盤面アンカーと画面座標の変換基準を統一する．
     if ((block.Size().first <= 0) || (block.Size().second <= 0)) return { -1,-1 };
     const Point first_piece_pos = screen_pos + GetScaledPieceOffset(block.GetPiece(0, 0));
     const double anchor_x = static_cast<double>(first_piece_pos.x - offset.x - cell_size / 2) / cell_size;
@@ -115,6 +116,7 @@ bool Board::IsBoardBlockPlaced(int32 index) const {
 }
 
 bool Board::CanPlaceBlock(int32 index, Point anchor, int32 ignored_index_1, int32 ignored_index_2) const {
+	// 盤面占有と交換対象の例外を含めた配置契約を検証する．
     if (!IsBoardBlockIndexValid(index) || (anchor == Point{ -1,-1 })) return false;
     Array<Point> cells;
     if (!GetBlockCells(*board_blocks[index].block, anchor, cells)) return false;
@@ -134,6 +136,7 @@ bool Board::CanPlaceBlock(int32 index, Point anchor, int32 ignored_index_1, int3
 }
 
 bool Board::ValidateBoardState(int32 allowed_target_index, String* diagnostic) const {
+	// Boardのライフサイクルと盤面占有の不変条件を検証する．
 	(void)allowed_target_index;
 	const auto fail = [diagnostic](const String& message) {
 		if (diagnostic) *diagnostic = message;
@@ -259,6 +262,7 @@ bool Board::ValidateBoardState(int32 allowed_target_index, String* diagnostic) c
 }
 
 void Board::AssertBoardState(int32 allowed_target_index) const {
+	// デバッグ時に盤面状態の不変条件を確認する．
 #ifndef NDEBUG
 	String diagnostic;
 	if (!ValidateBoardState(allowed_target_index, &diagnostic)) {
@@ -272,6 +276,7 @@ void Board::AssertBoardState(int32 allowed_target_index) const {
 }
 
 void Board::TraceTransition(StringView event, int32 deck_index, StringView detail) {
+	// 失敗経路を含む盤面操作の遷移をフレーム単位で記録する．
 #ifndef NDEBUG
 	String line = U"frame=" + Format(current_frame_number) + U", event=" + String{ event }
 		+ U", deck_index=" + Format(deck_index);
@@ -286,6 +291,7 @@ void Board::TraceTransition(StringView event, int32 deck_index, StringView detai
 }
 
 void Board::DumpInteractionState(StringView context) const {
+	// 盤面操作の状態をデバッグ出力する．
 #ifndef NDEBUG
 	Logger << U"Board interaction dump: " << context << U", frame=" << current_frame_number
 		<< U", drag_active=" << drag_context.active << U", drag_deck_index=" << drag_context.deck_index;
@@ -313,13 +319,15 @@ void Board::DumpInteractionState(StringView context) const {
 #endif
 }
 
-Point Board::PutBlockAt(Point screen_pos) const {//blockの置ける場所を確認. blockの(0, 0)のピースのボード座標を返す
+Point Board::PutBlockAt(Point screen_pos) const {//blockの置ける場所を確認．blockの(0, 0)のピースのボード座標を返す
+	// ドロップ位置に最も近い盤面アンカーを求める．
     if (!IsDragContextValid()) return { -1,-1 };
     const Block& block = *board_blocks[drag_context.board_block_index].block;
     return GetBoardAnchorFromScreenPosition(block, screen_pos);
 }
 
 Board::DropPlan Board::AnalyzeDrop(Point candidate_anchor, Point release_cursor, Point release_screen_pos) const {
+	// BattleCardRulesの判定結果をBoard固有の確定処理へ変換する．
     DropPlan plan;
     if (!IsDragContextValid()) return plan;
     const int32 selected_index = drag_context.board_block_index;
@@ -450,6 +458,7 @@ bool Board::HasBoardOccupancy(int32 index) const {
 }
 
 bool Board::ForceOrphanedDragToHand() {
+	// 参照を失ったドラッグカードを手札へ復元する．
 	if (!drag_context.active) return false;
 	int32 existing_index = FindBoardBlockIndex(drag_context.deck_index);
 	if (!IsBoardBlockIndexValid(existing_index) && drag_context.block) {
@@ -535,6 +544,7 @@ void Board::SetBoardBlockPosition(int32 index, Point anchor) {
 
 void Board::QueueZoneChange(const int32 deck_index, const GameStateRules::CardZone expected,
 	const GameStateRules::CardZone destination) {
+	// カードゾーンの変更をバトルシーンへ通知する．
 	if ((deck_index < 0) || (expected == destination)) return;
 	pending_zone_changes.push_back({ deck_index, expected, destination });
 }
@@ -562,6 +572,7 @@ bool Board::RotateDraggedBlock() {
 }
 
 bool Board::SwapBoardBlocks(const int32 selected_index, const int32 target_index) {
+	// 2枚のフットプリントを検証してから，盤面交換を一括確定する．
 	if (!IsDragContextValid() || !drag_context.from_board
 		|| !IsBoardBlockIndexValid(selected_index) || !IsBoardBlockIndexValid(target_index)
 		|| (selected_index == target_index)) return false;
@@ -597,6 +608,7 @@ bool Board::SwapBoardBlocks(const int32 selected_index, const int32 target_index
 }
 
 void Board::StartVisualReturn(int32 index, BattleCardRules::CardLifecycle lifecycle, Point end_pos) {
+	// 表示レイヤーとライフサイクルを返却中へ切り替え，終点を予約する．
 	if (!IsBoardBlockIndexValid(index)) return;
 	BoardBlockState& state = board_blocks[index];
 	const Point start_pos = { state.block->GetPos().first, state.block->GetPos().second };
@@ -613,6 +625,7 @@ void Board::StartVisualReturn(int32 index, BattleCardRules::CardLifecycle lifecy
 }
 
 bool Board::ReturnDraggedBlockToHand() {
+	// 盤面占有を解除し，手札予約を保ったままカードを返却する．
 	if (!drag_context.active) return false;
 	const int32 selected_index = ResolveDragBlockIndex();
 	if (!IsBoardBlockIndexValid(selected_index)) {
@@ -640,6 +653,7 @@ bool Board::ReturnDraggedBlockToHand() {
 }
 
 bool Board::RestoreDraggedBlockToBoard() {
+	// 盤面ドラッグのキャンセル時に，元の占有と表示位置を復元する．
 	if (!drag_context.active || !drag_context.from_board) return false;
 	const int32 selected_index = ResolveDragBlockIndex();
 	if (!IsBoardBlockIndexValid(selected_index)) return ForceOrphanedDragToHand();
@@ -658,6 +672,7 @@ bool Board::RestoreDraggedBlockToBoard() {
 }
 
 bool Board::RestoreDraggedBlockAfterFailedCommit() {
+	// 確定途中の失敗から，盤面とカード状態を同時に復元する．
 	if (!drag_context.active || !drag_context.from_board) return false;
 	const int32 selected_index = ResolveDragBlockIndex();
 	if (!IsBoardBlockIndexValid(selected_index)) return ForceOrphanedDragToHand();
@@ -695,6 +710,7 @@ bool Board::RestoreDraggedBlockAfterFailedCommit() {
 }
 
 bool Board::RollbackDraggedBlock() {
+	// 入力キャンセル時に，手札または盤面の不変条件を保って戻す．
 	if (!drag_context.active) return false;
 	const int32 selected_index = ResolveDragBlockIndex();
 	if (!IsBoardBlockIndexValid(selected_index)) {
@@ -723,6 +739,7 @@ void Board::ClearDrag() {
 }
 
 void Board::PutBlock(Point release_cursor, Point release_screen_pos) {//blockがドロップされたら、配置/交換/手札への復帰を行う
+	// ドロップ判定を状態変更へ変換し，失敗時は元の領域へロールバックする．
     if (!IsDragContextValid()) {
         RollbackDraggedBlock();
         return;
@@ -859,6 +876,7 @@ void Board::PutBlock(Point release_cursor, Point release_screen_pos) {//blockが
 }
 
 void Board::TakeOutBlock(Point pos, Point cursor_pos) {//クリックしたBlockのドラッグを開始する
+	// 盤面カードをライフサイクルごとDraggingFromBoardへ移行する．
     const int32 board_width = static_cast<int32>(board_usage.width());
     const int32 board_height = static_cast<int32>(board_usage.height());
     if (drag_context.active
@@ -897,17 +915,18 @@ void Board::InitBoardCoordinate() {//board_coordinateの初期化
 }
 
 void Board::DoRelic(vector<int32> relics) { //cf.) md
-	if (relics.size() < 19) return;
+	// レリック効果を盤面倍率，攻防列，補正値へ反映する．
+	if (relics.size() < 19) return;//レリックIDを19個以上参照できる場合だけ適用する．
 	for (int i = 0; i < 6; i++) {
-		board_multiply[i] = board_multiply_base[i] + relics[3] * 0.5;
+		board_multiply[i] = board_multiply_base[i] + relics[3] * 0.5;//ID3の効果で行倍率を0.5ずつ加算する．
 	}
-	const int32 new_off_count = 3 + relics[10] - relics[11];//攻防の範囲の動かす数を記録
+	const int32 new_off_count = 3 + relics[10] - relics[11];//基本の攻撃列3行をレリックで増減する．
     if (off_count != new_off_count) {
         off_count = new_off_count;
         RebuildBoardDerivedState();
     }
-	add_damage = relics[13] * 3;
-	add_armor = relics[14] * 3;
+	add_damage = relics[13] * 3;//ID13の効果を3倍して攻撃補正にする．
+	add_armor = relics[14] * 3;//ID14の効果を3倍して防御補正にする．
 	do_armor_raise = (relics[15] == 1);
 	add_damage_by_cards = relics[16];
 }

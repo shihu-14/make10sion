@@ -39,7 +39,10 @@ void Main()
 		initial_state = State::Battle;
 		Logger << U"make10sion debug scenario: midgame, layer=" << shared_data->Layer
 			<< U", unlocked=" << shared_data->board_progress.UnlockedCount()
-			<< U", hand_limit=" << GameStateRules::CalculateHandLimit(shared_data->board_progress)
+			<< U", hand_limit=" << GameStateRules::ResolveBattleHandLimit(
+				shared_data->board_progress,
+				shared_data->debug_battle_overrides ? shared_data->debug_battle_overrides->hand_limit : 0)
+			<< U", enemy_texture=" << shared_data->debug_battle_overrides->enemy_texture_path
 			<< U", deck_size=" << shared_data->Deck.size();
 	}
 #endif

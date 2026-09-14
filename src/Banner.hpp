@@ -28,6 +28,7 @@ public:
 	bool update(std::vector<Block>& deck_data, bool allow_deck_open, Point cursor_pos,
 		bool left_down, bool left_up, bool focused);
 	bool IsDeckButtonHovered(Point cursor_pos) const;
+	bool IsSettingButtonHovered(Point cursor_pos) const;
 	void CancelPointerGesture();
 	void draw(int money, int floor, const Leric& leric) const;
 };

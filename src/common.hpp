@@ -52,6 +52,12 @@ inline std::vector<Block> CreateStarterDeck()
 // 共有するデータ
 struct GameData
 {
+	struct DebugBattleOverrides {
+		int hand_limit = 0;
+		bool preserve_deck_order = false;
+		String enemy_texture_path;
+	};
+
 	std::vector<Block> Deck = CreateStarterDeck();
 	int Layer = 0;
 	int Index = 1; // 現在のマップのインデックス
@@ -60,7 +66,9 @@ struct GameData
 	int money = 100;
 	GameStateRules::BoardProgress board_progress;
 	GameStateRules::RunOutcome run_outcome = GameStateRules::RunOutcome::None;
+	GameStateRules::AudioSettings audio_settings;
 	int enemy = 0;
+	Optional<DebugBattleOverrides> debug_battle_overrides;
 	Leric leric; // レリック
 
 	// Map Data
@@ -133,6 +141,7 @@ struct GameData
 		board_progress.Reset();
 		run_outcome = GameStateRules::RunOutcome::None;
 		enemy = 0;
+		debug_battle_overrides.reset();
 		leric.Reset();
 		selected_nodes.clear();
 		selected_map_act = -1;

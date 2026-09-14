@@ -14,6 +14,9 @@ struct Scenario {
 	int32_t max_hp = 0;
 	int32_t money = 0;
 	uint64_t seed = 0;
+	int32_t hand_limit_override = 0;
+	bool preserve_deck_order = false;
+	std::string_view enemy_texture_path;
 	std::vector<std::string_view> deck;
 };
 
@@ -25,22 +28,13 @@ struct Scenario {
 		100,
 		300,
 		0x4D313053ULL,
+		15,
+		true,
+		"../../image/boss_1.png",
 		{
-			"2\n3",
-			"0\n7",
-			"-\n+\n*\n+",
-			"*\n*\n/",
-			"g\nh",
-			"g\ne",
-			"b\na",
-			"c\n3",
-			"i\n3",
-			"f\n3",
-			"j\nk",
-			"o\np",
-			"q\nj",
-			"m\nn\nn",
-			"E\n6",
+			"b5\n7$", "*$\n2+", "$+\n*3", "4/\n$6", "f\n3\n3", "q\n+",
+			"*\n5", "o\n-", "i\ng\n-", "+\n2", "4\na", "e\nc",
+			"+\nm", "6\n-", "/\n4", "3\n*", "i\n2", "h\n+",
 		}
 	};
 	return scenario;

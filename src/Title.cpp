@@ -14,6 +14,7 @@ m_font(30, Typeface::Bold),
 fadeTextures(3)
 {
     // タイトル画面のBGMを再生
+    titleBGM.setVolume(GameStateRules::ClampVolume(getData().audio_settings.bgm_volume));
     titleBGM.play();
     for (int i = 0; i < 3; i++)
         fadeTextures[i] = Texture{ U"../../image/tyu-toriarumae_" + ToString(i + 1) + U".png" };

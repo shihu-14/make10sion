@@ -373,8 +373,8 @@ void Enemy::loadEnemies()
 // データベースからランダムに1体の敵を選ぶ
 const EnemyData& Enemy::getOneEnemy(int32 type, int32 act) const
 {
-	const int32 selected_type = Clamp(type, 0, 2);
-	const int32 selected_act = Clamp(act, 0, 2);
+	const int32 selected_type = Clamp(type, 0, 2);//敵種別を通常からボスの範囲に制限する．
+	const int32 selected_act = Clamp(act, 0, 2);//出現時期を序盤から終盤の範囲に制限する．
 	Array<int32> candidates;
 	for (int32 i = 0; i < static_cast<int32>(m_enemies.size()); i++) {
 		if ((m_enemies[i].type == selected_type) && (m_enemies[i].layer == selected_act)) {

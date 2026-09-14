@@ -1,6 +1,7 @@
 #include <Siv3D.hpp> // Siv3D v0.6.16
 #include "Block.hpp"
 #include "CardSymbolRules.hpp"
+#include "GameStateRules.hpp"
 using namespace std;
 
 Block::Block() : sizeX(0), sizeY(0), stat(0), number_imgs(8), special_imgs(17), posX(0), posY(0) {
@@ -82,6 +83,16 @@ bool Block::operator==(const Block& other) const {
 	return true;
 }
 
+int32 Block::OccupiedCellCount() const {
+	int32 count = 0;
+	for (int y = 0; y < sizeY; ++y) {
+		for (int x = 0; x < sizeX; ++x) {
+			if (GameStateRules::IsOccupiedCardSymbol(contents[x][y].content)) ++count;
+		}
+	}
+	return count;
+}
+
 void Block::Rotate() {
 	vector<vector<Piece>> newContents(sizeY, vector<Piece>(sizeX));
 	for (int y = 0; y < sizeY; y++) {
@@ -107,7 +118,8 @@ bool Block::IsHovered(Point cursor_pos) const {
 	return false;
 }
 
-void Block::Draw(pair<int, int> pos, double size, double angle, double alpha) const {
+void Block::Draw(pair<int, int> pos, double size, double angle, double alpha,
+	const Grid<double>* cell_alphas) const {
 	for (int y = 0; y < sizeY; y++) {
 		for (int x = 0; x < sizeX; x++) {
 			const Piece& p = contents[x][y];
@@ -131,21 +143,34 @@ void Block::Draw(pair<int, int> pos, double size, double angle, double alpha) co
 			double draw_angle = atan2(p.y, p.x) + angle; // 回転角度を加える
 			double draw_x = (double)pos.first + cos(draw_angle) * distance;
 			double draw_y = (double)pos.second + sin(draw_angle) * distance;
+			double cell_alpha = alpha;
+			if (cell_alphas
+				&& (x < static_cast<int>(cell_alphas->width()))
+				&& (y < static_cast<int>(cell_alphas->height()))) {
+				cell_alpha *= (*cell_alphas)[y][x];
+			}
+			const double content_alpha = cell_alpha * (mode_alpha ? 0.3 : 1.0);
 
-			card_tile_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, alpha * (mode_alpha ? 0.3 : 1.0) });
-			img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, alpha * (mode_alpha ? 0.3 : 1.0) });
+			card_tile_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y,
+				ColorF{ 1.0, 1.0, 1.0, content_alpha });
+			img.scaled(size).rotated(angle).drawAt(draw_x, draw_y,
+				ColorF{ 1.0, 1.0, 1.0, content_alpha });
 			// 境界を描画
 			if ((x == 0) || (x > 0 && contents[x - 1][y].content == '$')) {
-				left_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, alpha });
+				left_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y,
+					ColorF{ 1.0, 1.0, 1.0, cell_alpha });
 			}
 			if ((x == sizeX - 1) || (x < sizeX - 1 && contents[x + 1][y].content == '$')) {
-				right_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, alpha });
+				right_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y,
+					ColorF{ 1.0, 1.0, 1.0, cell_alpha });
 			}
 			if ((y == 0) || (y > 0 && contents[x][y - 1].content == '$')) {
-				top_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, alpha });
+				top_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y,
+					ColorF{ 1.0, 1.0, 1.0, cell_alpha });
 			}
 			if ((y == sizeY - 1) || ((y < sizeY - 1) && contents[x][y + 1].content == '$')) {
-				bottom_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y, ColorF{ 1.0, 1.0, 1.0, alpha });
+				bottom_img.scaled(size).rotated(angle).drawAt(draw_x, draw_y,
+					ColorF{ 1.0, 1.0, 1.0, cell_alpha });
 			}
 		}
 	}

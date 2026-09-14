@@ -3,6 +3,7 @@
 using namespace std;
 
 Shop::Shop(const InitData& init) : IScene(init), leric_alpha(4, 0.0), void_leric(4, false), leric_index(4, 0) {
+	buy_se.setVolume(GameStateRules::ClampVolume(getData().audio_settings.se_volume));
 
     normal_1 = getData().normal_cards[Random<int>(0, (int)getData().normal_cards.size() - 1)];
     normal_2 = getData().normal_cards[Random<int>(0, (int)getData().normal_cards.size() - 1)];

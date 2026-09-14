@@ -497,6 +497,9 @@
     <ClInclude Include="..\src\BattleCardRules.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+	<ClInclude Include="..\src\BattleLayoutRules.hpp">
+	  <Filter>Header Files</Filter>
+	</ClInclude>
 	<ClInclude Include="..\src\DebugScenarioFactory.hpp">
 	  <Filter>Header Files</Filter>
 	</ClInclude>

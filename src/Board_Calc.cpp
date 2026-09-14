@@ -7,6 +7,7 @@
 #include <limits>
 
 void Board::RebuildBoardDerivedState() {
+	// ターン効果を反映した記号状態から，行倍率と攻防列を再構築する．
 	board_multiply_effect.fill(0);
 	board_off_def.fill(0);
 	const int32 board_width = Min(static_cast<int32>(board_usage.width()), static_cast<int32>(board_content.width()));
@@ -32,6 +33,7 @@ void Board::RebuildBoardDerivedState() {
 }
 
 void Board::CalcRow() {
+	// BoardCalculationRulesの評価結果を，Battleが使う行データへ反映する．
 	const int32 board_width = static_cast<int32>(board_usage.width());
 	const int32 board_height = static_cast<int32>(board_usage.height());
 	BoardCalculationRules::Board calculation_board{ board_width, board_height };
@@ -47,11 +49,17 @@ void Board::CalcRow() {
 	row_valid.assign(evaluation.row_valid.begin(), evaluation.row_valid.end());
 	board_multiply_effect.assign(evaluation.row_multiplier_effects.begin(), evaluation.row_multiplier_effects.end());
 	board_off_def.assign(evaluation.row_modes.begin(), evaluation.row_modes.end());
+	for (int32 y = 0; y < board_height; ++y) {
+		for (int32 x = 0; x < board_width; ++x) {
+			expression_cell_usage[y][x] = evaluation.ExpressionUsageAt(x, y);
+		}
+	}
 }
 
 
 
 std::pair<int, int> Board::Confirm() {
+	// 行評価，レリック補正，配置数補正を合算してBattleへ返す．
 	CalcRow();
 	int32 attack = 0, defense = 0;
 	const int32 row_count = Min({ static_cast<int32>(result_of_calc.size()),
@@ -62,7 +70,8 @@ std::pair<int, int> Board::Confirm() {
 			Logger << U"Invalid board expression treated as zero: row=" << i;
 		}
 		const auto contribution = BoardCalculationRules::CheckedRowContribution(
-			result_of_calc[i], board_multiply[i] + board_multiply_effect[i]);
+			result_of_calc[i], BoardCalculationRules::FinalRowMultiplier(
+				board_multiply[i], board_multiply_effect[i]));
 		if (!contribution) {
 			Logger << U"Ignored out-of-range board row contribution: row=" << i;
 			continue;
@@ -90,18 +99,20 @@ std::pair<int, int> Board::Confirm() {
 		Logger << U"Ignored overflowing armor bonus";
 	}
 	if (do_armor_raise) {
-		if (defense < 6)defense = 6;
+		if (defense < 6) defense = 6;//防御力の最低値を6として扱う．
 	}
 	return { attack, defense };
 }
 
 
 void Board::Discard() {
+	// ターン終了時に盤面の一時効果を次ターンへ進める．
 	board_number.fill(0);
 	board_content.fill('\0');
 	num_on_board.clear();
 	result_of_calc.fill(0);
 	row_valid.fill(true);
+	expression_cell_usage.fill(BoardCalculationRules::ExpressionCellUsage::NonExpression);
 	BoardCalculationRules::AdvanceDelayedEffects(
 		board_effect_front, board_effect_back, board_effect_committed);
 	RebuildBoardDerivedState();
@@ -110,6 +121,7 @@ void Board::Discard() {
 
 
 bool Board::UpdateBoardNum(int32 index, Point putAt) {
+	// カードの記号を盤面へ登録する．
 	if (!IsBoardBlockIndexValid(index)) return false;
 	Block* block = board_blocks[index].block;
 	Array<Point> cells;

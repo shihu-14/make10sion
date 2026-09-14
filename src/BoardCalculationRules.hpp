@@ -14,6 +14,19 @@
 
 namespace BoardCalculationRules {
 
+enum class ExpressionCellUsage {
+	NonExpression,
+	Used,
+	Ignored,
+};
+
+inline constexpr double IgnoredExpressionCellAlpha = 0.35;
+
+[[nodiscard]] inline constexpr double ResolveExpressionCellAlpha(
+	const ExpressionCellUsage usage) noexcept {
+	return (usage == ExpressionCellUsage::Ignored) ? IgnoredExpressionCellAlpha : 1.0;
+}
+
 struct Cell {
 	char symbol = '\0';
 	int32_t front_bonus = 0;
@@ -59,6 +72,20 @@ struct Evaluation {
 	std::vector<double> row_multiplier_effects;
 	std::vector<int32_t> row_modes;
 	std::vector<int32_t> numbers;
+	int32_t board_width = 0;
+	int32_t board_height = 0;
+	std::vector<ExpressionCellUsage> expression_cell_usage;
+
+	[[nodiscard]] ExpressionCellUsage ExpressionUsageAt(
+		const int32_t x, const int32_t y) const noexcept {
+		if ((x < 0) || (board_width <= x) || (y < 0) || (board_height <= y)) {
+			return ExpressionCellUsage::NonExpression;
+		}
+		const auto index = static_cast<std::size_t>(y * board_width + x);
+		return (index < expression_cell_usage.size())
+			? expression_cell_usage[index]
+			: ExpressionCellUsage::NonExpression;
+	}
 };
 
 template <class Storage>
@@ -79,6 +106,7 @@ struct Token {
 	bool is_number = false;
 	double number = 0.0;
 	CardSymbolRules::Operator operation = CardSymbolRules::Operator::None;
+	std::size_t source_cell = 0;
 };
 
 [[nodiscard]] inline std::optional<int32_t> CheckedInt(const double value) noexcept {
@@ -139,6 +167,11 @@ struct Token {
 	result.row_valid.assign(static_cast<std::size_t>(board.Height()), true);
 	result.row_multiplier_effects.assign(static_cast<std::size_t>(board.Height()), 0.0);
 	result.row_modes.assign(static_cast<std::size_t>(board.Height()), 0);
+	result.board_width = board.Width();
+	result.board_height = board.Height();
+	result.expression_cell_usage.assign(
+		static_cast<std::size_t>(board.Width() * board.Height()),
+		ExpressionCellUsage::NonExpression);
 	for (int32_t y = 0; y < std::min(attack_row_count, board.Height()); ++y) result.row_modes[y] = 1;
 
 	for (int32_t y = 0; y < board.Height(); ++y) {
@@ -168,20 +201,33 @@ struct Token {
 		for (int32_t x = 0; x < board.Width(); ++x) {
 			const Cell& cell = board.At(x, y);
 			if (!cell.occupied) continue;
+			const auto cell_index = static_cast<std::size_t>(y * board.Width() + x);
 			const auto definition = CardSymbolRules::Decode(cell.symbol);
 			if (definition.kind == CardSymbolRules::Kind::Number) {
-				if (before_was_number) continue;
+				if (before_was_number) {
+					result.expression_cell_usage[cell_index] = ExpressionCellUsage::Ignored;
+					continue;
+				}
 				tokens.push_back({ true,
-					static_cast<double>(definition.current_value) + cell.front_bonus });
+					static_cast<double>(definition.current_value) + cell.front_bonus,
+					CardSymbolRules::Operator::None, cell_index });
+				result.expression_cell_usage[cell_index] = ExpressionCellUsage::Used;
 				before_was_number = true;
 				before_was_operator = false;
 			} else if (definition.kind == CardSymbolRules::Kind::Operator) {
-				if (before_was_operator || !before_was_number) continue;
-				tokens.push_back({ false, 0.0, definition.operation });
+				if (before_was_operator || !before_was_number) {
+					result.expression_cell_usage[cell_index] = ExpressionCellUsage::Ignored;
+					continue;
+				}
+				tokens.push_back({ false, 0.0, definition.operation, cell_index });
+				result.expression_cell_usage[cell_index] = ExpressionCellUsage::Used;
 				before_was_number = false;
 				before_was_operator = true;
 			} else if (definition.kind == CardSymbolRules::Kind::Aggregate) {
-				if (before_was_number || result.numbers.empty()) continue;
+				if (before_was_number || result.numbers.empty()) {
+					result.expression_cell_usage[cell_index] = ExpressionCellUsage::Ignored;
+					continue;
+				}
 				double value = 0.0;
 				if (definition.aggregate == CardSymbolRules::Aggregate::Maximum) {
 					value = result.numbers.back();
@@ -191,16 +237,25 @@ struct Token {
 					for (const int32_t number : result.numbers) value += number;
 					value /= static_cast<double>(result.numbers.size());
 				}
-				tokens.push_back({ true, value });
+				tokens.push_back({ true, value, CardSymbolRules::Operator::None, cell_index });
+				result.expression_cell_usage[cell_index] = ExpressionCellUsage::Used;
 				before_was_number = true;
 			}
 		}
-		if (!tokens.empty() && !tokens.back().is_number) tokens.pop_back();
+		if (!tokens.empty() && !tokens.back().is_number) {
+			result.expression_cell_usage[tokens.back().source_cell] = ExpressionCellUsage::Ignored;
+			tokens.pop_back();
+		}
 		const auto value = Detail::EvaluateTokens(tokens);
 		if (value) result.row_values[y] = *value;
 		else result.row_valid[y] = false;
 	}
 	return result;
+}
+
+[[nodiscard]] inline double FinalRowMultiplier(
+	const double base, const double effect) noexcept {
+	return base + effect;
 }
 
 [[nodiscard]] inline std::optional<int32_t> CheckedRowContribution(

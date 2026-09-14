@@ -6,16 +6,19 @@
 #include <array>
 #include <Siv3D.hpp>
 #include "Block.hpp"
+#include "BoardCalculationRules.hpp"
 #include "BattleCardRules.hpp"
+#include "BattleLayoutRules.hpp"
 #include "GameStateRules.hpp"
 #include "leric.hpp"
 
+// バトルシーンから渡される盤面入力を表す．
 struct BoardInputFrame {
 	Point cursor = { 0,0 };
 	bool left_down = false;
 	bool left_pressed = false;
 	bool left_up = false;
-	bool right_down = false;
+	bool rotate_pressed = false;
 	bool focused = true;
 	uint64 frame_number = 0;
 	double delta_seconds = 0.0;
@@ -23,6 +26,7 @@ struct BoardInputFrame {
 
 class Board {
 private:
+	// 盤面上にあるカードの状態を保持する．
 	struct BoardBlockState {
 		Block* block = nullptr;
 		int32 deck_index = -1;
@@ -34,6 +38,7 @@ private:
 		BattleCardRules::VisualMotion visual_motion;
 	};
 
+	// ドラッグ中のカードと開始位置を保持する．
 	struct DragContext {
 		bool active = false;
 		int32 board_block_index = -1;
@@ -54,6 +59,7 @@ private:
 		RestoreToBoard,
 		Place,
 		Swap,
+		BoardSwap,
 	};
 
 	struct DropPlan {
@@ -62,7 +68,7 @@ private:
 		int32 target_deck_index = -1;
 	};
 
-	//variables
+	// 盤面の状態を-1=未使用，-2=解放可能，0=使用可能で管理する．
 	Grid<int32> board_usage = { {-1,-1,-1,-1,-1,-1,-1},
 							 {-1,-1,-2,-2,-2,-1,-1},
 							 {-1,-2, 0, 0, 0,-2,-1},
@@ -75,29 +81,30 @@ private:
 	Grid<int32> board_effect_committed;
 	Grid<char> board_content;
 	Grid<Point> board_coordinate;
+	Grid<BoardCalculationRules::ExpressionCellUsage> expression_cell_usage;
 	Array<int32> num_on_board;
-	const Array<double> board_multiply_base = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };
-	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };
-	Array<double> board_multiply_effect = { 0,0,0,0,0,0 };
-	Array<int32> board_off_def = { 1,1,1,0,0,0 };//攻1守0
+	const Array<double> board_multiply_base = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };//行ごとの基本倍率を保持する．
+	Array<double> board_multiply = { 2.0, 1.5, 1.0, 1.0, 1.5, 2.0 };//現在の行倍率を保持する．
+	Array<double> board_multiply_effect = { 0,0,0,0,0,0 };//レリックと記号による倍率補正を保持する．
+	Array<int32> board_off_def = { 1,1,1,0,0,0 };//1を攻撃列，0を防御列として扱う．
 	Array<int32> result_of_calc = { 0,0,0,0,0,0 };
 	Array<bool> row_valid = { true,true,true,true,true,true };
-	const Point offset = { 600,170 };//Boardの左上の絶対座標(バトル時)
+	const Point offset = { BattleLayoutRules::BoardOffset().x, BattleLayoutRules::BoardOffset().y };//盤面左上の絶対座標を保持する．
 	//const Point offset_u = {0,0};//Boardの左上の絶対座標(アンロック時)(使わないかも)
-	const double img_scale = 1.8;
-	const int32 cell_size = int(50 * img_scale);
+	const double img_scale = 1.8;//盤面画像の表示倍率を表す．
+	const int32 cell_size = int(50 * img_scale);//50ピクセルのマスを表示倍率に合わせる．
 	const Texture board_img{ U"../../image/banmen_kuuhaku.png" };
 	const Texture chosed_board_img{ U"../../image/special_n.png" };
 	const Texture chosable_board_img{ U"../../image/tile_kokodayo.png" };
 	const Texture board_frame_img{ U"../../image/tile_flame.png" };
 	const Font font{ FontMethod::MSDF, 48, Typeface::Bold };
-	Array<BoardBlockState> board_blocks;//board_usageの正数はdeck_index+1を表す. ターン毎に初期化
+	Array<BoardBlockState> board_blocks;//board_usageの正数はdeck_index+1を表す．ターンごとに初期化する．
 	DragContext drag_context;
-	int32 add_damage = 0;
-	int32 add_armor = 0;
-	bool do_armor_raise = false;
-	int32 add_damage_by_cards = 0;
-	int32 off_count = 3;
+	int32 add_damage = 0;//レリックによる攻撃補正を保持する．
+	int32 add_armor = 0;//レリックによる防御補正を保持する．
+	bool do_armor_raise = false;//防御力を最低値まで引き上げるか表す．
+	int32 add_damage_by_cards = 0;//配置カード数による攻撃補正を保持する．
+	int32 off_count = 3;//初期状態で先頭3行を攻撃列として扱う．
 	uint64 current_frame_number = 0;
 	Array<String> interaction_trace;
 	std::vector<GameStateRules::CardZoneChange> pending_zone_changes;
@@ -130,6 +137,8 @@ private:
 	bool UpdateBoardNum(int32 index, Point putAt);
 	void SetBoardBlockPosition(int32 index, Point anchor);
 	void SetBlockRotation(int32 index, int32 rotation);
+	bool RotateDraggedBlock();
+	bool SwapBoardBlocks(int32 selected_index, int32 target_index);
 	bool ReturnDraggedBlockToHand();
 	bool RestoreDraggedBlockToBoard();
 	bool RestoreDraggedBlockAfterFailedCommit();
@@ -142,6 +151,7 @@ private:
 	void TakeOutBlock(Point pos, Point cursor_pos);
 	void RebuildBoardDerivedState();
 	void CalcRow();
+	Grid<double> GetBoardCellAlphas(const BoardBlockState& state) const;
 	void DrawOnlyBoard() const;
 	void DrawBlock(Block block_on_board);
 	void DrawAddPlaceBoard() const;
@@ -152,15 +162,16 @@ private:
 
 public:
 
+	// 盤面を7列6行で初期化する．
 	Board() :board_number(Size{ 7,6 }, 0),
 		board_effect_back(Size{ 7,6 }, 0),
 		board_effect_front(Size{ 7,6 }, 0),
 		board_effect_committed(Size{ 7,6 }, 0),
 		board_content(Size{ 7,6 }, '\0'),
-		board_coordinate(Size{ 7,6 }, Point{ 0,0 })
+		board_coordinate(Size{ 7,6 }, Point{ 0,0 }),
+		expression_cell_usage(Size{ 7,6 }, BoardCalculationRules::ExpressionCellUsage::NonExpression)
 		{};
 
-	//functions
 	void BeginBattle(const GameStateRules::BoardProgress& progress);
 	void BeginTurn();
 	void EndTurn();
@@ -168,7 +179,7 @@ public:
 	Point GetBoardCellAt(Point screen_pos) const;
 	void Discard();
 	void Update(int32 idx, std::vector<int32> relics, const BoardInputFrame& input, bool allow_input = true);
-	void DrawBoard(int32 idx) const;
+	void DrawBoard(int32 idx, bool show_calculation_values = true) const;
 	void DrawInteractionOverlay() const;
 	std::pair<int32, int32> Confirm();
 	bool RegisterHandBlock(Block& block, int32 deck_index, int32 hand_slot, Point hand_pos);

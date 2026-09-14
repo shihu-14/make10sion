@@ -21,6 +21,10 @@
 			"label": "Siv3D: Run Midgame Debug",
 			"type": "shell",
 			"command": "${workspaceFolder}/macos/run-debug.sh",
+			"dependsOrder": "sequence",
+			"dependsOn": [
+				"Siv3D: Build macOS"
+			],
 			"args": [
 				"--debug-midgame"
 			],

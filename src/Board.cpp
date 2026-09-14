@@ -4,6 +4,7 @@
 using namespace std;
 
 void Board::BeginBattle(const GameStateRules::BoardProgress& progress) {
+	// BattleProgressを盤面占有状態へ展開し，前回の操作状態を破棄する．
 	InitBoardCoordinate();
 	for (int32 y = 0; y < GameStateRules::BoardProgress::Height; y++) {
 		for (int32 x = 0; x < GameStateRules::BoardProgress::Width; x++) {
@@ -15,6 +16,7 @@ void Board::BeginBattle(const GameStateRules::BoardProgress& progress) {
 	board_effect_front.fill(0);
 	board_effect_committed.fill(0);
 	board_content.fill('\0');
+	expression_cell_usage.fill(BoardCalculationRules::ExpressionCellUsage::NonExpression);
 	num_on_board.clear();
 	board_multiply = board_multiply_base;
 	board_multiply_effect.fill(0);
@@ -33,6 +35,7 @@ void Board::BeginBattle(const GameStateRules::BoardProgress& progress) {
 }
 
 void Board::BeginTurn() {//毎ターン開始時に呼び出してもらう
+	// 前ターンの盤面カードを次ターンの操作対象へ戻す．
 	InitBoardCoordinate();
 	for (auto& usage : board_usage) if (usage > 0) usage = 0;
 	Discard();
@@ -41,12 +44,9 @@ void Board::BeginTurn() {//毎ターン開始時に呼び出してもらう
 }
 
 void Board::EndTurn() {
+	// Battle側のターン切り替え前に，ドラッグと遅延効果の境界を確定する．
 	CancelActiveDrag();
 	BoardCalculationRules::CommitDelayedEffects(board_effect_back, board_effect_committed);
-	for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {
-		if (!IsBoardBlockIndexValid(i)) continue;
-		SetBlockRotation(i, 0);
-	}
 }
 
 void Board::BeginUnlockSelection(const GameStateRules::BoardProgress& progress) {
@@ -66,6 +66,7 @@ Point Board::GetBoardCellAt(Point screen_pos) const {
 
 //ここでBoardのメソッドの大半を呼び出す. この関数は、毎フレーム呼び出してもらう
 void Board::Update(int32 idx, vector<int32> relics, const BoardInputFrame& input, bool allow_input) {//idx : 0:バトル中, 1:リザルト(マス解放時)
+	// Battleから渡された入力を盤面状態へ反映し，派生計算を更新する．
 	current_frame_number = input.frame_number;
 	if (idx == 0) {
 			if (drag_context.active) {//Blockをドラッグしているとき
@@ -75,14 +76,10 @@ void Board::Update(int32 idx, vector<int32> relics, const BoardInputFrame& input
 				} else {
 					BoardBlockState& selected = board_blocks[drag_context.board_block_index];
 					const Point drag_pos = input.cursor + drag_context.cursor_offset;
+					if (BattleCardRules::ShouldRotateDraggedCard(
+						drag_context.active, input.rotate_pressed)) RotateDraggedBlock();
 					if (input.left_pressed || input.left_up) {
 						selected.block->SetPos(drag_pos.x, drag_pos.y);
-
-						if (input.left_pressed && input.right_down) {//blockの回転
-							selected.block->Rotate();
-							selected.rotation = (selected.rotation + 1) % 4;
-							drag_context.rotation_steps = (drag_context.rotation_steps + 1) % 4;
-						}
 					}
 					if (input.left_up) {
 						PutBlock(input.cursor, drag_pos);
@@ -104,7 +101,7 @@ void Board::Update(int32 idx, vector<int32> relics, const BoardInputFrame& input
 	}
 }
 
-void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(マス解放時)
+void Board::DrawBoard(int32 idx, const bool show_calculation_values) const {//idx : 0:バトル中, 1:リザルト(マス解放時)
 	if (idx == 0) {
 
 		DrawOnlyBoard();//Boardの描画
@@ -113,19 +110,25 @@ void Board::DrawBoard(int32 idx) const {//idx : 0:バトル中, 1:リザルト(�
 			const BoardBlockState& state = board_blocks[i];
 			if (state.block && (BattleCardRules::GetCardDrawLayer(state.lifecycle)
 				== BattleCardRules::CardDrawLayer::StaticBoard)) {
-				state.block->Draw(state.block->GetPos(), img_scale, 0.0, 1.0);
+				const Grid<double> cell_alphas = GetBoardCellAlphas(state);
+				state.block->Draw(state.block->GetPos(), img_scale, 0.0, 1.0, &cell_alphas);
 			}
 		}
-		Array<int32> dy = { 10,10, 10, -10,-10,-10 };
-		for (int i = 0; i < 6; i++) {
-			Point num = board_coordinate[i][6];
-			num.x += cell_size;
-			num.y -= dy[i];
-			if (board_off_def[i] == 1) {
-				font(result_of_calc[i]).drawAt(TextStyle::Outline(0.2, ColorF{ 0.0 }), 85, num, ColorF{ 1.0, 0.5, 0.5 });
-			}
-			if (board_off_def[i] == 0) {
-				font(result_of_calc[i]).drawAt(TextStyle::Outline(0.2, ColorF{ 0.0 }), 85, num, ColorF{ 0.5, 1.0, 1.0 });
+		if (show_calculation_values) {
+			Array<int32> dy = { 10,10, 10, -10,-10,-10 };//行結果の表示位置を上下にずらす．
+			for (int i = 0; i < 6; i++) {
+				Point num = board_coordinate[i][6];
+				num.y -= dy[i];
+				const ColorF row_color = (board_off_def[i] == 1)
+					? ColorF{ 1.0, 0.5, 0.5 }
+					: ColorF{ 0.5, 1.0, 1.0 };
+				font(result_of_calc[i]).draw(TextStyle::Outline(0.2, ColorF{ 0.0 }), 85,
+					Arg::rightCenter = Vec2{ BattleLayoutRules::ResultColumnRight, num.y }, row_color);
+				const double multiplier = BoardCalculationRules::FinalRowMultiplier(
+					board_multiply[i], board_multiply_effect[i]);
+				font(U"×{:.1f}"_fmt(multiplier)).draw(
+					TextStyle::Outline(0.2, ColorF{ 0.0 }), 42,
+					Arg::leftCenter = Vec2{ BattleLayoutRules::MultiplierColumnLeft, num.y }, row_color);
 			}
 		}
 	} else if (idx == 1) {
@@ -139,7 +142,12 @@ void Board::DrawInteractionOverlay() const {
 			!= BattleCardRules::CardDrawLayer::ReturningOverlay)) continue;
 		const double scale = (state.lifecycle == BattleCardRules::CardLifecycle::ReturningToHand)
 			? 1.0 : img_scale;
-		state.block->Draw(state.block->GetPos(), scale, 0.0, 1.0);
+		if (state.lifecycle == BattleCardRules::CardLifecycle::ReturningToBoard) {
+			const Grid<double> cell_alphas = GetBoardCellAlphas(state);
+			state.block->Draw(state.block->GetPos(), scale, 0.0, 1.0, &cell_alphas);
+		} else {
+			state.block->Draw(state.block->GetPos(), scale, 0.0, 1.0);
+		}
 	}
 
 	if (drag_context.active) {
@@ -153,10 +161,31 @@ void Board::DrawInteractionOverlay() const {
 	}
 }
 
+Grid<double> Board::GetBoardCellAlphas(const BoardBlockState& state) const {
+	if (!state.block) return {};
+	const auto [width, height] = state.block->Size();
+	Grid<double> alphas{ Size{ width, height }, 1.0 };
+	if ((state.board_anchor.x < 0) || (state.board_anchor.y < 0)) return alphas;
+	for (int32 y = 0; y < height; ++y) {
+		for (int32 x = 0; x < width; ++x) {
+			const Point board_cell = state.board_anchor + Point{ x,y };
+			if ((board_cell.x < 0)
+				|| (static_cast<int32>(expression_cell_usage.width()) <= board_cell.x)
+				|| (board_cell.y < 0)
+				|| (static_cast<int32>(expression_cell_usage.height()) <= board_cell.y)) continue;
+			alphas[y][x] = BoardCalculationRules::ResolveExpressionCellAlpha(
+				expression_cell_usage[board_cell.y][board_cell.x]);
+		}
+	}
+	return alphas;
+}
+
 void Board::UpdateVisualMotions(double delta_seconds) {
 	for (auto& state : board_blocks) {
 		if (!state.visual_motion.active || !state.block) continue;
-		const bool completed = BattleCardRules::AdvanceVisualMotion(state.visual_motion, delta_seconds);
+		const bool completed = BattleCardRules::AdvanceVisualMotion(
+			state.visual_motion, delta_seconds,
+			BattleCardRules::ResolveReturnMotionEasing(state.lifecycle));
 		state.block->SetPos(state.visual_motion.current.x, state.visual_motion.current.y);
 		if (!completed) continue;
 		BattleCardRules::SettleReturnLifecycle(state.lifecycle);
@@ -180,6 +209,7 @@ bool Board::IsDragging() const {
 }
 
 std::vector<GameStateRules::CardZoneChange> Board::ConsumeZoneChanges() {
+	// 盤面側で発生したカード領域変更をバトル側へ渡す．
 	auto changes = std::move(pending_zone_changes);
 	pending_zone_changes.clear();
 	return changes;
@@ -200,10 +230,13 @@ bool Board::ShouldDrawAsHand(int32 deck_index) const {
 }
 
 bool Board::DetachCard(const int32 deck_index) {
+	// Battleのカード領域遷移に先行して，Board側の占有を解除する．
 	const int32 index = FindBoardBlockIndex(deck_index);
 	if (!IsBoardBlockIndexValid(index)) return true;
 	const bool occupancy_changed = HasBoardOccupancy(index);
 	if (!ClearBoardBlock(index)) return false;
+	if (!BattleCardRules::CanResetCardRotation(HasBoardOccupancy(index))) return false;
+	SetBlockRotation(index, 0);
 	if (drag_context.active && (drag_context.deck_index == deck_index)) ClearDrag();
 	pending_zone_changes.erase(std::remove_if(pending_zone_changes.begin(), pending_zone_changes.end(),
 		[deck_index](const GameStateRules::CardZoneChange& change) {
@@ -217,6 +250,7 @@ bool Board::DetachCard(const int32 deck_index) {
 }
 
 void Board::CancelActiveDrag() {
+	// 操作不能になったドラッグを安全に復元する．
 	if (drag_context.active) RollbackDraggedBlock();
 	CompleteVisualMotions();
 }

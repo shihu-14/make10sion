@@ -77,12 +77,13 @@ code .
 
 VS Codeでリポジトリのルートフォルダを開き、`Command + Shift + B`を押します。既定タスク`Siv3D: Build macOS`はclean buildだけを実行し、アプリを自動では起動しません。
 
-ビルド成功後、`macos/App/make10sion-build-provenance.txt`へworktree、コミットSHA、実行ファイルのSHA-256とUUIDを記録します。`Siv3D: Run macOS`はこの記録が現在のworktreeと一致する場合だけアプリを起動します。
+ビルド成功後、`macos/App/make10sion-build-provenance.txt`へworktree、コミットSHA、未コミットのビルド入力を含むfingerprint、実行ファイルのSHA-256とUUIDを記録します。`Siv3D: Run macOS`はこの記録が現在のworktreeと一致する場合だけアプリを起動します。
 
 個別に実行する場合は、VS Codeの「Terminal」→「Run Task...」から次のタスクを選択します。
 
 - `Siv3D: Build macOS`
 - `Siv3D: Run macOS`
+- `Siv3D: Run Midgame Debug`（ビルド成功後に中盤デバッグを起動）
 - `Siv3D: Build and Run macOS`
 - `Siv3D: Test Battle Card Interactions`
 

@@ -3,8 +3,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <numeric>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -86,7 +88,64 @@ private:
 };
 
 [[nodiscard]] inline int32_t CalculateHandLimit(const BoardProgress& progress) noexcept {
-	return std::min<int32_t>(15, progress.UnlockedCount() / 2 + 2);
+	return std::min<int32_t>(18, progress.UnlockedCount() / 2 + 2);
+}
+
+[[nodiscard]] inline int32_t ResolveBattleHandLimit(const BoardProgress& progress,
+	const int32_t explicit_override) noexcept {
+	return (0 < explicit_override) ? explicit_override : CalculateHandLimit(progress);
+}
+
+[[nodiscard]] inline std::vector<int32_t> CreateInitialDrawOrder(
+	const int32_t card_count, const bool preserve_deck_order) {
+	std::vector<int32_t> result(static_cast<std::size_t>(std::max(card_count, 0)));
+	std::iota(result.begin(), result.end(), 0);
+	if (preserve_deck_order) std::reverse(result.begin(), result.end());
+	return result;
+}
+
+[[nodiscard]] inline bool ShouldShuffleInitialDrawOrder(
+	const bool preserve_deck_order) noexcept {
+	return !preserve_deck_order;
+}
+
+[[nodiscard]] inline int32_t RequiredBoardFillCells(const int32_t unlocked_cells) noexcept {
+	return (std::max(unlocked_cells, 0) + 1) / 2;
+}
+
+[[nodiscard]] inline bool IsOccupiedCardSymbol(const char symbol) noexcept {
+	return (symbol != '$') && (symbol != '\n') && (symbol != '\r');
+}
+
+[[nodiscard]] inline int32_t CountOccupiedCells(const std::string_view card_definition) noexcept {
+	return static_cast<int32_t>(std::count_if(card_definition.begin(), card_definition.end(),
+		IsOccupiedCardSymbol));
+}
+
+[[nodiscard]] inline bool ShouldRefreshDrawPile(const int32_t remaining_occupied_cells,
+	const int32_t full_deck_occupied_cells, const int32_t unlocked_cells) noexcept {
+	const int32_t required_cells = RequiredBoardFillCells(unlocked_cells);
+	return (remaining_occupied_cells < required_cells)
+		&& (required_cells <= full_deck_occupied_cells);
+}
+
+struct AudioSettings {
+	double bgm_volume = 1.0;
+	double se_volume = 1.0;
+};
+
+[[nodiscard]] inline double ClampVolume(const double volume) noexcept {
+	return std::clamp(volume, 0.0, 1.0);
+}
+
+[[nodiscard]] inline int32_t VolumePercent(const double volume) noexcept {
+	return static_cast<int32_t>(std::lround(ClampVolume(volume) * 100.0));
+}
+
+[[nodiscard]] inline double SliderVolumeAt(const double pointer_x, const double track_x,
+	const double track_width) noexcept {
+	if (track_width <= 0.0) return 0.0;
+	return ClampVolume((pointer_x - track_x) / track_width);
 }
 
 [[nodiscard]] inline uint64_t ElapsedMillis(const uint64_t now, const uint64_t start) noexcept {
@@ -209,6 +268,16 @@ public:
 			m_zones[static_cast<std::size_t>(card_id)] = CardZone::DrawPile;
 		}
 		m_draw_pile = m_discard;
+		m_discard.clear();
+		return true;
+	}
+
+	bool RefreshDrawPile(std::vector<int32_t> draw_order) {
+		if (!m_hand.empty() || !m_board.empty() || !Validate() || !IsCompleteOrder(draw_order)) {
+			return false;
+		}
+		m_zones.assign(m_zones.size(), CardZone::DrawPile);
+		m_draw_pile = std::move(draw_order);
 		m_discard.clear();
 		return true;
 	}

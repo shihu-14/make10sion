@@ -2,7 +2,7 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"label": "Siv3D: Build macOS",
+			"label": "Build on macOS",
 			"type": "shell",
 			"command": "${workspaceFolder}/macos/build-debug.sh",
 			"group": {
@@ -12,18 +12,18 @@
 			"problemMatcher": "$gcc"
 		},
 		{
-			"label": "Siv3D: Run macOS",
+			"label": "Run on macOS",
 			"type": "shell",
 			"command": "${workspaceFolder}/macos/run-debug.sh",
 			"problemMatcher": []
 		},
 		{
-			"label": "Siv3D: Run Midgame Debug",
+			"label": "Run Demo Mode on macOS",
 			"type": "shell",
 			"command": "${workspaceFolder}/macos/run-debug.sh",
 			"dependsOrder": "sequence",
 			"dependsOn": [
-				"Siv3D: Build macOS"
+				"Build on macOS"
 			],
 			"args": [
 				"--debug-midgame"
@@ -31,17 +31,11 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "Siv3D: Test Battle Card Interactions",
-			"type": "shell",
-			"command": "${workspaceFolder}/tests/run-battle-card-tests.sh",
-			"problemMatcher": "$gcc"
-		},
-		{
-			"label": "Siv3D: Build and Run macOS",
+			"label": "Build and Run on macOS",
 			"dependsOrder": "sequence",
 			"dependsOn": [
-				"Siv3D: Build macOS",
-				"Siv3D: Run macOS"
+				"Build on macOS",
+				"Run on macOS"
 			],
 			"problemMatcher": []
 		}

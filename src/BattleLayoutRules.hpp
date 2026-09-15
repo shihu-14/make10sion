@@ -116,14 +116,16 @@ inline constexpr double AttackArcTravelDuration = 0.5; // 攻撃アイコンが�
 inline constexpr double AttackArcHeight = 200.0; // 攻撃軌道の上方向への膨らみを定義する．
 inline constexpr double AttackArcArrivalScale = 1.4; // 攻撃アイコンと数値の到着時倍率を定義する．
 inline constexpr double BodyAttackTravelDuration = 0.5; // 防御突破後に本体へ移動する時間を定義する．
-inline constexpr double DamageEffectInterval = 0.3; // 本体への連続攻撃エフェクト間隔を定義する．
+inline constexpr double DamageEffectInterval = 0.15; // 本体への連続攻撃エフェクト間隔を定義する．
+inline constexpr double RewardFadeInDuration = 0.5; // 報酬画面のフェードイン時間を定義する．
+inline constexpr int32_t RewardBlurFilterSize = 13; // 5，9，13のいずれかで背面ブラーの強さを定義する．
+inline constexpr int32_t RewardBlurPassCount = 2; // 背面ブラーの適用回数を定義する．
 inline constexpr double PlayerDisplayScale = 0.6; // プレイヤー画像の表示倍率を定義する．
 inline constexpr int32_t EnemyHitOffsetX = -250; // 敵被弾位置のX補正値を定義する．
 inline constexpr int32_t EnemyHitOffsetY = -100; // 敵被弾位置のY補正値を定義する．
-inline constexpr int32_t EnemyDamageEffectMinOffsetX = -430; // 敵ダメージ演出の左端補正値を定義する．
-inline constexpr int32_t EnemyDamageEffectMinOffsetY = -300; // 敵ダメージ演出の上端補正値を定義する．
-inline constexpr int32_t EnemyDamageEffectWidth = 390; // 敵ダメージ演出の幅を定義する．
-inline constexpr int32_t EnemyDamageEffectHeight = 250; // 敵ダメージ演出の高さを定義する．
+inline constexpr ScreenPoint EnemyDamageEffectRandomOffset{ 150, 150 }; // 敵中心からのダメージ演出ランダム幅を定義する．
+inline constexpr ScreenPoint PlayerDamageEffectCenter{ 125, 180 }; // プレイヤーダメージ演出の中心座標を定義する．
+inline constexpr ScreenPoint PlayerDamageEffectRandomOffset{ 75, 75 }; // プレイヤーダメージ演出のランダム幅を定義する．
 
 struct PlayerCombatValueVisibility {
 	bool attack = false;
@@ -227,9 +229,14 @@ inline constexpr ScreenPoint PlayerAttackArcTargetPosition{ 250, 250 }; // プ�
 	return { EnemyPosition().x + EnemyHitOffsetX, EnemyPosition().y + EnemyHitOffsetY };
 }
 [[nodiscard]] inline constexpr ScreenRect EnemyDamageEffectBounds() noexcept {
-	return { EnemyPosition().x + EnemyDamageEffectMinOffsetX,
-		EnemyPosition().y + EnemyDamageEffectMinOffsetY,
-		EnemyDamageEffectWidth, EnemyDamageEffectHeight };
+	return { EnemyPosition().x - EnemyDamageEffectRandomOffset.x,
+		EnemyPosition().y - EnemyDamageEffectRandomOffset.y,
+		EnemyDamageEffectRandomOffset.x * 2, EnemyDamageEffectRandomOffset.y * 2 };
+}
+[[nodiscard]] inline constexpr ScreenRect PlayerDamageEffectBounds() noexcept {
+	return { PlayerDamageEffectCenter.x - PlayerDamageEffectRandomOffset.x,
+		PlayerDamageEffectCenter.y - PlayerDamageEffectRandomOffset.y,
+		PlayerDamageEffectRandomOffset.x * 2, PlayerDamageEffectRandomOffset.y * 2 };
 }
 [[nodiscard]] inline constexpr ScreenPoint EnemyAttackStart() noexcept {
 	return EnemyCombatAttackIconPosition;

@@ -97,10 +97,10 @@ void Block::Rotate() {
 	vector<vector<Piece>> newContents(sizeY, vector<Piece>(sizeX));
 	for (int y = 0; y < sizeY; y++) {
 		for (int x = 0; x < sizeX; x++) {
-			newContents[y][sizeX - 1 - x].content = contents[x][y].content; // 90度回転
-			newContents[y][sizeX - 1 - x].x = contents[x][y].y; // x座標とy座標を入れ替え
-			newContents[y][sizeX - 1 - x].y = -contents[x][y].x; // y座標を反転
-			newContents[y][sizeX - 1 - x].stat = contents[x][y].stat; // 状態はそのままコピー
+			newContents[sizeY - 1 - y][x].content = contents[x][y].content; // 90度時計回りに回転
+			newContents[sizeY - 1 - y][x].x = -contents[x][y].y;
+			newContents[sizeY - 1 - y][x].y = contents[x][y].x;
+			newContents[sizeY - 1 - y][x].stat = contents[x][y].stat; // 状態はそのままコピー
 		}
 	}
 	contents = move(newContents);

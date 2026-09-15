@@ -102,12 +102,26 @@ void TestBoardDrops() {
 		== DropResult::Place, "vertical card moves by one cell");
 
 	auto same = Request(DragOrigin::Board, { 2, 2 }, { { 0, 0 }, { 1, 0 } });
+	same.near_start = true;
 	Expect(ResolveDrop(same, board).result == DropResult::RestoreToBoard,
-		"board card restores at its original anchor");
+		"unrotated board card restores near its drag start");
+	same.near_start = false;
+	Expect(ResolveDrop(same, board).result == DropResult::Place,
+		"rotated board card commits its new orientation at the original anchor");
 	same.candidate_anchor = { 3, 2 };
 	same.near_start = true;
 	Expect(ResolveDrop(same, board).result == DropResult::RestoreToBoard,
 		"board card restores inside the cancellation distance");
+
+	auto corner_board = MakeBoard();
+	At(corner_board, { 2, 2 }).occupant = 4;
+	At(corner_board, { 3, 2 }).occupant = 4;
+	At(corner_board, { 2, 3 }).occupant = 4;
+	auto rotated_corner = Request(DragOrigin::Board, { 2, 2 },
+		{ { 0, 0 }, { 1, 0 }, { 1, 1 } });
+	rotated_corner.near_start = false;
+	Expect(ResolveDrop(rotated_corner, corner_board).result == DropResult::Place,
+		"rotated corner card commits its changed footprint at the original anchor");
 
 	At(board, { 4, 2 }).occupant = 8;
 	Expect(ResolveDrop(Request(DragOrigin::Board, { 3, 2 }, { { 0, 0 }, { 1, 0 } }), board).result
@@ -189,7 +203,10 @@ void TestBoardCardSwapRules() {
 		"a board swap fails when either destination uses a locked cell");
 
 	Expect(ShouldUseAutoRotatedPlacement(DropResult::ReturnToHand, DropResult::Place),
-		"an invalid placement may use one legal automatic quarter-turn");
+		"an unrotated invalid placement may use one legal automatic quarter-turn");
+	Expect(!ShouldUseAutoRotatedPlacement(
+		DropResult::ReturnToHand, DropResult::Place, true),
+		"a drop never overrides the rotation selected during the drag");
 	Expect(!ShouldUseAutoRotatedPlacement(DropResult::BoardSwap, DropResult::Place),
 		"a board swap candidate is never silently replaced by automatic rotation");
 }
@@ -212,28 +229,32 @@ void TestDamageHitRules() {
 	Expect(!zero_attack.has_contact && (zero_attack.attack_after == 0)
 		&& (zero_attack.defense_after == 10),
 		"zero attack skips defense contact without reducing defense");
-	Expect(HitCountForDamage(15, 100) == 1, "fifteen percent damage uses one hit");
-	Expect(HitCountForDamage(16, 100) == 2, "damage above fifteen percent uses two hits");
-	Expect(HitCountForDamage(30, 100) == 2, "thirty percent damage uses two hits");
-	Expect(HitCountForDamage(31, 100) == 3, "damage above thirty percent uses three hits");
-	Expect(HitCountForDamage(45, 100) == 3, "forty-five percent damage uses three hits");
-	Expect(HitCountForDamage(46, 100) == 4, "damage above forty-five percent uses four hits");
-	Expect(HitCountForDamage(60, 100) == 4, "sixty percent damage uses four hits");
-	Expect(HitCountForDamage(61, 100) == 5, "damage above sixty percent uses five hits");
-	Expect(HitCountForDamage(75, 100) == 5, "seventy-five percent damage uses five hits");
-	Expect(HitCountForDamage(76, 100) == 6, "damage above seventy-five percent uses six hits");
-	const auto maximum_hits = SplitDamage(80, 100);
-	Expect(maximum_hits.size() == 6, "large damage uses the configured maximum hit count");
-	Expect(std::abs(ResolveDefenseExchangeDuration(5, 100, 100) - (1.0 / 6.0)) < 0.000001
-		&& std::abs(ResolveDefenseExchangeDuration(20, 100, 100) - (2.0 / 6.0)) < 0.000001
-		&& std::abs(ResolveDefenseExchangeDuration(100, 100, 100) - 1.0) < 0.000001,
-		"defense exchange duration grows in six damage-based steps up to one second");
-	Expect((ResolveDefenseExchangeDuration(0, 100, 100) == 0.0)
-		&& std::abs(ResolveDefenseExchangeDuration(100, 10, 100) - (1.0 / 6.0)) < 0.000001,
-		"defense exchange duration uses only the defense actually removed");
+	Expect(HitCountForDamage(6, 100) == 1,
+		"damage up to one eighth of half maximum HP uses one hit");
+	Expect(HitCountForDamage(7, 100) == 2,
+		"damage above one eighth of half maximum HP uses two hits");
+	Expect(HitCountForDamage(25, 100) == 4,
+		"damage equal to one quarter maximum HP uses half the configured hits");
+	Expect(HitCountForDamage(44, 100) == MaximumDamageHitCount,
+		"damage in the final half-HP step uses the configured maximum hit count");
+	Expect(HitCountForDamage(50, 100) == MaximumDamageHitCount
+		&& HitCountForDamage(100, 100) == MaximumDamageHitCount,
+		"damage at or above half maximum HP stays at the configured maximum hit count");
+	Expect(HitCountForDamage(9, 20) == MaximumDamageHitCount,
+		"an early enemy can reach the configured maximum hit count");
+	const auto maximum_hits = SplitDamage(50, 100);
+	Expect(maximum_hits.size() == static_cast<std::size_t>(MaximumDamageHitCount),
+		"large damage uses the configured maximum hit count");
+	Expect(std::abs(ResolveDefenseExchangeDuration(25, 100) - 0.25) < 0.000001
+		&& std::abs(ResolveDefenseExchangeDuration(50, 100) - 0.5) < 0.000001
+		&& std::abs(ResolveDefenseExchangeDuration(100, 100) - 1.0) < 0.000001,
+		"defense exchange duration follows the proportion of starting defense removed");
+	Expect((ResolveDefenseExchangeDuration(0, 100) == 0.0)
+		&& std::abs(ResolveDefenseExchangeDuration(100, 10) - 1.0) < 0.000001,
+		"removing all starting defense always uses the maximum exchange duration");
 
 	const auto hits = SplitDamage(17, 100);
-	Expect((hits.size() == 2) && (hits[0] == 9) && (hits[1] == 8),
+	Expect((hits.size() == 3) && (hits[0] == 6) && (hits[1] == 6) && (hits[2] == 5),
 		"actual damage is split as evenly as possible");
 	int32_t total = 0;
 	for (const auto hit : hits) total += hit;
@@ -558,14 +579,14 @@ void TestRepeatedFailedBoardSwapReturn() {
 void TestBoardProgress() {
 	using namespace GameStateRules;
 	BoardProgress progress;
-	Expect(progress.UnlockedCount() == 6, "board progress starts with six cells");
-	Expect(CalculateHandLimit(progress) == 5, "six cells allow five hand cards");
-	Expect(progress.IsUnlockable({ 2, 1 }), "cell above the initial board is unlockable");
+	Expect(progress.UnlockedCount() == 9, "board progress starts with nine cells");
+	Expect(CalculateHandLimit(progress) == 7, "nine cells allow seven hand cards");
+	Expect(progress.IsUnlockable({ 2, 0 }), "cell above the initial board is unlockable");
 	Expect(!progress.IsUnlockable({ 0, 0 }), "detached cell is not unlockable");
-	Expect(progress.Unlock({ 2, 1 }), "first event cell unlock succeeds");
-	Expect(!progress.Unlock({ 2, 1 }), "same event cell cannot unlock twice");
-	Expect(progress.Unlock({ 3, 1 }), "second event cell unlock succeeds");
-	Expect((progress.UnlockedCount() == 8) && (CalculateHandLimit(progress) == 6),
+	Expect(progress.Unlock({ 2, 0 }), "first event cell unlock succeeds");
+	Expect(!progress.Unlock({ 2, 0 }), "same event cell cannot unlock twice");
+	Expect(progress.Unlock({ 3, 0 }), "second event cell unlock succeeds");
+	Expect((progress.UnlockedCount() == 11) && (CalculateHandLimit(progress) == 8),
 		"two event cells increase the next hand limit");
 	Expect(ActIndex(0) == 0, "first act index starts at zero");
 	Expect(ActIndex(10) == 1, "second act index starts at layer ten");
@@ -589,16 +610,16 @@ void TestBoardProgress() {
 	}
 	Expect(fully_unlocked.UnlockedCount() == BoardProgress::CellCount,
 		"board progress can unlock every cell without stale counts");
-	Expect(CalculateHandLimit(fully_unlocked) == 18, "hand limit is capped at eighteen");
-	Expect(ResolveBattleHandLimit(fully_unlocked, 0) == 18,
-		"normal battles use the eighteen-card maximum");
-	Expect(ResolveBattleHandLimit(fully_unlocked, 18) == 18,
-		"an explicit debug override can expose eighteen hand cards");
+	Expect(CalculateHandLimit(fully_unlocked) == 15, "hand limit is capped at fifteen");
+	Expect(ResolveBattleHandLimit(fully_unlocked, 0) == 15,
+		"normal battles use the fifteen-card maximum");
+	Expect(ResolveBattleHandLimit(fully_unlocked, 18) == 15,
+		"an explicit override cannot exceed the fifteen-card maximum");
 	BoardProgress debug_progress;
 	debug_progress.UnlockAll();
 	Expect((debug_progress.UnlockedCount() == BoardProgress::CellCount)
-		&& (CalculateHandLimit(debug_progress) == 18),
-		"debug board progress unlocks all forty-two cells directly");
+		&& (CalculateHandLimit(debug_progress) == 15),
+		"debug board progress unlocks all forty-two cells while keeping the shared hand maximum");
 	Expect(ElapsedMillis(150, 100) == 50, "elapsed milliseconds preserve unsigned precision");
 	Expect(ElapsedMillis(50, 100) == 0, "clock rollback cannot underflow elapsed milliseconds");
 }
@@ -1215,11 +1236,15 @@ void TestBattleLayoutRules() {
 		&& (ResolveBodyAttackAlpha(1.0) == 0.0),
 		"body attack fades completely over half a second");
 	Expect((DamageEffectTriggerTime(0) == 0.0)
-		&& (std::abs(DamageEffectTriggerTime(5) - 1.5) < 0.000001),
-		"six damage effects use three hundred millisecond intervals");
-	Expect(!ShouldTriggerDamageEffect(0.299, 1)
-		&& ShouldTriggerDamageEffect(0.3, 1),
-		"damage effects trigger exactly at each configured interval");
+		&& (std::abs(DamageEffectTriggerTime(BattleDamageRules::MaximumDamageHitCount - 1)
+			- DamageEffectInterval * (BattleDamageRules::MaximumDamageHitCount - 1)) < 0.000001),
+		"damage effect timing follows the configured count and interval");
+	Expect(!ShouldTriggerDamageEffect(DamageEffectInterval - 0.001, 1)
+		&& ShouldTriggerDamageEffect(DamageEffectInterval, 1),
+		"damage effects trigger exactly at the configured interval");
+	Expect((EnemyAttackArcTarget() == BattleLayoutRules::ScreenPoint{ 1400, 250 })
+		&& (PlayerAttackArcTarget() == BattleLayoutRules::ScreenPoint{ 250, 250 }),
+		"attack arcs retain their original targets before defense contact");
 	const auto player_arc_start = ResolveAttackArcMotion(
 		PlayerAttackStart(), EnemyAttackArcTarget(), 0.0);
 	const auto player_arc_midpoint = ResolveAttackArcMotion(
@@ -1233,7 +1258,7 @@ void TestBattleLayoutRules() {
 		&& (player_arc_end.x == EnemyAttackArcTarget().x)
 		&& (player_arc_end.y == EnemyAttackArcTarget().y)
 		&& (player_arc_midpoint.y < player_linear_midpoint_y),
-		"player attack follows an upward arc to the enemy upper-left");
+		"player attack follows an upward arc to the enemy defense icon");
 	Expect((player_arc_start.scale == 1.0)
 		&& (player_arc_midpoint.scale > player_arc_start.scale)
 		&& (player_arc_midpoint.scale < player_arc_end.scale)
@@ -1243,10 +1268,8 @@ void TestBattleLayoutRules() {
 		EnemyAttackStart(), PlayerAttackArcTarget(), AttackArcTravelDuration / 2.0);
 	const double enemy_linear_midpoint_y =
 		(EnemyAttackStart().y + PlayerAttackArcTarget().y) / 2.0;
-	Expect((PlayerAttackArcTarget().x > PlayerPosition().x)
-		&& (PlayerAttackArcTarget().y < PlayerPosition().y)
-		&& (enemy_arc_midpoint.y < enemy_linear_midpoint_y),
-		"enemy attack mirrors the upward arc toward the player upper-right");
+	Expect(enemy_arc_midpoint.y < enemy_linear_midpoint_y,
+		"enemy attack follows an upward arc toward the player defense icon");
 	Expect((ResolveCombatValueChange(100, 0, 0.5, 1.0) == 50)
 		&& (ResolveCombatValueChange(10, 0, 0.5, 1.0) == 5)
 		&& (ResolveCombatValueChange(100, 0, 1.0, 1.0) == 0)
@@ -1276,9 +1299,21 @@ void TestBattleLayoutRules() {
 		&& (EnemyHitTarget().y - EnemyPosition().y == EnemyHitOffsetY),
 		"enemy attack impact follows the shared enemy position");
 	const auto enemy_effect_bounds = EnemyDamageEffectBounds();
-	Expect((enemy_effect_bounds.x - EnemyPosition().x == EnemyDamageEffectMinOffsetX)
-		&& (enemy_effect_bounds.y - EnemyPosition().y == EnemyDamageEffectMinOffsetY),
-		"enemy damage effects follow the shared enemy position");
+	Expect((enemy_effect_bounds.x
+			== EnemyPosition().x - EnemyDamageEffectRandomOffset.x)
+		&& (enemy_effect_bounds.y
+			== EnemyPosition().y - EnemyDamageEffectRandomOffset.y)
+		&& (enemy_effect_bounds.width == EnemyDamageEffectRandomOffset.x * 2)
+		&& (enemy_effect_bounds.height == EnemyDamageEffectRandomOffset.y * 2),
+		"enemy damage effects use one random offset around the enemy center");
+	const auto player_effect_bounds = PlayerDamageEffectBounds();
+	Expect((player_effect_bounds.x
+			== PlayerDamageEffectCenter.x - PlayerDamageEffectRandomOffset.x)
+		&& (player_effect_bounds.y
+			== PlayerDamageEffectCenter.y - PlayerDamageEffectRandomOffset.y)
+		&& (player_effect_bounds.width == PlayerDamageEffectRandomOffset.x * 2)
+		&& (player_effect_bounds.height == PlayerDamageEffectRandomOffset.y * 2),
+		"player damage effects use a center and random offset instead of hardcoded bounds");
 	const double normal_enemy_scale = EnemyDisplayScale(400, 1.0);
 	const double boss_enemy_scale = EnemyDisplayScale(700, 1.0);
 	Expect(std::abs(normal_enemy_scale * 400.0 - boss_enemy_scale * 700.0) < 0.0001,

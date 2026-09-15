@@ -31,7 +31,7 @@ public:
 
 	void Reset() {
 		m_unlocked.fill(false);
-		for (int32_t y = 2; y <= 3; ++y) {
+		for (int32_t y = 1; y <= 3; ++y) {
 			for (int32_t x = 2; x <= 4; ++x) {
 				m_unlocked[ToIndex({ x, y })] = true;
 			}
@@ -88,12 +88,14 @@ private:
 };
 
 [[nodiscard]] inline int32_t CalculateHandLimit(const BoardProgress& progress) noexcept {
-	return std::min<int32_t>(18, progress.UnlockedCount() / 2 + 2);
+	return std::min<int32_t>(15, (progress.UnlockedCount() + 1) / 2 + 2);
 }
 
 [[nodiscard]] inline int32_t ResolveBattleHandLimit(const BoardProgress& progress,
 	const int32_t explicit_override) noexcept {
-	return (0 < explicit_override) ? explicit_override : CalculateHandLimit(progress);
+	return (0 < explicit_override)
+		? std::min<int32_t>(15, explicit_override)
+		: CalculateHandLimit(progress);
 }
 
 [[nodiscard]] inline std::vector<int32_t> CreateInitialDrawOrder(

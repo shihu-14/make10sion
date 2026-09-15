@@ -25,10 +25,7 @@ bool Banner::update(vector<Block>& deck_data, bool allow_deck_open, Point cursor
     if (!focused || !allow_deck_open) deck_button_armed = false;
     if (focused && allow_deck_open && left_down && isHovered_deck) deck_button_armed = true;
     if (left_up && deck_button_armed && allow_deck_open && isHovered_deck) {
-        deck.init(deck_data); // デッキの初期化
-        deck_mode = true; // デッキモードに入る
-        deck_alpha = 0.0; // デッキボタンのアルファ値をリセット
-        deck_button_armed = false;
+		OpenDeck(deck_data);
     } else if (deck_alpha < 0.4 && isHovered_deck) {
         deck_alpha += 0.1;
         if (deck_alpha > 0.4) deck_alpha = 0.4;
@@ -46,6 +43,18 @@ bool Banner::IsDeckButtonHovered(Point cursor_pos) const {
 
 bool Banner::IsSettingButtonHovered(Point cursor_pos) const {
     return RectF{ 1720, 0, 150, 150 }.contains(cursor_pos);
+}
+
+void Banner::OpenDeck(vector<Block>& deck_data) {
+	deck.init(deck_data);
+	deck_mode = true;
+	deck_alpha = 0.0;
+	deck_button_armed = false;
+}
+
+void Banner::CloseDeck() {
+	deck_mode = false;
+	deck_button_armed = false;
 }
 
 void Banner::CancelPointerGesture() {

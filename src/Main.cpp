@@ -28,7 +28,7 @@ void Main()
 	//フルスクリーン
 	//Window::SetFullscreen(true);
 	//タイトル
-	Window::SetTitle(U"Arithmancer");
+	Window::SetTitle(U"make10sion");
 
 	auto shared_data = std::make_shared<GameData>();
 	State initial_state = State::Title;

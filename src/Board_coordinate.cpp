@@ -355,8 +355,9 @@ Board::DropPlan Board::AnalyzeDrop(Point candidate_anchor, Point release_cursor,
     request.candidate_anchor = { candidate_anchor.x, candidate_anchor.y };
     request.original_anchor = { drag_context.board_anchor.x, drag_context.board_anchor.y };
     request.pointer_on_board = (ScreenToBoardCell(release_cursor) != Point{ -1,-1 });
-    request.near_start = CalcDist(release_screen_pos, drag_context.start_screen_pos)
-        <= static_cast<double>(cell_size * cell_size) / 4.0;
+	request.near_start = (drag_context.rotation_steps == 0)
+		&& (CalcDist(release_screen_pos, drag_context.start_screen_pos)
+			<= static_cast<double>(cell_size * cell_size) / 4.0);
     for (int32 y = 0; y < selected_block.Size().second; y++) {
         for (int32 x = 0; x < selected_block.Size().first; x++) {
             if (selected_block.GetPiece(x, y).content == '$') continue;
@@ -749,17 +750,20 @@ void Board::PutBlock(Point release_cursor, Point release_screen_pos) {//blockが
 	BoardBlockState& selected = board_blocks[selected_index];
 	if (plan.type == DropType::ReturnToHand) {
 		const int32 original_rotation = selected.rotation;
+		const bool manually_rotated = (drag_context.rotation_steps != 0);
 		if (RotateDraggedBlock()) {
 			const DropPlan rotated_plan = AnalyzeDrop(PutBlockAt(release_screen_pos),
 				release_cursor, release_screen_pos);
 			if (BattleCardRules::ShouldUseAutoRotatedPlacement(
 				BattleCardRules::DropResult::ReturnToHand,
 				rotated_plan.type == DropType::Place
-					? BattleCardRules::DropResult::Place : BattleCardRules::DropResult::ReturnToHand)) {
+					? BattleCardRules::DropResult::Place : BattleCardRules::DropResult::ReturnToHand,
+				manually_rotated)) {
 				plan = rotated_plan;
 			} else {
 				SetBlockRotation(selected_index, original_rotation);
-				drag_context.rotation_steps = (selected.rotation - drag_context.start_rotation + 4) % 4;
+				drag_context.rotation_steps =
+					(selected.rotation - drag_context.start_rotation + 4) % 4;
 			}
 		}
 	}

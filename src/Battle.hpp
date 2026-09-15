@@ -97,6 +97,8 @@ private:
 	Texture m_attackIcon;
 	Texture m_defenceIcon;
 	Texture m_reward_money; // 報酬のテクスチャ
+	Texture m_settingsBackgroundTexture; // 設定画面の背景テクスチャ
+	Texture m_settingsBackButtonTexture; // 設定画面の戻るボタン
 	// Array<Rect> m_tehuda_hantei; // 手札の判定
 	Font m_rewardFont; // 報酬のフォント
 	Font m_numFont; // 攻撃・防御の数字のフォント

@@ -118,7 +118,7 @@ struct DropDecision {
 			decision.result = DropResult::ReturnToHand;
 			return decision;
 		}
-		if ((request.candidate_anchor == request.original_anchor) || request.near_start) {
+		if (request.near_start) {
 			decision.result = DropResult::RestoreToBoard;
 			return decision;
 		}
@@ -179,9 +179,10 @@ struct BoardSwapRequest {
 }
 
 [[nodiscard]] inline bool ShouldUseAutoRotatedPlacement(
-	const DropResult current, const DropResult rotated) noexcept {
-	// 90度回転後の自動配置を許可するか判定する．
-	return (current == DropResult::ReturnToHand) && (rotated == DropResult::Place);
+	const DropResult current, const DropResult rotated,
+	const bool manually_rotated = false) noexcept {
+	return !manually_rotated
+		&& (current == DropResult::ReturnToHand) && (rotated == DropResult::Place);
 }
 
 [[nodiscard]] inline bool ShouldRotateDraggedCard(

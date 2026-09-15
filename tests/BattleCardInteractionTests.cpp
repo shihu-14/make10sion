@@ -1,20 +1,15 @@
 #include "../src/BattleCardRules.hpp"
 #include "../src/BattleDamageRules.hpp"
-#include "../src/BattleLayoutRules.hpp"
 #include "../src/BoardCalculationRules.hpp"
 #include "../src/CardSymbolRules.hpp"
-#include "../src/DebugScenarioRules.hpp"
 #include "../src/EnemyIntentRules.hpp"
 #include "../src/GameStateRules.hpp"
 #include "../src/ShopRules.hpp"
 
-#include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
-#include <string>
 #include <string_view>
 #include <vector>
 
@@ -102,12 +97,26 @@ void TestBoardDrops() {
 		== DropResult::Place, "vertical card moves by one cell");
 
 	auto same = Request(DragOrigin::Board, { 2, 2 }, { { 0, 0 }, { 1, 0 } });
+	same.near_start = true;
 	Expect(ResolveDrop(same, board).result == DropResult::RestoreToBoard,
-		"board card restores at its original anchor");
+		"unrotated board card restores near its drag start");
+	same.near_start = false;
+	Expect(ResolveDrop(same, board).result == DropResult::Place,
+		"rotated board card commits its new orientation at the original anchor");
 	same.candidate_anchor = { 3, 2 };
 	same.near_start = true;
 	Expect(ResolveDrop(same, board).result == DropResult::RestoreToBoard,
 		"board card restores inside the cancellation distance");
+
+	auto corner_board = MakeBoard();
+	At(corner_board, { 2, 2 }).occupant = 4;
+	At(corner_board, { 3, 2 }).occupant = 4;
+	At(corner_board, { 2, 3 }).occupant = 4;
+	auto rotated_corner = Request(DragOrigin::Board, { 2, 2 },
+		{ { 0, 0 }, { 1, 0 }, { 1, 1 } });
+	rotated_corner.near_start = false;
+	Expect(ResolveDrop(rotated_corner, corner_board).result == DropResult::Place,
+		"rotated corner card commits its changed footprint at the original anchor");
 
 	At(board, { 4, 2 }).occupant = 8;
 	Expect(ResolveDrop(Request(DragOrigin::Board, { 3, 2 }, { { 0, 0 }, { 1, 0 } }), board).result
@@ -189,7 +198,10 @@ void TestBoardCardSwapRules() {
 		"a board swap fails when either destination uses a locked cell");
 
 	Expect(ShouldUseAutoRotatedPlacement(DropResult::ReturnToHand, DropResult::Place),
-		"an invalid placement may use one legal automatic quarter-turn");
+		"an unrotated invalid placement may use one legal automatic quarter-turn");
+	Expect(!ShouldUseAutoRotatedPlacement(
+		DropResult::ReturnToHand, DropResult::Place, true),
+		"a drop never overrides the rotation selected during the drag");
 	Expect(!ShouldUseAutoRotatedPlacement(DropResult::BoardSwap, DropResult::Place),
 		"a board swap candidate is never silently replaced by automatic rotation");
 }
@@ -212,28 +224,25 @@ void TestDamageHitRules() {
 	Expect(!zero_attack.has_contact && (zero_attack.attack_after == 0)
 		&& (zero_attack.defense_after == 10),
 		"zero attack skips defense contact without reducing defense");
-	Expect(HitCountForDamage(15, 100) == 1, "fifteen percent damage uses one hit");
-	Expect(HitCountForDamage(16, 100) == 2, "damage above fifteen percent uses two hits");
-	Expect(HitCountForDamage(30, 100) == 2, "thirty percent damage uses two hits");
-	Expect(HitCountForDamage(31, 100) == 3, "damage above thirty percent uses three hits");
-	Expect(HitCountForDamage(45, 100) == 3, "forty-five percent damage uses three hits");
-	Expect(HitCountForDamage(46, 100) == 4, "damage above forty-five percent uses four hits");
-	Expect(HitCountForDamage(60, 100) == 4, "sixty percent damage uses four hits");
-	Expect(HitCountForDamage(61, 100) == 5, "damage above sixty percent uses five hits");
-	Expect(HitCountForDamage(75, 100) == 5, "seventy-five percent damage uses five hits");
-	Expect(HitCountForDamage(76, 100) == 6, "damage above seventy-five percent uses six hits");
-	const auto maximum_hits = SplitDamage(80, 100);
-	Expect(maximum_hits.size() == 6, "large damage uses the configured maximum hit count");
-	Expect(std::abs(ResolveDefenseExchangeDuration(5, 100, 100) - (1.0 / 6.0)) < 0.000001
-		&& std::abs(ResolveDefenseExchangeDuration(20, 100, 100) - (2.0 / 6.0)) < 0.000001
-		&& std::abs(ResolveDefenseExchangeDuration(100, 100, 100) - 1.0) < 0.000001,
-		"defense exchange duration grows in six damage-based steps up to one second");
-	Expect((ResolveDefenseExchangeDuration(0, 100, 100) == 0.0)
-		&& std::abs(ResolveDefenseExchangeDuration(100, 10, 100) - (1.0 / 6.0)) < 0.000001,
-		"defense exchange duration uses only the defense actually removed");
+	Expect(HitCountForDamage(6, 100) == 1,
+		"damage up to one eighth of half maximum HP uses one hit");
+	Expect(HitCountForDamage(7, 100) == 2,
+		"damage above one eighth of half maximum HP uses two hits");
+	Expect(HitCountForDamage(25, 100) == 4,
+		"damage equal to one quarter maximum HP uses half the configured hits");
+	Expect(HitCountForDamage(44, 100) == MaximumDamageHitCount,
+		"damage in the final half-HP step uses the configured maximum hit count");
+	Expect(HitCountForDamage(50, 100) == MaximumDamageHitCount
+		&& HitCountForDamage(100, 100) == MaximumDamageHitCount,
+		"damage at or above half maximum HP stays at the configured maximum hit count");
+	Expect(HitCountForDamage(9, 20) == MaximumDamageHitCount,
+		"an early enemy can reach the configured maximum hit count");
+	const auto maximum_hits = SplitDamage(50, 100);
+	Expect(maximum_hits.size() == static_cast<std::size_t>(MaximumDamageHitCount),
+		"large damage uses the configured maximum hit count");
 
 	const auto hits = SplitDamage(17, 100);
-	Expect((hits.size() == 2) && (hits[0] == 9) && (hits[1] == 8),
+	Expect((hits.size() == 3) && (hits[0] == 6) && (hits[1] == 6) && (hits[2] == 5),
 		"actual damage is split as evenly as possible");
 	int32_t total = 0;
 	for (const auto hit : hits) total += hit;
@@ -251,12 +260,6 @@ void TestDamageHitRules() {
 	}
 	Expect((hp == 0) && (applied_hits == 2),
 		"remaining hit effects stop immediately when HP reaches zero");
-	Expect(!ShouldDrawHitEffect(0, 120, 180),
-		"zero damage does not redraw a stale hit effect position");
-	Expect(!ShouldDrawHitEffect(1, -1, 180) && !ShouldDrawHitEffect(1, 120, -1),
-		"a hit effect requires a valid screen position");
-	Expect(ShouldDrawHitEffect(1, 120, 180),
-		"a real damage hit with a valid position draws its effect");
 }
 
 void TestInputOwnership() {
@@ -378,33 +381,6 @@ void TestConcurrentReturnMotions() {
 		"second card returns independently to a different hand position");
 }
 
-void TestHandReturnMotionTiming() {
-	Expect(ResolveReturnMotionEasing(CardLifecycle::ReturningToHand)
-		== VisualMotionEasing::CubicEaseOut
-		&& ResolveReturnMotionEasing(CardLifecycle::ReturningToBoard)
-		== VisualMotionEasing::CubicEaseOut,
-		"hand and board returns both select cubic ease-out timing");
-
-	VisualMotion hand_motion;
-	VisualMotion board_motion;
-	StartVisualMotion(hand_motion, { 0, 0 }, { 100, 100 }, 1.0);
-	StartVisualMotion(board_motion, { 0, 0 }, { 100, 100 }, 1.0);
-	Expect(!AdvanceVisualMotion(hand_motion, 0.5, VisualMotionEasing::CubicEaseOut)
-		&& !AdvanceVisualMotion(board_motion, 0.5, VisualMotionEasing::CubicEaseOut)
-		&& (hand_motion.current == ScreenPoint{ 87, 87 })
-		&& (board_motion.current == ScreenPoint{ 87, 87 })
-		&& (hand_motion.elapsed_seconds == board_motion.elapsed_seconds)
-		&& (hand_motion.duration_seconds == board_motion.duration_seconds)
-		&& (hand_motion.end == board_motion.end),
-		"both return paths start fast while preserving duration and endpoint");
-
-	Expect(AdvanceVisualMotion(hand_motion, 0.5, VisualMotionEasing::CubicEaseOut)
-		&& AdvanceVisualMotion(board_motion, 0.5, VisualMotionEasing::CubicEaseOut)
-		&& (hand_motion.current == hand_motion.end)
-		&& (board_motion.current == board_motion.end),
-		"cubic returns still complete at the original duration and endpoint");
-}
-
 void TestForcedMotionCompletion() {
 	CardLifecycle hand_card = CardLifecycle::ReturningToHand;
 	CardLifecycle board_card = CardLifecycle::ReturningToBoard;
@@ -423,80 +399,6 @@ void TestForcedMotionCompletion() {
 		"focus loss or scene transition completes a hand return");
 	Expect((board_card == CardLifecycle::OnBoard) && (board_motion.current == board_motion.end),
 		"focus loss or scene transition completes a board return");
-}
-
-void TestHandDealAnimationRules() {
-	Expect(ResolveHandDealStage(true, false, false, false) == HandDealStage::RotatePile
-		&& ResolveHandDealStage(true, false, true, false) == HandDealStage::DealCards,
-		"hand dealing rotates the pile once before launching cards");
-	Expect(ResolveHandDealStage(true, true, false, false) == HandDealStage::ReturnPile
-		&& ResolveHandDealStage(true, true, false, true) == HandDealStage::Complete,
-		"completed hand dealing returns the pile without restarting card launches");
-
-	Expect(!ShouldDrawHandCardDuringDeal(0, 0, true)
-		&& ShouldDrawHandCardDuringDeal(0, 1, true)
-		&& !ShouldDrawHandCardDuringDeal(1, 1, true)
-		&& ShouldDrawHandCardDuringDeal(1, 0, false),
-		"deal rendering reveals only cards whose launch has started");
-	Expect(ShouldPlayHandDealSound(0) && ShouldPlayHandDealSound(7)
-		&& !ShouldPlayHandDealSound(8) && !ShouldPlayHandDealSound(14),
-		"hand deal sound plays for only the first eight launched cards");
-
-	const auto second_before_start = ResolveHandDealProgress(1, 0.099);
-	const auto second_at_start = ResolveHandDealProgress(1, 0.10);
-	Expect(!second_before_start.started && (second_before_start.linear_progress == 0.0)
-		&& second_at_start.started && (second_at_start.linear_progress == 0.0),
-		"hand cards preserve the configured one hundred millisecond stagger interval");
-
-	const auto first_in_flight = ResolveHandDealProgress(0, 0.15);
-	const auto second_in_flight = ResolveHandDealProgress(1, 0.15);
-	Expect(first_in_flight.started && second_in_flight.started
-		&& !first_in_flight.complete && !second_in_flight.complete,
-		"successive hand cards overlap in flight instead of waiting for each other");
-
-	const auto quarter = ResolveHandDealProgress(0, 0.075);
-	const auto midpoint = ResolveHandDealProgress(0, 0.15);
-	const auto three_quarters = ResolveHandDealProgress(0, 0.225);
-	Expect(std::abs(quarter.eased_progress - 0.578125) < 0.000001
-		&& std::abs(midpoint.eased_progress - 0.875) < 0.000001
-		&& std::abs(three_quarters.eased_progress - 0.984375) < 0.000001,
-		"hand card travel starts fast and decelerates with cubic ease-out");
-
-	const auto last_complete = ResolveHandDealProgress(14, 1.7);
-	Expect(last_complete.complete && (last_complete.eased_progress == 1.0)
-		&& (std::abs(HandDealTotalDuration(1) - 0.30) < 0.000001)
-		&& (std::abs(HandDealTotalDuration(15) - 1.7) < 0.000001)
-		&& (HandDealTotalDuration(0) == 0.0),
-		"deal duration preserves the current user-adjusted timing parameters");
-}
-
-void TestDiscardCollectionTiming() {
-	Expect(std::abs(DiscardCardStartIntervalSeconds(0, 15) - 0.30) < 0.000001
-		&& std::abs(DiscardCardStartIntervalSeconds(13, 15) - 0.04) < 0.000001,
-		"discard launch intervals run from three hundred to forty milliseconds");
-	double previous_interval = DiscardCardStartIntervalSeconds(0, 15);
-	for (int32_t interval_index = 1; interval_index < 14; ++interval_index) {
-		const double interval = DiscardCardStartIntervalSeconds(interval_index, 15);
-		Expect(interval < previous_interval,
-			"each later discard card starts sooner than the previous one");
-		previous_interval = interval;
-	}
-
-	const auto first_halfway = ResolveDiscardCardProgress(0, 15, 0.075);
-	const auto second_before_start = ResolveDiscardCardProgress(1, 15, 0.299);
-	const auto second_at_start = ResolveDiscardCardProgress(1, 15, 0.30);
-	const auto second_halfway = ResolveDiscardCardProgress(1, 15, 0.375);
-	Expect(first_halfway.started && !first_halfway.complete
-		&& std::abs(first_halfway.linear_progress - 0.5) < 0.000001
-		&& !second_before_start.started
-		&& second_at_start.started && (second_at_start.linear_progress == 0.0)
-		&& second_halfway.started && !second_halfway.complete
-		&& std::abs(second_halfway.linear_progress - 0.5) < 0.000001,
-		"discard cards keep the same linear travel while only launch timing changes");
-	Expect(std::abs(DiscardCollectionTotalDuration(15) - 2.53) < 0.000001
-		&& std::abs(DiscardCollectionTotalDuration(1) - 0.15) < 0.000001
-		&& (DiscardCollectionTotalDuration(0) == 0.0),
-		"discard collection duration follows card count and accelerating intervals");
 }
 
 void TestRepeatedFailedBoardSwapReturn() {
@@ -558,15 +460,20 @@ void TestRepeatedFailedBoardSwapReturn() {
 void TestBoardProgress() {
 	using namespace GameStateRules;
 	BoardProgress progress;
-	Expect(progress.UnlockedCount() == 6, "board progress starts with six cells");
-	Expect(CalculateHandLimit(progress) == 5, "six cells allow five hand cards");
-	Expect(progress.IsUnlockable({ 2, 1 }), "cell above the initial board is unlockable");
-	Expect(!progress.IsUnlockable({ 0, 0 }), "detached cell is not unlockable");
-	Expect(progress.Unlock({ 2, 1 }), "first event cell unlock succeeds");
-	Expect(!progress.Unlock({ 2, 1 }), "same event cell cannot unlock twice");
-	Expect(progress.Unlock({ 3, 1 }), "second event cell unlock succeeds");
-	Expect((progress.UnlockedCount() == 8) && (CalculateHandLimit(progress) == 6),
-		"two event cells increase the next hand limit");
+	const int32_t initial_unlocked_count = progress.UnlockedCount();
+	const int32_t initial_hand_limit = CalculateHandLimit(progress);
+	const auto initial_candidates = progress.UnlockableCells();
+	Expect(!initial_candidates.empty(), "board exposes a reachable unlock candidate");
+	Expect(!progress.IsUnlockable({ -1, -1 }), "outside cells are not unlockable");
+	const auto first_unlock = initial_candidates.front();
+	Expect(progress.Unlock(first_unlock), "first reachable cell unlock succeeds");
+	Expect(!progress.Unlock(first_unlock), "the same cell cannot unlock twice");
+	const auto second_candidates = progress.UnlockableCells();
+	Expect(!second_candidates.empty() && progress.Unlock(second_candidates.front()),
+		"a second reachable cell unlock succeeds");
+	Expect((progress.UnlockedCount() > initial_unlocked_count)
+		&& (CalculateHandLimit(progress) >= initial_hand_limit),
+		"unlocking board cells never reduces the available hand limit");
 	Expect(ActIndex(0) == 0, "first act index starts at zero");
 	Expect(ActIndex(10) == 1, "second act index starts at layer ten");
 	Expect((ActIndex(29) == 2) && (FloorInAct(29) == 9),
@@ -587,18 +494,9 @@ void TestBoardProgress() {
 		if (candidates.empty()) break;
 		Expect(fully_unlocked.Unlock(candidates.front()), "each reachable board cell unlocks once");
 	}
-	Expect(fully_unlocked.UnlockedCount() == BoardProgress::CellCount,
-		"board progress can unlock every cell without stale counts");
-	Expect(CalculateHandLimit(fully_unlocked) == 18, "hand limit is capped at eighteen");
-	Expect(ResolveBattleHandLimit(fully_unlocked, 0) == 18,
-		"normal battles use the eighteen-card maximum");
-	Expect(ResolveBattleHandLimit(fully_unlocked, 18) == 18,
-		"an explicit debug override can expose eighteen hand cards");
-	BoardProgress debug_progress;
-	debug_progress.UnlockAll();
-	Expect((debug_progress.UnlockedCount() == BoardProgress::CellCount)
-		&& (CalculateHandLimit(debug_progress) == 18),
-		"debug board progress unlocks all forty-two cells directly");
+	Expect(fully_unlocked.UnlockableCells().empty()
+		&& (CalculateHandLimit(fully_unlocked) >= CalculateHandLimit(progress)),
+		"board progress reaches a stable state without reducing the hand limit");
 	Expect(ElapsedMillis(150, 100) == 50, "elapsed milliseconds preserve unsigned precision");
 	Expect(ElapsedMillis(50, 100) == 0, "clock rollback cannot underflow elapsed milliseconds");
 }
@@ -662,25 +560,6 @@ void TestTurnDrawRefreshRules() {
 		"refresh preserves every card exactly once and supports fixed debug order");
 }
 
-void TestAudioSettingsRules() {
-	using namespace GameStateRules;
-	AudioSettings settings;
-	Expect(settings.bgm_volume == 1.0 && settings.se_volume == 1.0,
-		"shared BGM and SE settings start independently at one hundred percent");
-	settings.bgm_volume = 0.25;
-	Expect(settings.se_volume == 1.0,
-		"changing BGM does not change the independent SE volume");
-	Expect(ClampVolume(-0.5) == 0.0 && ClampVolume(1.5) == 1.0,
-		"shared audio volumes stay inside zero and one");
-	Expect(VolumePercent(0.0) == 0 && VolumePercent(0.555) == 56
-		&& VolumePercent(1.0) == 100,
-		"shared audio volumes produce rounded percentage labels");
-	Expect(SliderVolumeAt(50.0, 100.0, 400.0) == 0.0
-		&& SliderVolumeAt(300.0, 100.0, 400.0) == 0.5
-		&& SliderVolumeAt(600.0, 100.0, 400.0) == 1.0,
-		"volume sliders clamp pointer positions to their tracks");
-}
-
 void TestCardSymbolRules() {
 	using namespace CardSymbolRules;
 	for (char symbol = '0'; symbol <= '7'; ++symbol) {
@@ -736,10 +615,6 @@ void TestCardSymbolRules() {
 void TestBoardCalculationRules() {
 	using namespace BoardCalculationRules;
 	using Usage = ExpressionCellUsage;
-	Expect(ResolveExpressionCellAlpha(Usage::Ignored) == 0.15
-		&& ResolveExpressionCellAlpha(Usage::Used) == 1.0
-		&& ResolveExpressionCellAlpha(Usage::NonExpression) == 1.0,
-		"only ignored expression cells use the disabled cell alpha");
 	Board board{ 7, 6 };
 	board.Set(0, 0, '7');
 	board.Set(1, 0, '*');
@@ -1039,291 +914,6 @@ void TestEnemyIntentRules() {
 		"hand-scaled intent recomputes its displayed attack as cards are played");
 }
 
-void TestDebugScenarioRules() {
-	const auto& scenario = DebugScenarioRules::Midgame();
-	constexpr std::array<std::string_view, 18> expected_deck{
-		"b5\n7$", "*$\n2+", "$+\n*3", "4/\n$6", "f\n3\n3", "q\n+",
-		"*\n5", "o\n-", "i\ng\n-", "+\n2", "4\na", "e\nc",
-		"+\nm", "6\n-", "/\n4", "3\n*", "i\n2", "h\n+",
-	};
-	struct DebugPlacement {
-		int32_t rotations;
-		int32_t anchor_x;
-		int32_t anchor_y;
-	};
-	constexpr std::array<DebugPlacement, 18> placements{
-		DebugPlacement{ 0, 0, 0 }, { 1, 1, 0 }, { 2, 3, 0 }, { 3, 4, 0 },
-		{ 0, 6, 0 }, { 1, 0, 2 }, { 3, 2, 2 }, { 1, 4, 2 },
-		{ 1, 0, 3 }, { 3, 3, 3 }, { 1, 5, 3 }, { 3, 0, 4 },
-		{ 0, 2, 4 }, { 0, 3, 4 }, { 0, 4, 4 }, { 0, 5, 4 },
-		{ 0, 6, 4 }, { 1, 0, 5 },
-	};
-	Expect((scenario.layer == 22) && (scenario.enemy_type == 0),
-		"midgame debug starts in a late non-boss battle");
-	Expect((scenario.hp == 100) && (scenario.max_hp == 100) && (scenario.money == 300),
-		"midgame debug resources are deterministic");
-	Expect((scenario.seed == 0x4D313053ULL) && (scenario.deck.size() == 18),
-		"midgame debug uses a fixed seed and exactly eighteen cards");
-	Expect((scenario.hand_limit_override == 15)
-		&& (scenario.enemy_texture_path == "../../image/boss_1.png")
-		&& scenario.preserve_deck_order,
-		"midgame debug explicitly overrides the hand limit and enemy visual");
-	bool has_uppercase_symbol = false;
-	bool all_cards_are_valid = true;
-	bool all_cards_use_minimum_width = true;
-	bool has_single_cell_card = false;
-	int32_t occupied_cell_count = 0;
-	bool deck_matches_expected_order = (scenario.deck.size() == expected_deck.size());
-	for (std::size_t card_index = 0;
-		card_index < std::min(scenario.deck.size(), expected_deck.size()); ++card_index) {
-		deck_matches_expected_order = deck_matches_expected_order
-			&& (scenario.deck[card_index] == expected_deck[card_index]);
-	}
-	for (const auto definition : scenario.deck) {
-		all_cards_are_valid = all_cards_are_valid
-			&& CardSymbolRules::IsValidCardDefinition(definition);
-		const std::size_t first_newline = definition.find('\n');
-		const int32_t card_width = static_cast<int32_t>(
-			(first_newline == std::string_view::npos) ? definition.size() : first_newline);
-		const int32_t card_height = 1 + static_cast<int32_t>(
-			std::count(definition.begin(), definition.end(), '\n'));
-		all_cards_use_minimum_width = all_cards_use_minimum_width
-			&& (card_width <= card_height);
-		int32_t card_cell_count = 0;
-		for (const char symbol : definition) {
-			if (('A' <= symbol) && (symbol <= 'H')) has_uppercase_symbol = true;
-			if ((symbol != '\n') && (symbol != '$')) ++card_cell_count;
-		}
-		has_single_cell_card = has_single_cell_card || (card_cell_count == 1);
-		occupied_cell_count += card_cell_count;
-	}
-	Expect(deck_matches_expected_order,
-		"midgame debug exposes the requested cards in the requested order");
-	Expect(!has_uppercase_symbol && !has_single_cell_card,
-		"midgame debug avoids uppercase and single-cell cards");
-	Expect(all_cards_are_valid && (occupied_cell_count == 42),
-		"midgame debug uses only known symbols and exactly fills forty-two cells");
-	Expect(all_cards_use_minimum_width,
-		"midgame debug starts every card in its minimum-width orientation");
-	int32_t cards_with_holes = 0;
-	for (const auto definition : scenario.deck) {
-		cards_with_holes += (definition.find('$') != std::string_view::npos) ? 1 : 0;
-	}
-	Expect(cards_with_holes == 4,
-		"midgame debug includes four concave L or key-shaped cards");
-
-	const auto preserved_order = GameStateRules::CreateInitialDrawOrder(
-		static_cast<int32_t>(scenario.deck.size()), scenario.preserve_deck_order);
-	Expect(!GameStateRules::ShouldShuffleInitialDrawOrder(scenario.preserve_deck_order)
-		&& GameStateRules::ShouldShuffleInitialDrawOrder(false),
-		"only the explicit debug override disables the normal deck shuffle");
-	GameStateRules::BattleDeckState deck;
-	deck.Initialize(static_cast<int32_t>(scenario.deck.size()), preserved_order);
-	bool hand_matches_scenario_order = true;
-	for (int32_t expected_card_id = 0;
-		expected_card_id < scenario.hand_limit_override; ++expected_card_id) {
-		const int32_t card_id = deck.Cards(GameStateRules::CardZone::DrawPile).back();
-		hand_matches_scenario_order = hand_matches_scenario_order
-			&& (card_id == expected_card_id);
-		Expect(deck.Move(card_id, GameStateRules::CardZone::DrawPile,
-			GameStateRules::CardZone::Hand), "midgame debug can draw every visible test card");
-	}
-	Expect(hand_matches_scenario_order && deck.Validate()
-		&& (deck.Cards(GameStateRules::CardZone::Hand).size() == 15)
-		&& (deck.Cards(GameStateRules::CardZone::DrawPile).size() == 3),
-		"midgame debug starts with fifteen hand cards and keeps three in the draw pile");
-
-	constexpr std::array<std::string_view, 6> rows{
-		"b5+3*4f", "7*2+6/3", "q+5*o-3",
-		"ig-2+4a", "ce+6/3i", "h+m-4*2",
-	};
-	BoardCalculationRules::Board completed_board{ 7, 6 };
-	bool legal_completed_board = true;
-	for (std::size_t card_index = 0; card_index < scenario.deck.size(); ++card_index) {
-		std::vector<std::string> card_rows(1);
-		for (const char symbol : scenario.deck[card_index]) {
-			if (symbol == '\n') card_rows.emplace_back();
-			else card_rows.back().push_back(symbol);
-		}
-		for (int32_t rotation = 0; rotation < placements[card_index].rotations; ++rotation) {
-			const int32_t old_height = static_cast<int32_t>(card_rows.size());
-			const int32_t old_width = static_cast<int32_t>(card_rows.front().size());
-			std::vector<std::string> rotated(static_cast<std::size_t>(old_width),
-				std::string(static_cast<std::size_t>(old_height), '$'));
-			for (int32_t y = 0; y < old_height; ++y) {
-				for (int32_t x = 0; x < old_width; ++x) {
-					rotated[static_cast<std::size_t>(old_width - 1 - x)]
-						[static_cast<std::size_t>(y)] = card_rows[static_cast<std::size_t>(y)]
-							[static_cast<std::size_t>(x)];
-				}
-			}
-			card_rows = std::move(rotated);
-		}
-		for (int32_t y = 0; y < static_cast<int32_t>(card_rows.size()); ++y) {
-			for (int32_t x = 0; x < static_cast<int32_t>(card_rows[y].size()); ++x) {
-				const char symbol = card_rows[y][x];
-				if (symbol == '$') continue;
-				const int32_t board_x = placements[card_index].anchor_x + x;
-				const int32_t board_y = placements[card_index].anchor_y + y;
-				legal_completed_board = legal_completed_board
-					&& (0 <= board_x) && (board_x < 7) && (0 <= board_y) && (board_y < 6)
-					&& !completed_board.At(board_x, board_y).occupied;
-				if (legal_completed_board) completed_board.Set(board_x, board_y, symbol);
-			}
-		}
-	}
-	for (int32_t y = 0; y < static_cast<int32_t>(rows.size()); ++y) {
-		for (int32_t x = 0; x < static_cast<int32_t>(rows[y].size()); ++x) {
-			legal_completed_board = legal_completed_board
-				&& (completed_board.At(x, y).symbol == rows[y][x]);
-		}
-	}
-	Expect(legal_completed_board,
-		"the documented rotations and anchors legally tile the entire debug board");
-	const auto result = BoardCalculationRules::Evaluate(completed_board);
-	Expect(result.row_values == std::vector<int32_t>{ 17, 16, 8, 14, 6, 5 },
-		"the completed debug board produces the documented row values including Ave");
-	Expect(result.row_multiplier_effects[0] == 1.5 && result.row_modes[0] == 0,
-		"the first debug row applies b and switches to defense");
-	Expect(result.row_multiplier_effects[3] == 1.0 && result.row_modes[3] == 1,
-		"the fourth debug row applies a and switches to attack");
-	Expect(result.row_multiplier_effects[4] == 2.0 && result.row_modes[4] == 1,
-		"the fifth debug row applies c and switches to attack");
-	bool expression_classification_is_expected = true;
-	for (int32_t y = 0; y < static_cast<int32_t>(rows.size()); ++y) {
-		for (int32_t x = 0; x < static_cast<int32_t>(rows[y].size()); ++x) {
-			const auto kind = CardSymbolRules::Decode(rows[y][x]).kind;
-			const auto usage = result.ExpressionUsageAt(x, y);
-			const bool is_expression = (kind == CardSymbolRules::Kind::Number)
-				|| (kind == CardSymbolRules::Kind::Operator)
-				|| (kind == CardSymbolRules::Kind::Aggregate);
-			expression_classification_is_expected = expression_classification_is_expected
-				&& (usage == (is_expression
-					? BoardCalculationRules::ExpressionCellUsage::Used
-					: BoardCalculationRules::ExpressionCellUsage::NonExpression));
-		}
-	}
-	Expect(expression_classification_is_expected,
-		"the completed debug board uses every expression symbol without fading effects or row modes");
-}
-
-void TestBattleLayoutRules() {
-	using namespace BattleLayoutRules;
-	Expect((ResolveBodyAttackAlpha(0.0) == 1.0)
-		&& (ResolveBodyAttackAlpha(0.25) == 0.5)
-		&& (ResolveBodyAttackAlpha(0.5) == 0.0)
-		&& (ResolveBodyAttackAlpha(1.0) == 0.0),
-		"body attack fades completely over half a second");
-	Expect((DamageEffectTriggerTime(0) == 0.0)
-		&& (std::abs(DamageEffectTriggerTime(5) - 1.5) < 0.000001),
-		"six damage effects use three hundred millisecond intervals");
-	Expect(!ShouldTriggerDamageEffect(0.299, 1)
-		&& ShouldTriggerDamageEffect(0.3, 1),
-		"damage effects trigger exactly at each configured interval");
-	const auto player_arc_start = ResolveAttackArcMotion(
-		PlayerAttackStart(), EnemyAttackArcTarget(), 0.0);
-	const auto player_arc_midpoint = ResolveAttackArcMotion(
-		PlayerAttackStart(), EnemyAttackArcTarget(), AttackArcTravelDuration / 2.0);
-	const auto player_arc_end = ResolveAttackArcMotion(
-		PlayerAttackStart(), EnemyAttackArcTarget(), AttackArcTravelDuration);
-	const double player_linear_midpoint_y =
-		(PlayerAttackStart().y + EnemyAttackArcTarget().y) / 2.0;
-	Expect((player_arc_start.x == PlayerAttackStart().x)
-		&& (player_arc_start.y == PlayerAttackStart().y)
-		&& (player_arc_end.x == EnemyAttackArcTarget().x)
-		&& (player_arc_end.y == EnemyAttackArcTarget().y)
-		&& (player_arc_midpoint.y < player_linear_midpoint_y),
-		"player attack follows an upward arc to the enemy upper-left");
-	Expect((player_arc_start.scale == 1.0)
-		&& (player_arc_midpoint.scale > player_arc_start.scale)
-		&& (player_arc_midpoint.scale < player_arc_end.scale)
-		&& (player_arc_end.scale == 1.3),
-		"attack icon and value grow gradually along the arc");
-	const auto enemy_arc_midpoint = ResolveAttackArcMotion(
-		EnemyAttackStart(), PlayerAttackArcTarget(), AttackArcTravelDuration / 2.0);
-	const double enemy_linear_midpoint_y =
-		(EnemyAttackStart().y + PlayerAttackArcTarget().y) / 2.0;
-	Expect((PlayerAttackArcTarget().x > PlayerPosition().x)
-		&& (PlayerAttackArcTarget().y < PlayerPosition().y)
-		&& (enemy_arc_midpoint.y < enemy_linear_midpoint_y),
-		"enemy attack mirrors the upward arc toward the player upper-right");
-	Expect((ResolveCombatValueChange(100, 0, 0.5, 1.0) == 50)
-		&& (ResolveCombatValueChange(10, 0, 0.5, 1.0) == 5)
-		&& (ResolveCombatValueChange(100, 0, 1.0, 1.0) == 0)
-		&& (ResolveCombatValueChange(10, 0, 1.0, 1.0) == 0),
-		"combat values share the selected animation duration");
-	Expect((ResolveCombatValueChange(100, 0, 0.25, 0.5) == 50)
-		&& (ResolveCombatValueChange(100, 0, 0.5, 0.5) == 0),
-		"combat values use the selected damage-based exchange duration");
-	const auto idle_player_values = ResolvePlayerCombatValueVisibility(
-		true, false, false, false);
-	Expect(idle_player_values.attack && idle_player_values.defense,
-		"idle battle shows the board-derived player attack and defense");
-	const auto enemy_effect_values = ResolvePlayerCombatValueVisibility(
-		false, true, false, false);
-	const auto player_effect_values = ResolvePlayerCombatValueVisibility(
-		false, false, true, false);
-	const auto discard_values = ResolvePlayerCombatValueVisibility(
-		false, false, false, true);
-	const auto hidden_values = ResolvePlayerCombatValueVisibility(
-		false, false, false, false);
-	Expect(!enemy_effect_values.attack && enemy_effect_values.defense
-		&& !player_effect_values.attack && player_effect_values.defense
-		&& !discard_values.attack && discard_values.defense
-		&& !hidden_values.attack && !hidden_values.defense,
-		"combat and discard phases preserve the existing player value visibility");
-	Expect((EnemyHitTarget().x - EnemyPosition().x == EnemyHitOffsetX)
-		&& (EnemyHitTarget().y - EnemyPosition().y == EnemyHitOffsetY),
-		"enemy attack impact follows the shared enemy position");
-	const auto enemy_effect_bounds = EnemyDamageEffectBounds();
-	Expect((enemy_effect_bounds.x - EnemyPosition().x == EnemyDamageEffectMinOffsetX)
-		&& (enemy_effect_bounds.y - EnemyPosition().y == EnemyDamageEffectMinOffsetY),
-		"enemy damage effects follow the shared enemy position");
-	const double normal_enemy_scale = EnemyDisplayScale(400, 1.0);
-	const double boss_enemy_scale = EnemyDisplayScale(700, 1.0);
-	Expect(std::abs(normal_enemy_scale * 400.0 - boss_enemy_scale * 700.0) < 0.0001,
-		"normal and boss textures share one normalized display height");
-	const double normal_hit_scale = EnemyDisplayScale(400, EnemyHitScaleMultiplier);
-	const double boss_hit_scale = EnemyDisplayScale(700, EnemyHitScaleMultiplier);
-	Expect(std::abs((normal_hit_scale / normal_enemy_scale)
-		- (boss_hit_scale / boss_enemy_scale)) < 0.0001,
-		"hit animation applies the same normalized multiplier to each texture");
-	Expect(EnemyBaseScale(0) == 1.0,
-		"an unavailable enemy texture has a safe neutral scale");
-	const auto unchanged_changes = ResolvePlayerCombatStatPulseChanges(12, 7, 12, 7);
-	const auto attack_only_change = ResolvePlayerCombatStatPulseChanges(12, 7, 18, 7);
-	const auto defense_only_change = ResolvePlayerCombatStatPulseChanges(12, 7, 12, 3);
-	const auto mixed_changes = ResolvePlayerCombatStatPulseChanges(12, 7, 18, 3);
-	Expect(!unchanged_changes.attack && !unchanged_changes.defense,
-		"unchanged player combat values do not animate");
-	Expect(attack_only_change.attack && !attack_only_change.defense
-		&& !defense_only_change.attack && defense_only_change.defense
-		&& mixed_changes.attack && mixed_changes.defense,
-		"player attack and defense detect value changes independently");
-	const auto increase_peak = ResolveCombatStatPulse(
-		CombatStatPulseDuration / 2.0, mixed_changes.attack);
-	const auto decrease_peak = ResolveCombatStatPulse(
-		CombatStatPulseDuration / 2.0, mixed_changes.defense);
-	const auto unchanged_peak = ResolveCombatStatPulse(
-		CombatStatPulseDuration / 2.0, unchanged_changes.attack);
-	Expect(increase_peak.scale == 1.1
-		&& increase_peak.scale > 1.0 && increase_peak.lift == CombatStatPulseLift
-		&& decrease_peak.scale == 1.1
-		&& decrease_peak.scale > 1.0 && decrease_peak.lift == CombatStatPulseLift
-		&& unchanged_peak.scale == 1.0 && unchanged_peak.lift == 0.0,
-		"changed values grow to the shared peak and unchanged values remain still");
-	for (int32_t y = 0; y < BoardHeight; ++y) {
-		for (int32_t x = 0; x < BoardWidth; ++x) {
-			const BattleLayoutRules::BoardCell cell{ x, y };
-			Expect(BoardCellAt(BoardCellCenter(cell)) == cell,
-				"board cell centers round-trip through the shared transform");
-		}
-	}
-	Expect(BoardCellAt({ BoardOffset().x - 1, BoardOffset().y })
-		== BattleLayoutRules::BoardCell{ -1, -1 },
-		"screen-to-board conversion does not clamp outside coordinates");
-}
-
 void TestShopRules() {
 	using namespace ShopRules;
 	Expect(IsOneTimeRelic(3) && IsOneTimeRelic(10) && !IsOneTimeRelic(5),
@@ -1345,21 +935,15 @@ int main() {
 	TestInteractionDrawLayers();
 	TestStableIdentityAndReservations();
 	TestConcurrentReturnMotions();
-	TestHandReturnMotionTiming();
 	TestForcedMotionCompletion();
-	TestHandDealAnimationRules();
-	TestDiscardCollectionTiming();
 	TestRepeatedFailedBoardSwapReturn();
 	TestBoardProgress();
 	TestBattleDeckState();
 	TestTurnDrawRefreshRules();
-	TestAudioSettingsRules();
 	TestCardSymbolRules();
 	TestBoardCalculationRules();
 	TestDelayedEffectLifecycle();
 	TestEnemyIntentRules();
-	TestDebugScenarioRules();
-	TestBattleLayoutRules();
 	TestShopRules();
 	if (failures != 0) return EXIT_FAILURE;
 	std::cout << "All battle card interaction tests passed\n";

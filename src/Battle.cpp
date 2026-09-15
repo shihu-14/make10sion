@@ -8,10 +8,9 @@ using std::tie; // std::tieを使用するために名前空間を指定
 
 namespace {
 
-const RectF SettingsPanel{ 560, 245, 800, 560 }; // 設定パネルの表示範囲を定義する．
-const RectF BgmSliderTrack{ 780, 420, 420, 12 }; // BGM音量スライダーの範囲を定義する．
-const RectF SeSliderTrack{ 780, 560, 420, 12 }; // 効果音量スライダーの範囲を定義する．
-const RectF SettingsCloseButton{ 850, 690, 220, 70 }; // 設定を閉じるボタンの範囲を定義する．
+const RectF BgmSliderTrack{ 650, 390, 650, 20 }; // BGM音量スライダーの範囲を定義する．
+const RectF SeSliderTrack{ 650, 560, 650, 20 }; // 効果音量スライダーの範囲を定義する．
+const RectF SettingsCloseButton{ 1600, 800, 225, 225 }; // デッキ画面と同じ戻るボタンの範囲を定義する．
 
 }
 
@@ -34,8 +33,10 @@ Battle::Battle(const InitData& init)
     m_attackIcon = Texture(U"../../image/icon_attack.png"); // 攻撃アイコンのテクスチャ
     m_defenceIcon = Texture(U"../../image/icon_seild.png"); // 防御アイコンのテクスチャ
     m_reward_money = Texture(U"../../image/UI_money.png"); // 報酬のテクスチャ
+    m_settingsBackgroundTexture = Texture(U"../../image/deck_background.png"); // 設定画面の背景テクスチャ
+    m_settingsBackButtonTexture = Texture(U"../../image/back_button_deck0.png"); // 設定画面の戻るボタン
     m_rewardFont = Font{ 50, Typeface::Bold };
-    m_numFont = Font{ 48, Typeface::Bold };
+    m_numFont = Font{ 64, Typeface::Bold };
 	m_combatFont = Font{ BattleLayoutRules::CombatFontSize, Typeface::Bold };
     m_combatSceneBuffer = RenderTexture(Scene::Size());
     m_blurInternalBuffer = RenderTexture(Scene::Size());
@@ -169,6 +170,15 @@ void Battle::ApplyAudioSettings() const
 void Battle::updateSettingsOverlay(const BoardInputFrame& input)
 {
 	if (!input.focused) m_activeVolumeSlider = VolumeSlider::None;
+	if (input.focused && input.left_down && m_banner.IsDeckButtonHovered(input.cursor)) {
+		m_banner.OpenDeck(m_cards);
+		is_settings_open = false;
+		m_activeVolumeSlider = VolumeSlider::None;
+		m_pointerInputOwner = BattleCardRules::PointerInputOwner::Deck;
+		m_animeStopwatch.resume();
+		is_deck = true;
+		return;
+	}
 	if (KeyEscape.down() || (input.left_down && SettingsCloseButton.contains(input.cursor))) {
 		is_settings_open = false;
 		m_activeVolumeSlider = VolumeSlider::None;
@@ -408,7 +418,7 @@ void Battle::updateCombatEnemyEffect()
     }
 	const double enemy_defense_exchange_duration =
 		BattleDamageRules::ResolveDefenseExchangeDuration(
-			my_attack_effect, ene_defense_effect, m_enemy.maxHp);
+			my_attack_effect, ene_defense_effect);
     // 敵の防御を減らす演出
     if (my_attack_type == 1
 		&& m_animeStopwatch.sF() < enemy_defense_exchange_duration) {
@@ -518,7 +528,7 @@ void Battle::updateCombatMyEffect()
     }
 	const double player_defense_exchange_duration =
 		BattleDamageRules::ResolveDefenseExchangeDuration(
-			ene_attack_effect, my_defense_effect, getData().MaxHP);
+			ene_attack_effect, my_defense_effect);
     if (ene_attack_type == 1
 		&& m_animeStopwatch.sF() < player_defense_exchange_duration) {
         flag_once_draw++;
@@ -562,8 +572,9 @@ void Battle::updateCombatMyEffect()
 			const int32 hit_damage = m_playerDamageHits[my_damage_effect_cnt];
 			getData().HP = BattleDamageRules::ApplyHit(getData().HP, hit_damage);
 			my_hpbar.damage(hit_damage);
-			my_effect_x = Random(50, 200); // エフェクトのX座標をランダムに設定
-            my_effect_y = Random(130, 230); // エフェクトのY座標をランダムに設定
+			const auto effect_bounds = BattleLayoutRules::PlayerDamageEffectBounds();
+			my_effect_x = Random(effect_bounds.x, effect_bounds.x + effect_bounds.width);
+			my_effect_y = Random(effect_bounds.y, effect_bounds.y + effect_bounds.height);
             my_damage_effect_cnt++;
             my_angle = Random(-0.52, -0.1); // -π/4 ~ -π/6の範囲でプレイヤーを傾かさせる
 			// SE再生
@@ -819,6 +830,19 @@ void Battle::update()
 
     if (is_deck) {
         m_pointerInputOwner = BattleCardRules::PointerInputOwner::Deck;
+		if (input.focused && m_banner.IsSettingButtonHovered(input.cursor)) {
+			Cursor::RequestStyle(CursorStyle::Hand);
+		}
+		if (input.focused && input.left_down
+			&& m_banner.IsSettingButtonHovered(input.cursor)) {
+			m_banner.CloseDeck();
+			is_deck = false;
+			is_settings_open = true;
+			m_activeVolumeSlider = VolumeSlider::None;
+			m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
+			m_animeStopwatch.pause();
+			return;
+		}
         is_deck = m_banner.update(m_cards, false, input.cursor,
             input.left_down, input.left_up, input.focused);
 		m_board.Update(0, getData().leric.getLeric(), input, false);
@@ -1141,7 +1165,14 @@ bool Battle::drawDefault() const
             }
             m_banner.draw(getData().money, getData().Layer, getData().leric);
         }
-        Shader::GaussianBlur(m_combatSceneBuffer, m_blurInternalBuffer, m_combatSceneBuffer, BoxFilterSize::BoxFilter13x13); 
+        // 報酬画面が表示されきってから，背面のバトル画面だけをぼかす．
+        if (m_animeStopwatch.sF() >= 2.0 + BattleLayoutRules::RewardFadeInDuration) {
+            for (int32 blur_pass = 0; blur_pass < BattleLayoutRules::RewardBlurPassCount; ++blur_pass) {
+                Shader::GaussianBlur(m_combatSceneBuffer, m_blurInternalBuffer,
+                    m_combatSceneBuffer,
+                    static_cast<BoxFilterSize>(BattleLayoutRules::RewardBlurFilterSize));
+            }
+        }
         m_combatSceneBuffer.draw();
     }
     else
@@ -1225,7 +1256,9 @@ void Battle::drawCombatEnemyEffect() const
     }
     else if (my_attack_type == 1){
         if (m_animeStopwatch.sF() < 0.2){
-			m_effectTexture.scaled(0.4).draw(my_attack_icon_pos);
+			m_effectTexture.scaled(0.4)
+				.draw(BattleLayoutRules::EnemyCombatDefenseIconPosition.x,
+					BattleLayoutRules::EnemyCombatDefenseIconPosition.y);
             if (flag_once_draw == 0){
                 attack_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume));
             }
@@ -1262,7 +1295,9 @@ void Battle::drawCombatMyEffect() const
     }
     else if (ene_attack_type == 1){
         if (m_animeStopwatch.sF() < 0.2){
-			m_effectTexture.scaled(0.4).draw(ene_attack_icon_pos);
+			m_effectTexture.scaled(0.4)
+				.draw(BattleLayoutRules::PlayerCombatDefenseIconPosition.x,
+					BattleLayoutRules::PlayerCombatDefenseIconPosition.y);
             if (flag_once_draw == 0){
                 attack_se.playOneShot(GameStateRules::ClampVolume(getData().audio_settings.se_volume));
             }
@@ -1296,52 +1331,56 @@ void Battle::drawCardDrawEffect() const
 void Battle::drawWinEffect() const
 {
     if (is_gamewin){
-        // 勝利演出の描画(仮)
-        // 2. ウィンドウの基本となる長方形を画面中央に定義します
+        const double reward_alpha = Min(1.0, Max(0.0,
+            (m_animeStopwatch.sF() - 2.0) / BattleLayoutRules::RewardFadeInDuration));
         const Rect rect{ Arg::center = Scene::Center(), 600, 400 };
-
-        // 3. 報酬というテキストを描画した際の、正確な領域を取得します
         const RectF textRect = m_rewardFont(U"報酬").region(Arg::center = rect.topCenter()); // font を m_rewardFont に変更
+        const ColorF panel_color{ 1.0, reward_alpha };
+        const ColorF frame_color{ 0.0, reward_alpha };
+        const ColorF title_color{ 1.0, reward_alpha };
+        const ColorF reward_color{ 1.0, 1.0, 1.0, reward_alpha };
 
-        rect.draw(Palette::White);
-        rect.drawFrame(5.0, Palette::Black);
-        textRect.stretched(10, 0).draw(Palette::White);
+        rect.draw(panel_color);
+        rect.drawFrame(5.0, frame_color);
+        textRect.stretched(10, 0).draw(title_color);
         
-        m_rewardFont(U"報酬").draw(Arg::center = rect.topCenter(), Palette::Black);
-        // 報酬の金額を描画
-        m_reward_money.scaled(1.0).draw(Arg::center = rect.center()+Vec2{0.0, 80});
-        // 報酬の金額を描画
-        m_rewardFont(U"+{}"_fmt(reward_money)).draw(Arg::center = rect.center() + Vec2{0, -20}, Palette::White);
+        m_rewardFont(U"報酬").draw(Arg::center = rect.topCenter(), ColorF{ 0.0, 0.0, 0.0, reward_alpha });
+        m_reward_money.scaled(1.0).draw(Arg::center = rect.center()+Vec2{0.0, 80}, reward_color);
+        m_rewardFont(U"+{}"_fmt(reward_money)).draw(
+            Arg::center = rect.center() + Vec2{0, -20}, reward_color);
     }
     return;
 }
 
 void Battle::drawSettingsOverlay() const
 {
-	RectF{ 0, 0, Scene::Width(), Scene::Height() }.draw(ColorF{ 0.0, 0.0, 0.0, 0.58 });
-	SettingsPanel.draw(ColorF{ 0.96, 0.94, 0.88 });
-	SettingsPanel.drawFrame(4, ColorF{ 0.18 });
-	m_numFont(U"設定").drawAt(SettingsPanel.center().x, SettingsPanel.y + 70, Palette::Black);
+	// デッキ一覧と同じく，上部のバナー領域を残して背景を描画する．
+	m_settingsBackgroundTexture(Rect{ 0, 150, Scene::Width(), Scene::Height() - 150 })
+		.draw(0, 150);
 
 	const auto draw_slider = [this](const StringView label, const RectF& track,
 		const double volume) {
-		m_numFont(label).draw(650, track.y - 28, Palette::Black);
-		track.rounded(6).draw(ColorF{ 0.62 });
+        m_numFont(label).drawAt(
+            track.x - 100,
+            track.y + track.h / 2.0,
+            Palette::Black
+        );
+		track.rounded(10).draw(ColorF{ 0.62 });
 		RectF{ track.x, track.y, track.w * GameStateRules::ClampVolume(volume), track.h }
-			.rounded(6).draw(ColorF{ 0.25, 0.52, 0.82 });
+			.rounded(10).draw(ColorF{ 0.25, 0.52, 0.82 });
 		Circle{ track.x + track.w * GameStateRules::ClampVolume(volume),
-			track.y + track.h / 2.0, 16 }.draw(Palette::White).drawFrame(3, ColorF{ 0.25 });
+			track.y + track.h / 2.0, 24 }.draw(Palette::White).drawFrame(4, ColorF{ 0.25 });
 		m_numFont(U"{}%"_fmt(GameStateRules::VolumePercent(volume)))
-			.draw(1230, track.y - 28, Palette::Black);
+			.draw(track.x + track.w + 50, track.y - 40, Palette::Black);
 	};
 	draw_slider(U"BGM", BgmSliderTrack, getData().audio_settings.bgm_volume);
 	draw_slider(U"SE", SeSliderTrack, getData().audio_settings.se_volume);
 
 	const bool close_hovered = SettingsCloseButton.contains(Cursor::Pos());
-	SettingsCloseButton.rounded(12).draw(close_hovered
-		? ColorF{ 0.62, 0.72, 0.86 } : ColorF{ 0.72, 0.78, 0.88 });
-	SettingsCloseButton.rounded(12).drawFrame(3, ColorF{ 0.2 });
-	m_numFont(U"戻る").drawAt(SettingsCloseButton.center(), Palette::Black);
+	const double button_scale = close_hovered ? 0.95 : 1.0;
+	m_settingsBackButtonTexture.scaled(0.75 * button_scale).draw(
+		SettingsCloseButton.x, SettingsCloseButton.y,
+		close_hovered ? ColorF{ 0.75 } : ColorF{ 1.0 });
 }
 
 void Battle::draw() const

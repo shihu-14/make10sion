@@ -157,6 +157,19 @@ void Board::DrawInteractionOverlay() const {
 		if (dragged.block && (BattleCardRules::GetCardDrawLayer(dragged.lifecycle)
 			== BattleCardRules::CardDrawLayer::DraggingOverlay)) {
 			dragged.block->Draw(dragged.block->GetPos(), img_scale, 0.0, 1.0);
+
+			// ドラッグ中のカードに，回転操作の入力方法を示す．
+			const auto [width, height] = dragged.block->Size();
+			const auto [card_x, card_y] = dragged.block->GetPos();
+			const Vec2 card_top_right{
+				card_x + width * 50.0 * img_scale / 2.0 + 32.0,
+				card_y - height * 50.0 * img_scale / 2.0 - 32.0
+			};
+			const Vec2 rotate_icon_center = card_top_right + Vec2{ 4.0, 0.0 };
+			rotate_icon.scaled(0.13 * rotate_hint_scale).rotated(Math::HalfPi).drawAt(
+				rotate_icon_center, ColorF{ 1.0, 1.0, 1.0, 0.95 });
+			font(U"R").drawAt(static_cast<int32>(24 * rotate_hint_scale),
+				rotate_icon_center + Vec2{ 24.0, -20.0 } * rotate_hint_scale, Palette::Black);
 		}
 	}
 }

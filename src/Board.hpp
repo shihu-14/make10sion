@@ -97,6 +97,8 @@ private:
 	const Texture chosed_board_img{ U"../../image/special_n.png" };
 	const Texture chosable_board_img{ U"../../image/tile_kokodayo.png" };
 	const Texture board_frame_img{ U"../../image/tile_flame.png" };
+	const Texture rotate_icon{ U"../../image/rotate.png" };
+	const double rotate_hint_scale = 1.5;//回転ヒント全体の表示倍率を表す．
 	const Font font{ FontMethod::MSDF, 48, Typeface::Bold };
 	Array<BoardBlockState> board_blocks;//board_usageの正数はdeck_index+1を表す．ターンごとに初期化する．
 	DragContext drag_context;

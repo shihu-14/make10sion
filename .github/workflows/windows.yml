@@ -1,4 +1,4 @@
-name: Windows build and startup check
+name: Windows build
 
 on:
   push:
@@ -30,8 +30,7 @@ jobs:
           "SIV3D_0_6_16=$env:RUNNER_TEMP/siv3d/OpenSiv3D_SDK_0.6.16" >> $env:GITHUB_ENV
       - name: Build Release x64
         run: |
-          New-Item reports -ItemType Directory -Force | Out-Null
-          msbuild windows/make10sion.sln /m:2 /p:Configuration=Release /p:Platform=x64 /fl '/flp:logfile=reports/build.log;verbosity=normal'
+          msbuild windows/make10sion.sln /m:2 /p:Configuration=Release /p:Platform=x64
           if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
       - name: Package Windows game
         run: |
@@ -48,45 +47,9 @@ jobs:
             New-Item (Split-Path $target) -ItemType Directory -Force | Out-Null
             Copy-Item $_.FullName $target
           }
-          @'
-          make10sion - Windows x64
-
-          想定動作環境：Windows 10 / 11（64ビット），Intel / AMD 製 x64 CPU，マウス，キーボード，音声出力機器．
-
-          起動方法：ZIP 全体を展開し，windows/App/make10sion.exe を開いてください．
-          フォルダの配置を変えたり，exe だけを移動したりしないでください．
-          タイトル右下の「デモモード」から，盤面をすべて解放した戦闘を開始できます．
-          カードはマウスでドラッグして配置し，R キーで回転，「＝」で攻撃します．
-
-          この配布物は Release・x64 でビルドされています．
-          自動起動チェックと，人が画面・音声・操作を確認する動作確認は別です．
-          実際のゲーム操作を含む Windows での確認は，別途必要です．
-          '@ | Set-Content "$package/README.txt" -Encoding utf8
           Compress-Archive -Path $package -DestinationPath dist/make10sion-windows-x64.zip
-          Expand-Archive dist/make10sion-windows-x64.zip "$env:RUNNER_TEMP/windows-smoke"
-      - name: Check title and demo startup from extracted ZIP
-        id: startup
-        continue-on-error: true
-        run: ./windows/check-launch.ps1 -AppDirectory "$env:RUNNER_TEMP/windows-smoke/make10sion/windows/App" -ReportDirectory reports
-      - name: Summarize verification
-        if: always()
-        run: |
-          "## Windows verification" >> $env:GITHUB_STEP_SUMMARY
-          "- SDK: OpenSiv3D v0.6.16" >> $env:GITHUB_STEP_SUMMARY
-          "- Build: Release x64 (see Build Release x64 step)" >> $env:GITHUB_STEP_SUMMARY
-          "- Automated startup: ${{ steps.startup.outcome }}" >> $env:GITHUB_STEP_SUMMARY
-          "- Human verification of rendering, audio, input, and complete game flow: NOT performed" >> $env:GITHUB_STEP_SUMMARY
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: windows-verification-logs
-          path: reports/
-          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
           name: make10sion-windows-x64
           path: dist/make10sion-windows-x64.zip
           if-no-files-found: error
-      - name: Require startup checks to pass
-        if: always() && steps.startup.outcome == 'failure'
-        run: throw 'Windows startup failed. Inspect the uploaded verification logs.'

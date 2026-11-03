@@ -420,3 +420,8 @@ gmon.out
 # Build output
 build/
 [Ii]ntermediate/
+
+# ローカルのテストと配布物
+/tests/
+/bin/
+/dist/

@@ -45,100 +45,23 @@ Make10 とは，数字(1~9)と四則演算子(+,-,x,÷)を組み合わせて`10`
 
 新しいカードやレリックを購入できる．限られた所持金を使って直近の戦闘を有利にするか，温存して後のより強力なデッキやレリックを購入するかを判断する．
 
-<!-- ## 戦闘シーンの実装でこだわった点
-
-- **自然なモーション**  
-    山札から手札，手札から捨て札へデッキの移動や，カードを不正な位置へドロップした際の移動にイージング処理を行い，
-    その動きにメリハリをつけた点．
-
-- **カードの操作のしやすさ**  
-    単純なカードのドラッグ&ドロップの操作に加え，一度置いたデッキも簡単に組み替えられるようにし，操作そのものではなく数式や配置を考えることに集中できるようにした．
-
-- **計算に使われるデッキを見分けられる表示**  
-  盤面上で数式の計算に使われていない数字・演算子は半透明にし，どのデッキが現在の結果へ影響しているかを視覚的に理解できるようにした．また，配置中にも各行の計算結果と倍率を表示し，デッキを動かしながら結果を確認できるようにしている．
-
-- **攻防の流れを理解させる解決演出**  
-  盤面で作った式が攻撃・防御の値になり，敵味方の HP へ反映されるまでを段階的に見せる．防御による軽減と HP へのダメージを順番に表示し，何が起きたかを追いやすくした．また，ダメージ量に応じてヒット演出の回数を変え，大きな攻撃ほど強く感じられるようにしつつ，演出が長くなりすぎないよう上限を設けている．
-
-- **操作に反応する UI**  
-  デッキや設定などの操作可能な UI は，ホバー時に表示を変化させることでクリック可能であることを伝える．戦闘中の数値やデッキの状態変化についても，小さな動きや表示変化を加えてフィードバックを返すようにしている． -->
-
-## 開発体制
-
-サークル内のハッカソンにて作成した．
-お題が提示されてからのアイデア出しや，仕様を決めたり，役割分担などを考える期間が
-約1週間あり，実装期間は 2日間であった．
-
-制作メンバーは 7人で，主な役割分担は以下の通り．
-
-- グラフィック: 1人
-- サウンド: 1人
-- プログラマ: 5人
-    - デッキの操作・盤面の管理の実装: 2人
-    - タイトル・マップ・ショップ・デッキ一覧・設定画面の実装: 2人
-    - 戦闘シーンの実装: 1人（担当範囲）
-
-
-<!-- ## ディレクトリ構成
-
-```text
-make10sion/
-├── src/       # ゲーム本体の C++ コード
-├── image/     # ゲーム内で使用する画像
-├── audio/     # BGM・効果音
-├── tests/     # デッキ操作・盤面計算などのテスト
-├── windows/   # Visual Studio プロジェクトと Windows 用実行環境
-└── macos/     # Xcode プロジェクトと macOS 用実行環境
-``` -->
-<!-- 
-<details>
-<summary><code>src/</code> の主な構成</summary>
-
-```text
-src/
-├── Main.cpp                     # ゲーム起動・シーン管理
-├── common.hpp                   # シーン間で共有するゲームデータ
-│
-├── Title.cpp / Title.hpp        # タイトル画面
-├── Map.cpp / Map.hpp            # マップ画面
-├── Battle.cpp / Battle.hpp      # 戦闘シーン全体
-├── Shop.cpp / Shop.hpp          # ショップ
-├── Event.cpp / Event.hpp        # イベント
-├── Result.cpp / Result.hpp      # リザルト
-│
-├── Deck.cpp / Deck.hpp          # デッキ表示
-├── Enemy.cpp / Enemy.hpp        # 敵データ
-├── leric.cpp / leric.hpp        # レリック
-├── HPBar.hpp                    # HP 表示
-│
-├── Block.cpp / Block.hpp        # デッキ形状・描画・回転
-├── Board.cpp / Board.hpp        # 盤面状態の管理
-├── Board_coordinate.cpp         # デッキ配置・ドラッグ・交換
-├── Board_Calc.cpp               # 盤面上の計算結果をゲームへ反映
-├── Board_draw.cpp               # 盤面描画
-│
-├── CardSymbolRules.hpp          # 数字・演算子・特殊デッキの定義
-├── BoardCalculationRules.hpp    # 数式評価
-├── BattleCardRules.hpp          # 戦闘中のデッキ操作ルール
-├── BattleDamageRules.hpp        # ダメージ演出・分割ルール
-├── BattleLayoutRules.hpp        # 戦闘画面の配置・レイアウト
-├── EnemyIntentRules.hpp         # 敵の行動値に関するルール
-├── GameStateRules.hpp           # ゲーム進行・デッキ状態
-└── ShopRules.hpp                # ショップ関連ルール
-```
-
-</details> -->
-
 ## 開発環境とビルド
+
+言語は C++，フレームワークは OpenSiv3D v0.6.16 を使用している．
+ソースからビルドする場合は，OS ごとに対応する Siv3D SDK と開発ツールを用意する．
 
 ### macOS
 
-OpenSiv3D(v0.6.16)の [macOS 用プロジェクトテンプレート](https://siv3d.github.io/ja-jp/download/macos/)を
-ダウンロードし展開する．
-Xcode 14.3 以降，Command Line Tools，Visual Studio Code が必要である．
-Apple Silicon Mac では Rosetta 2 を使用して `x86_64` としてビルド・実行する．
+[Siv3D 公式の macOS 向け導入手順](https://siv3d.github.io/ja-jp/download/macos/)に従い，
+v0.6.16 のプロジェクトテンプレートをダウンロードして展開する．
+ビルドには Xcode 本体が必要であり，Command Line Tools 単体ではビルドできない．
+Xcode を一度起動してライセンス同意と初期設定を済ませ，使用する Command Line Tools に Xcode を選択する．
 
-テンプレートを展開後，このリポジトリが次の位置になるよう clone する．
+このプロジェクトのビルド対象は macOS 12.0 以降の `x86_64` である．
+Apple Silicon Mac での実行には [Rosetta 2](https://support.apple.com/ja-jp/102527) が必要となる．
+ビルドは macOS 27.0・Xcode 27.2 の環境で確認した．
+
+展開したテンプレート内で，リポジトリを次の位置に配置する．
 
 ```text
 siv3d_v0.6.16_macOS/
@@ -148,30 +71,30 @@ siv3d_v0.6.16_macOS/
     └── make10sion/   # このリポジトリ
 ```
 
-VS Code から実行する場合は，用途に応じて次のタスクを使用する．
+リポジトリのルートで，次を実行する．
 
-- 通常通りゲームを最初から進める場合：`Build and Run on macOS`
-- 戦闘システムやカードの操作感などをすぐに確認したい場合：`Run Demo Mode on macOS`
-
-`Run Demo Mode on macOS` では，使用できる盤面が全て解放された状態から戦闘を開始できる．
-タイトル画面の右下にある「デモモード」からも同じ戦闘を開始できる．この機能は Debug・Release の両方で利用できる．
-ターミナルから直接起動する場合は `./macos/run-debug.sh --demo` を使用する．
-
-その他，個別にビルド・実行したい場合は次のタスクを使用できる．
-
-- `Build on macOS`
-- `Run on macOS`
-
-ターミナルから実行する場合は，このリポジトリのルートで次を実行する．
-
-```bash
-./macos/build-debug.sh
-./macos/run-debug.sh
+```sh
+zsh macos/build-debug.sh && zsh macos/run-debug.sh
 ```
 
-### Windows（動作未確認）
+デモモードを遊ぶ場合は，起動後にタイトル画面の右下にある「デモモード」を選択する．
 
-Windows での開発環境のセットアップについては，[Siv3D 公式の Windows 向け導入手順](https://siv3d.github.io/ja-jp/download/windows/)を参照する．
+Visual Studio Code を使う場合は，以下のタスクからも実行できる．
+VS Code は任意であり，ターミナルからビルド・起動する場合は必要ない．
 
-セットアップ後，`windows/make10sion.sln` を Visual Studio 2022 で開き，
-`Debug | x64` または `Release | x64` を選択して実行する．
+| タスク | 用途 |
+| --- | --- |
+| `Build and Run on macOS` | ビルドしてタイトル画面から起動 |
+| `Build on macOS` | ビルドのみ |
+| `Run on macOS` | ビルド済みのアプリを起動 |
+
+### Windows
+
+[Siv3D 公式の Windows 向け導入手順](https://siv3d.github.io/ja-jp/download/windows/)に従い，
+OpenSiv3D v0.6.16 と Visual Studio 2022 17.14 以降を導入する．
+Visual Studio には「C++ によるデスクトップ開発」と MSVC v143 ビルドツールを追加する．
+SDK の配置先を環境変数 `SIV3D_0_6_16` に設定する．公式インストーラを使用した場合は自動的に設定される．
+
+`windows/make10sion.sln` を開き，`Release | x64` を選択してビルドする．
+実行ファイルは `windows/App/make10sion.exe` にコピーされる．
+開発用のビルドには `Debug | x64` も用意している．

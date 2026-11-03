@@ -1,4 +1,4 @@
-﻿#include "Block.hpp"
+#include "Block.hpp"
 #include "Board.hpp"
 #include "BoardCalculationRules.hpp"
 #include "CardSymbolRules.hpp"
@@ -7,13 +7,11 @@
 #include <limits>
 
 void Board::RebuildBoardDerivedState() {
-	// ターン効果を反映した記号状態から，行倍率と攻防列を再構築する．
+	m_calculationChanged = true;
 	board_multiply_effect.fill(0);
 	board_off_def.fill(0);
-	const int32 board_width = Min(static_cast<int32>(board_usage.width()), static_cast<int32>(board_content.width()));
-	const int32 grid_height = Min(static_cast<int32>(board_usage.height()), static_cast<int32>(board_content.height()));
-	const int32 state_height = Min(static_cast<int32>(board_multiply_effect.size()), static_cast<int32>(board_off_def.size()));
-	const int32 board_height = Min(grid_height, state_height);
+	constexpr int32 board_width = GameStateRules::BoardProgress::Width;
+	constexpr int32 board_height = GameStateRules::BoardProgress::Height;
 	const int32 attack_row_count = Min(Max(off_count, 0), board_height);
 	for (int y = 0; y < attack_row_count; y++) {
 		board_off_def[y] = 1;
@@ -33,7 +31,7 @@ void Board::RebuildBoardDerivedState() {
 }
 
 void Board::CalcRow() {
-	// BoardCalculationRulesの評価結果を，Battleが使う行データへ反映する．
+	m_calculationChanged = true;
 	const int32 board_width = static_cast<int32>(board_usage.width());
 	const int32 board_height = static_cast<int32>(board_usage.height());
 	BoardCalculationRules::Board calculation_board{ board_width, board_height };
@@ -56,22 +54,15 @@ void Board::CalcRow() {
 	}
 }
 
-
-
-std::pair<int, int> Board::Confirm() {
-	// 行評価，レリック補正，配置数補正を合算してBattleへ返す．
-	CalcRow();
+std::pair<int, int> Board::Confirm() const {
 	int32 attack = 0, defense = 0;
-	const int32 row_count = Min({ static_cast<int32>(result_of_calc.size()),
-		static_cast<int32>(board_multiply.size()), static_cast<int32>(board_multiply_effect.size()),
-		static_cast<int32>(board_off_def.size()) });
+	constexpr int32 row_count = GameStateRules::BoardProgress::Height;
 	for (int32 i = 0; i < row_count; i++) {
-		if ((i < static_cast<int32>(row_valid.size())) && !row_valid[i]) {
+		if (!row_valid[i]) {
 			Logger << U"Invalid board expression treated as zero: row=" << i;
 		}
 		const auto contribution = BoardCalculationRules::CheckedRowContribution(
-			result_of_calc[i], BoardCalculationRules::FinalRowMultiplier(
-				board_multiply[i], board_multiply_effect[i]));
+			result_of_calc[i], (board_multiply[i] + board_multiply_effect[i]));
 		if (!contribution) {
 			Logger << U"Ignored out-of-range board row contribution: row=" << i;
 			continue;
@@ -104,9 +95,7 @@ std::pair<int, int> Board::Confirm() {
 	return { attack, defense };
 }
 
-
 void Board::Discard() {
-	// ターン終了時に盤面の一時効果を次ターンへ進める．
 	board_number.fill(0);
 	board_content.fill('\0');
 	num_on_board.clear();
@@ -118,14 +107,9 @@ void Board::Discard() {
 	RebuildBoardDerivedState();
 }
 
-
-
-bool Board::UpdateBoardNum(int32 index, Point putAt) {
-	// カードの記号を盤面へ登録する．
-	if (!IsBoardBlockIndexValid(index)) return false;
+void Board::UpdateBoardNum(int32 index, Point putAt) {
+	// 配置範囲と重なりは AnalyzeDrop で確認済み。
 	Block* block = board_blocks[index].block;
-	Array<Point> cells;
-	if (!GetBlockCells(*block, putAt, cells)) return false;
 	for (int i = 0; i < block->Size().second; i++) {
 		for (int j = 0; j < block->Size().first; j++) {
 			char content = block->GetPiece(j, i).content;
@@ -134,10 +118,7 @@ bool Board::UpdateBoardNum(int32 index, Point putAt) {
 			GetPieceNum(content, putAt.y + i, putAt.x + j); // 数字の取得&マスの変更
 		}
 	}
-	return true;
 }
-
-
 
 void Board::GetPieceNum(char content, int y, int x) {
 	board_number[y][x] = 0;
@@ -155,4 +136,10 @@ void Board::GetPieceNum(char content, int y, int x) {
 			Logger << U"Unknown card symbol ignored: " << static_cast<int32>(index);
 		}
 	}
+}
+
+bool Board::ConsumeCalculationChange() {
+	bool changed = m_calculationChanged;
+	m_calculationChanged = false;
+	return changed;
 }

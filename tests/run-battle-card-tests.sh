@@ -16,4 +16,7 @@ xcrun clang++ \
 	-o "$test_binary"
 
 "$test_binary"
+xcrun clang++ -std=c++20 -Wall -Wextra -Werror \
+	"$repo_root/tests/BattleCombatTests.cpp" -o "$output_dir/make10sion-combat-tests"
+"$output_dir/make10sion-combat-tests"
 zsh "$script_dir/run-debug-tooling-tests.sh"

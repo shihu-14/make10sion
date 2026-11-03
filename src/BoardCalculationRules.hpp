@@ -111,15 +111,15 @@ struct Token {
 
 [[nodiscard]] inline std::optional<int32_t> CheckedInt(const double value) noexcept {
 	if (!std::isfinite(value)
-		|| (value < static_cast<double>(std::numeric_limits<int32_t>::min()))
-		|| (static_cast<double>(std::numeric_limits<int32_t>::max()) < value)) return std::nullopt;
+		|| (value < std::numeric_limits<int32_t>::min())
+		|| (std::numeric_limits<int32_t>::max() < value)) return std::nullopt;
 	return static_cast<int32_t>(value);
 }
 
 [[nodiscard]] inline bool IsSafeIntermediate(const double value) noexcept {
 	return std::isfinite(value)
-		&& (static_cast<double>(std::numeric_limits<int32_t>::min()) <= value)
-		&& (value <= static_cast<double>(std::numeric_limits<int32_t>::max()));
+		&& (std::numeric_limits<int32_t>::min() <= value)
+		&& (value <= std::numeric_limits<int32_t>::max());
 }
 
 [[nodiscard]] inline std::optional<int32_t> EvaluateTokens(const std::vector<Token>& tokens) noexcept {
@@ -155,7 +155,6 @@ struct Token {
 		if (!IsSafeIntermediate(term) || !IsSafeIntermediate(total)) return std::nullopt;
 	}
 	total += (pending_add == CardSymbolRules::Operator::Subtract) ? -term : term;
-	if (!IsSafeIntermediate(total)) return std::nullopt;
 	return CheckedInt(total);
 }
 
@@ -253,14 +252,9 @@ struct Token {
 	return result;
 }
 
-[[nodiscard]] inline double FinalRowMultiplier(
-	const double base, const double effect) noexcept {
-	return base + effect;
-}
-
 [[nodiscard]] inline std::optional<int32_t> CheckedRowContribution(
 	const int32_t value, const double multiplier) noexcept {
-	return Detail::CheckedInt(static_cast<double>(value) * multiplier);
+	return Detail::CheckedInt(value * multiplier);
 }
 
 [[nodiscard]] inline bool CheckedAdd(int32_t& total, const int32_t contribution) noexcept {

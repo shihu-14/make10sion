@@ -10,6 +10,9 @@ private:
 	Font m_font;
 	RoundRect m_startButtonRect; // ボタンの矩形
 	RoundRect m_endButtonRect;
+#if defined(DEBUG) || defined(_DEBUG)
+	RectF m_debugButtonRect{ Scene::Width() - 320, Scene::Height() - 100, 280, 60 };
+#endif
 	Audio titleBGM{ U"../../audio/title_bgm.wav",Loop::Yes }; // タイトル画面のBGM
 	Audio m_buttonSE; // ボタン押下時の効果音
 	Texture m_titlelogo; // タイトルロゴのテクスチャ

@@ -8,6 +8,7 @@
 
 #include <array>
 #include <cstdlib>
+#include <cmath>
 #include <iostream>
 #include <limits>
 #include <string_view>
@@ -42,7 +43,6 @@ DropRequest Request(const DragOrigin origin, const Cell anchor, std::vector<Cell
 	request.card_id = 4;
 	request.origin = origin;
 	request.candidate_anchor = anchor;
-	request.original_anchor = { 2, 2 };
 	request.footprint = std::move(footprint);
 	request.pointer_on_board = true;
 	return request;
@@ -145,14 +145,6 @@ void TestBoardDrops() {
 
 void TestRotationAndFastRelease() {
 	auto board = MakeBoard();
-	Expect(ShouldRotateDraggedCard(true, true),
-		"R rotates a card while a drag is active");
-	Expect(!ShouldRotateDraggedCard(false, true) && !ShouldRotateDraggedCard(true, false),
-		"rotation input is ignored outside an active drag or without an R press");
-	Expect(!CanResetCardRotation(true),
-		"an occupied board card cannot reset its rotation before detach");
-	Expect(CanResetCardRotation(false),
-		"a board card can reset its rotation after its occupancy is cleared");
 	auto horizontal = Request(DragOrigin::Hand, { 5, 1 }, { { 0, 0 }, { 1, 0 } });
 	Expect(ResolveDrop(horizontal, board).result == DropResult::Place,
 		"horizontal rotated footprint fits");
@@ -263,22 +255,6 @@ void TestDamageHitRules() {
 }
 
 void TestInputOwnership() {
-	Expect(CapturePointerOwner(true, false, true, true, true, true, true) == PointerInputOwner::Deck,
-		"modal deck owns input");
-	Expect(CapturePointerOwner(false, true, true, true, true, true, true) == PointerInputOwner::Card,
-		"active drag owns input");
-	Expect(CapturePointerOwner(false, false, true, true, true, true, true) == PointerInputOwner::Deck,
-		"deck button wins initial hit priority");
-	Expect(CapturePointerOwner(false, false, true, false, true, true, true) == PointerInputOwner::Attack,
-		"attack button wins over cards");
-	Expect(CapturePointerOwner(false, false, true, false, false, true, true) == PointerInputOwner::Card,
-		"hand card wins over board card");
-	Expect(CapturePointerOwner(false, false, false, true, true, true, true) == PointerInputOwner::None,
-		"locked combat does not capture a new gesture");
-	Expect(CanAcceptBattleInput(true, false, false), "idle battle accepts input");
-	Expect(!CanAcceptBattleInput(false, false, false), "combat animation rejects input");
-	Expect(!CanAcceptBattleInput(true, true, false), "board lock rejects input");
-	Expect(!CanAcceptBattleInput(true, false, true), "scene transition rejects input");
 	Expect(CanProcessBoardInput(true, false, PointerInputOwner::Card),
 		"card owner can continue an active board drag");
 	Expect(CanProcessBoardInput(true, false, PointerInputOwner::None),
@@ -287,16 +263,6 @@ void TestInputOwnership() {
 		"deck-owned input does not reach the board");
 	Expect(!CanProcessBoardInput(true, true, PointerInputOwner::Card),
 		"failed hand capture does not also start a board drag");
-	Expect(ShouldRefreshPlayerCombatValues(true, false, false, false, false),
-		"entering idle refreshes the player combat values");
-	Expect(ShouldRefreshPlayerCombatValues(true, true, true, false, false),
-		"finishing a board drag refreshes the player combat values");
-	Expect(ShouldRefreshPlayerCombatValues(true, true, false, false, true),
-		"a hand drag completed within one frame refreshes the player combat values");
-	Expect(!ShouldRefreshPlayerCombatValues(true, true, false, false, false),
-		"an unchanged idle board does not recalculate combat values every frame");
-	Expect(!ShouldRefreshPlayerCombatValues(false, true, true, false, false),
-		"combat animation never replaces its mutable combat values with a preview");
 	bool transition_started = false;
 	Expect(BeginOneShotTransition(transition_started), "victory transition starts once");
 	Expect(!BeginOneShotTransition(transition_started), "victory transition cannot start twice");
@@ -323,81 +289,118 @@ void TestInteractionDrawLayers() {
 		"a settled board card remains a valid hand swap target");
 	Expect(!CanBeHandSwapTarget(CardLifecycle::ReturningToBoard),
 		"another card cannot change a returning card's destination");
-	Expect(CapturePointerOwner(false, false, true, false, false, false, true)
-		== PointerInputOwner::Card,
-		"a board card under a returning visual can own input");
-	Expect(CapturePointerOwner(false, false, true, true, false, false, true)
-		== PointerInputOwner::Deck,
-		"UI under a returning visual keeps its normal priority");
 }
 
-void TestStableIdentityAndReservations() {
+void TestDropDoesNotMutateBoard() {
 	auto board = MakeBoard();
-	At(board, { 2, 2 }).occupant = 42;
-	Expect(OccupantsReferenceKnownCards(board, { 4, 42 }), "occupancy stores a known stable card id");
-	Expect(!OccupantsReferenceKnownCards(board, { 4, 8 }), "orphan occupancy is rejected");
-
-	std::vector<ReservedHandSlot> reservations{ { 4, 0 }, { 8, 1 } };
-	Expect(HasUniqueReservedHandSlots(reservations), "reserved hand slots are unique");
-	reservations[0].slot = 1;
-	Expect(!HasUniqueReservedHandSlots(reservations), "duplicate reserved hand slots are rejected");
-
-	board = MakeBoard();
 	const BoardSnapshot before = board;
 	(void)ResolveDrop(Request(DragOrigin::Hand, { 2, 2 }), board);
 	Expect(board.cells == before.cells, "drop classification does not mutate unrelated board state");
 }
 
+void TestReturnMotionProgress() {
+	ReturnMotion motion;
+	Expect(!motion.active && motion.elapsedSeconds == 0.0 && motion.Rate() == 0.0,
+		"a return timer starts inactive at its initial rate");
+	Expect(!motion.Update(0.1) && motion.elapsedSeconds == 0.0,
+		"an inactive return timer does not advance or report completion");
+
+	motion.Start();
+	Expect(motion.active && motion.elapsedSeconds == 0.0 && motion.Rate() == 0.0,
+		"starting a return begins at zero progress");
+	Expect(!motion.Update(0.125) && motion.active && motion.Rate() == 0.875,
+		"a return reaches cubic ease-out rate 0.875 at half of its quarter-second duration");
+	Expect(motion.Update(0.125) && !motion.active
+		&& motion.elapsedSeconds == 0.25 && motion.Rate() == 1.0,
+		"a return completes exactly at a quarter second");
+	Expect(!motion.Update(0.1) && motion.elapsedSeconds == 0.25,
+		"completion is reported once and an ended return does not advance");
+
+	motion.Start();
+	Expect(motion.Update(0.3) && !motion.active
+		&& motion.elapsedSeconds == 0.25 && motion.Rate() == 1.0,
+		"an update beyond the return duration clamps to its completed rate");
+}
+
+void TestReturnMotionRestart() {
+	ReturnMotion motion;
+	motion.Start();
+	motion.Update(0.1);
+	motion.Start();
+	Expect(motion.active && motion.elapsedSeconds == 0.0 && motion.Rate() == 0.0,
+		"restarting an active return resets its elapsed time and rate");
+	Expect(!motion.Update(0.125) && motion.Rate() == 0.875,
+		"a restarted return receives a full new duration");
+	motion.Complete();
+	Expect(!motion.active && motion.elapsedSeconds == 0.25 && motion.Rate() == 1.0
+		&& !motion.Update(0.1),
+		"forced completion ends a return without a later completion event");
+}
+
+void TestHandDealProgress() {
+	Expect(!ResolveHandDealProgress(1, 0.09).started,
+		"the second hand card waits until one tenth of a second into the deal");
+	const auto started = ResolveHandDealProgress(1, 0.1);
+	Expect(started.started && !started.complete && started.linear_progress == 0.0,
+		"a staggered hand card starts at zero progress");
+	const auto halfway = ResolveHandDealProgress(1, 0.25);
+	Expect(halfway.started && !halfway.complete
+		&& std::abs(halfway.linear_progress - 0.5) < 0.000001
+		&& std::abs(halfway.eased_progress - 0.875) < 0.000001,
+		"each hand card uses a three-tenths-second cubic ease-out motion");
+	const auto complete = ResolveHandDealProgress(1, 0.4);
+	Expect(complete.complete && complete.linear_progress == 1.0 && complete.eased_progress == 1.0,
+		"a hand card reaches its final rate at its launch time plus three tenths of a second");
+	Expect(std::abs(HandDealTotalDuration(3) - 0.5) < 0.000001,
+		"a three-card deal takes half a second through the final card's motion");
+}
+
 void TestConcurrentReturnMotions() {
 	CardLifecycle card_a = CardLifecycle::ReturningToHand;
 	CardLifecycle card_b = CardLifecycle::InHand;
-	VisualMotion motion_a;
-	VisualMotion motion_b;
-	StartVisualMotion(motion_a, { 800, 500 }, { 350, 900 });
-
+	ReturnMotion motion_a;
+	ReturnMotion motion_b;
+	motion_a.Start();
+	Expect(IsLogicallyInHand(card_a), "returning card is logically in hand immediately");
 	Expect(!CanStartCardDrag(card_a), "returning card ignores input");
 	Expect(CanStartCardDrag(card_b), "another hand card remains interactive");
-	Expect(!AdvanceVisualMotion(motion_a, 1.0 / 60.0,
-		ResolveReturnMotionEasing(card_a)), "return continues across multiple frames");
-	const ScreenPoint a_after_first_frame = motion_a.current;
-	Expect((a_after_first_frame != motion_a.start) && (a_after_first_frame != motion_a.end),
-		"returning card has a visual-only intermediate position");
+	Expect(!motion_a.Update(0.125) && motion_a.Rate() == 0.875,
+		"returning card advances while another hand card remains interactive");
 
 	card_b = CardLifecycle::DraggingFromHand;
 	Expect(IsLogicallyInHand(card_a) && IsLogicallyInHand(card_b),
 		"returning and dragging cards are both logically in hand");
-	StartVisualMotion(motion_b, { 900, 450 }, { 425, 900 });
+	motion_b.Start();
 	card_b = CardLifecycle::ReturningToHand;
 
-	for (int frame = 0; frame < 16; frame++) {
-		if (AdvanceVisualMotion(motion_a, 1.0 / 60.0,
-			ResolveReturnMotionEasing(card_a))) SettleReturnLifecycle(card_a);
-		if (AdvanceVisualMotion(motion_b, 1.0 / 60.0,
-			ResolveReturnMotionEasing(card_b))) SettleReturnLifecycle(card_b);
-	}
-	Expect((card_a == CardLifecycle::InHand) && (motion_a.current == ScreenPoint{ 350, 900 }),
-		"first card snaps exactly to its reserved hand position");
-	Expect((card_b == CardLifecycle::InHand) && (motion_b.current == ScreenPoint{ 425, 900 }),
-		"second card returns independently to a different hand position");
+	if (motion_a.Update(0.125)) SettleReturnLifecycle(card_a);
+	if (motion_b.Update(0.125)) SettleReturnLifecycle(card_b);
+	Expect(card_a == CardLifecycle::InHand && !motion_a.active && motion_a.Rate() == 1.0,
+		"the first return settles without waiting for a later return");
+	Expect(card_b == CardLifecycle::ReturningToHand && motion_b.active && motion_b.Rate() == 0.875,
+		"a later return keeps its independent timer and returning lifecycle");
+	if (motion_b.Update(0.125)) SettleReturnLifecycle(card_b);
+	Expect(card_b == CardLifecycle::InHand && !motion_b.active && motion_b.Rate() == 1.0,
+		"the second return settles when its own timer completes");
 }
 
 void TestForcedMotionCompletion() {
 	CardLifecycle hand_card = CardLifecycle::ReturningToHand;
 	CardLifecycle board_card = CardLifecycle::ReturningToBoard;
-	VisualMotion hand_motion;
-	VisualMotion board_motion;
-	StartVisualMotion(hand_motion, { 700, 400 }, { 350, 900 });
-	StartVisualMotion(board_motion, { 900, 600 }, { 735, 305 });
-	AdvanceVisualMotion(hand_motion, 1.0 / 60.0);
-	AdvanceVisualMotion(board_motion, 1.0 / 60.0);
+	ReturnMotion hand_motion;
+	ReturnMotion board_motion;
+	hand_motion.Start();
+	board_motion.Start();
+	hand_motion.Update(1.0 / 60.0);
+	board_motion.Update(1.0 / 60.0);
 
-	CompleteVisualMotion(hand_motion);
-	CompleteVisualMotion(board_motion);
+	hand_motion.Complete();
+	board_motion.Complete();
 	SettleReturnLifecycle(hand_card);
 	SettleReturnLifecycle(board_card);
-	Expect((hand_card == CardLifecycle::InHand) && (hand_motion.current == hand_motion.end),
+	Expect(hand_card == CardLifecycle::InHand && !hand_motion.active && hand_motion.Rate() == 1.0,
 		"focus loss or scene transition completes a hand return");
-	Expect((board_card == CardLifecycle::OnBoard) && (board_motion.current == board_motion.end),
+	Expect(board_card == CardLifecycle::OnBoard && !board_motion.active && board_motion.Rate() == 1.0,
 		"focus loss or scene transition completes a board return");
 }
 
@@ -426,11 +429,8 @@ void TestRepeatedFailedBoardSwapReturn() {
 
 		CardLifecycle returning_card = CardLifecycle::ReturningToBoard;
 		CardLifecycle other_card = CardLifecycle::OnBoard;
-		VisualMotion return_motion;
-		StartVisualMotion(return_motion, { 900, 520 }, { 825, 395 });
-		const Cell other_anchor{ 4, 2 };
-		const int other_rotation = 1;
-		const int other_hand_slot = 3;
+		ReturnMotion return_motion;
+		return_motion.Start();
 
 		for (int frame = 0; frame < 16; frame++) {
 			if (frame == 1) {
@@ -440,18 +440,14 @@ void TestRepeatedFailedBoardSwapReturn() {
 			}
 			Expect(CanProcessBoardInput(true, false, PointerInputOwner::Card),
 				"returning visual does not roll back another active drag");
-			if (AdvanceVisualMotion(return_motion, 1.0 / 60.0,
-				ResolveReturnMotionEasing(returning_card))) {
+			if (return_motion.Update(1.0 / 60.0)) {
 				SettleReturnLifecycle(returning_card);
 			}
 			Expect(board.cells == before.cells,
 				"board restore preserves all logical occupancy while animating");
-			Expect((other_anchor == Cell{ 4, 2 }) && (other_rotation == 1) && (other_hand_slot == 3),
-				"board restore does not mutate the other card");
 		}
-		Expect((returning_card == CardLifecycle::OnBoard)
-			&& (return_motion.current == ScreenPoint{ 825, 395 }),
-			"board return ends exactly at its original screen position");
+		Expect(returning_card == CardLifecycle::OnBoard && !return_motion.active && return_motion.Rate() == 1.0,
+			"a rejected board swap settles its return timer and board lifecycle");
 		Expect(GetCardDrawLayer(other_card) == CardDrawLayer::DraggingOverlay,
 			"active drag remains above the returning overlay");
 	}
@@ -506,12 +502,10 @@ void TestBattleDeckState() {
 	BattleDeckState deck;
 	deck.Initialize(4, { 2, 0, 3, 1 });
 	Expect(deck.Validate(), "battle deck starts with one zone per card");
-	Expect(deck.CanMove(1, CardZone::DrawPile, CardZone::Hand),
-		"zone transition can be validated without mutating the deck");
-	Expect(deck.ZoneOf(1) == CardZone::DrawPile,
-		"zone transition preflight leaves the card in its original zone");
-	Expect(!deck.CanMove(1, CardZone::Hand, CardZone::Board),
-		"zone transition preflight rejects an incorrect source zone");
+	Expect(!deck.Move(1, CardZone::Hand, CardZone::Board),
+		"a move from the wrong source zone is rejected");
+	Expect(deck.ZoneOf(1) == CardZone::DrawPile && deck.Validate(),
+		"a rejected move preserves card ownership");
 	Expect(deck.Move(1, CardZone::DrawPile, CardZone::Hand), "draw moves one card to hand");
 	Expect(deck.Move(1, CardZone::Hand, CardZone::Board), "placement moves hand card to board");
 	Expect(deck.Move(1, CardZone::Board, CardZone::Discard), "turn end discards board card");
@@ -791,8 +785,6 @@ void TestBoardCalculationRules() {
 		&& invalid_operand.ExpressionUsageAt(1, 0) == Usage::Used
 		&& invalid_operand.ExpressionUsageAt(2, 0) == Usage::Used,
 		"evaluation failure does not relabel expression tokens as ignored");
-	Expect(FinalRowMultiplier(2.0, 1.5) == 3.5,
-		"UI and confirmation share the final row multiplier rule");
 	const auto fresh_evaluation = Evaluate(Board{ 7, 6 });
 	Expect(fresh_evaluation.ExpressionUsageAt(0, 0) == Usage::NonExpression,
 		"a fresh evaluation never retains cell usage from an earlier board");
@@ -933,7 +925,10 @@ int main() {
 	TestDamageHitRules();
 	TestInputOwnership();
 	TestInteractionDrawLayers();
-	TestStableIdentityAndReservations();
+	TestDropDoesNotMutateBoard();
+	TestReturnMotionProgress();
+	TestReturnMotionRestart();
+	TestHandDealProgress();
 	TestConcurrentReturnMotions();
 	TestForcedMotionCompletion();
 	TestRepeatedFailedBoardSwapReturn();

@@ -6,7 +6,7 @@ bool Banner::update(vector<Block>& deck_data, bool allow_deck_open) {
 }
 
 bool Banner::update(vector<Block>& deck_data, bool allow_deck_open, Point cursor_pos,
-    bool left_down, bool left_up, bool focused) {
+    bool left_down, bool left_up, bool focused, const vector<int32>& discarded) {
     isHovered_setting = IsSettingButtonHovered(cursor_pos);
     if (setting_alpha < 0.4 && isHovered_setting) {
         setting_alpha += 0.1;
@@ -25,7 +25,7 @@ bool Banner::update(vector<Block>& deck_data, bool allow_deck_open, Point cursor
     if (!focused || !allow_deck_open) deck_button_armed = false;
     if (focused && allow_deck_open && left_down && isHovered_deck) deck_button_armed = true;
     if (left_up && deck_button_armed && allow_deck_open && isHovered_deck) {
-		OpenDeck(deck_data);
+			OpenDeck(deck_data, discarded);
     } else if (deck_alpha < 0.4 && isHovered_deck) {
         deck_alpha += 0.1;
         if (deck_alpha > 0.4) deck_alpha = 0.4;
@@ -45,8 +45,8 @@ bool Banner::IsSettingButtonHovered(Point cursor_pos) const {
     return RectF{ 1720, 0, 150, 150 }.contains(cursor_pos);
 }
 
-void Banner::OpenDeck(vector<Block>& deck_data) {
-	deck.init(deck_data);
+void Banner::OpenDeck(const vector<Block>& deck_data, const vector<int32>& discarded) {
+	deck.init(deck_data, discarded);
 	deck_mode = true;
 	deck_alpha = 0.0;
 	deck_button_armed = false;

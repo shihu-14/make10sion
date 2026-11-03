@@ -16,12 +16,13 @@ private:
 	const Texture back_button_img{ U"../../image/back_button_deck0.png" };
 	int deck_size = 0; //デッキのサイズ
 	std::vector<Block> deck_data; //デッキのカード
+	std::vector<int32> discarded_cards;
 	bool first_call = false;
 	bool fade_mode = true; //フェードインモード
 	uint64 timer = 0; //フェードインのタイマー
 	void updateFadeIn(double t);
 public:
-	void init(std::vector<Block>& deck);
+	void init(const std::vector<Block>& deck, const std::vector<int32>& discarded = {});
 	bool update();
 	void draw() const;
 };

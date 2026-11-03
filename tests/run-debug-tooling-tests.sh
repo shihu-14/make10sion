@@ -12,9 +12,10 @@ import sys
 with open(sys.argv[1], encoding="utf-8") as source:
     tasks = json.load(source)["tasks"]
 
-midgame = next(task for task in tasks if task["label"] == "Siv3D: Run Midgame Debug")
+midgame = next(task for task in tasks if task["label"] == "Run Demo Mode on macOS")
 assert midgame.get("dependsOrder") == "sequence"
-assert midgame.get("dependsOn") == ["Siv3D: Build macOS"]
+assert midgame.get("dependsOn") == ["Build on macOS"]
+assert midgame.get("args") == ["--debug-midgame"]
 PY
 
 fingerprint_script="$repo_root/macos/build-input-fingerprint.sh"

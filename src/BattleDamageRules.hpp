@@ -43,8 +43,7 @@ struct DefenseExchange {
 [[nodiscard]] inline constexpr double ResolveDefenseExchangeDuration(
 	const std::int32_t attack, const std::int32_t defense) noexcept {
 	if ((attack <= 0) || (defense <= 0)) return 0.0;
-	const std::int32_t blocked_damage = std::max(0,
-		std::min(std::max(0, attack), std::max(0, defense)));
+	const std::int32_t blocked_damage = std::min(attack, defense);
 	return MaximumDefenseExchangeDuration * blocked_damage / defense;
 }
 
@@ -52,10 +51,10 @@ struct DefenseExchange {
 	const std::int32_t actual_damage, const std::int32_t maximum_hp) {
 	const std::int32_t hit_count = HitCountForDamage(actual_damage, maximum_hp);
 	if (hit_count <= 0) return {};
-	std::vector<std::int32_t> hits(static_cast<std::size_t>(hit_count), actual_damage / hit_count);
+	std::vector<std::int32_t> hits(hit_count, actual_damage / hit_count);
 	const std::int32_t remainder = actual_damage % hit_count;
 	for (std::int32_t i = 0; i < remainder; ++i) {
-		++hits[static_cast<std::size_t>(i)];
+		++hits[i];
 	}
 	return hits;
 }

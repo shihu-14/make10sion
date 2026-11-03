@@ -38,15 +38,15 @@ public:
 		}
 	}
 
-	[[nodiscard]] bool IsInside(const BoardCell cell) const noexcept {
+	bool IsInside(BoardCell cell) const {
 		return (0 <= cell.x) && (cell.x < Width) && (0 <= cell.y) && (cell.y < Height);
 	}
 
-	[[nodiscard]] bool IsUnlocked(const BoardCell cell) const noexcept {
+	bool IsUnlocked(BoardCell cell) const {
 		return IsInside(cell) && m_unlocked[ToIndex(cell)];
 	}
 
-	[[nodiscard]] bool IsUnlockable(const BoardCell cell) const noexcept {
+	bool IsUnlockable(BoardCell cell) const {
 		if (!IsInside(cell) || IsUnlocked(cell)) return false;
 		if (cell.y < 2) return IsUnlocked({ cell.x, cell.y + 1 });
 		if (cell.y < 4) {
@@ -55,7 +55,7 @@ public:
 		return IsUnlocked({ cell.x, cell.y - 1 });
 	}
 
-	[[nodiscard]] std::vector<BoardCell> UnlockableCells() const {
+	std::vector<BoardCell> UnlockableCells() const {
 		std::vector<BoardCell> result;
 		for (int32_t y = 0; y < Height; ++y) {
 			for (int32_t x = 0; x < Width; ++x) {
@@ -65,67 +65,62 @@ public:
 		return result;
 	}
 
-	bool Unlock(const BoardCell cell) {
+	bool Unlock(BoardCell cell) {
 		if (!IsUnlockable(cell)) return false;
 		m_unlocked[ToIndex(cell)] = true;
 		return true;
 	}
 
-	void UnlockAll() noexcept {
+	void UnlockAll() {
 		m_unlocked.fill(true);
 	}
 
-	[[nodiscard]] int32_t UnlockedCount() const noexcept {
+	int32_t UnlockedCount() const {
 		return static_cast<int32_t>(std::count(m_unlocked.begin(), m_unlocked.end(), true));
 	}
 
 private:
-	[[nodiscard]] static constexpr std::size_t ToIndex(const BoardCell cell) noexcept {
+	static std::size_t ToIndex(BoardCell cell) {
 		return static_cast<std::size_t>(cell.y * Width + cell.x);
 	}
 
 	std::array<bool, CellCount> m_unlocked{};
 };
 
-[[nodiscard]] inline int32_t CalculateHandLimit(const BoardProgress& progress) noexcept {
+inline int32_t CalculateHandLimit(const BoardProgress& progress) {
 	return std::min<int32_t>(15, (progress.UnlockedCount() + 1) / 2 + 2);
 }
 
-[[nodiscard]] inline int32_t ResolveBattleHandLimit(const BoardProgress& progress,
-	const int32_t explicit_override) noexcept {
+inline int32_t ResolveBattleHandLimit(const BoardProgress& progress,
+	int32_t explicit_override) {
 	return (0 < explicit_override)
 		? std::min<int32_t>(15, explicit_override)
 		: CalculateHandLimit(progress);
 }
 
-[[nodiscard]] inline std::vector<int32_t> CreateInitialDrawOrder(
-	const int32_t card_count, const bool preserve_deck_order) {
+inline std::vector<int32_t> CreateInitialDrawOrder(
+	int32_t card_count, bool preserve_deck_order) {
 	std::vector<int32_t> result(static_cast<std::size_t>(std::max(card_count, 0)));
 	std::iota(result.begin(), result.end(), 0);
 	if (preserve_deck_order) std::reverse(result.begin(), result.end());
 	return result;
 }
 
-[[nodiscard]] inline bool ShouldShuffleInitialDrawOrder(
-	const bool preserve_deck_order) noexcept {
-	return !preserve_deck_order;
-}
-
-[[nodiscard]] inline int32_t RequiredBoardFillCells(const int32_t unlocked_cells) noexcept {
+inline int32_t RequiredBoardFillCells(int32_t unlocked_cells) {
 	return (std::max(unlocked_cells, 0) + 1) / 2;
 }
 
-[[nodiscard]] inline bool IsOccupiedCardSymbol(const char symbol) noexcept {
+inline bool IsOccupiedCardSymbol(char symbol) {
 	return (symbol != '$') && (symbol != '\n') && (symbol != '\r');
 }
 
-[[nodiscard]] inline int32_t CountOccupiedCells(const std::string_view card_definition) noexcept {
+inline int32_t CountOccupiedCells(std::string_view card_definition) {
 	return static_cast<int32_t>(std::count_if(card_definition.begin(), card_definition.end(),
 		IsOccupiedCardSymbol));
 }
 
-[[nodiscard]] inline bool ShouldRefreshDrawPile(const int32_t remaining_occupied_cells,
-	const int32_t full_deck_occupied_cells, const int32_t unlocked_cells) noexcept {
+inline bool ShouldRefreshDrawPile(int32_t remaining_occupied_cells,
+	int32_t full_deck_occupied_cells, int32_t unlocked_cells) {
 	const int32_t required_cells = RequiredBoardFillCells(unlocked_cells);
 	return (remaining_occupied_cells < required_cells)
 		&& (required_cells <= full_deck_occupied_cells);
@@ -136,21 +131,21 @@ struct AudioSettings {
 	double se_volume = 1.0;
 };
 
-[[nodiscard]] inline double ClampVolume(const double volume) noexcept {
+inline double ClampVolume(double volume) {
 	return std::clamp(volume, 0.0, 1.0);
 }
 
-[[nodiscard]] inline int32_t VolumePercent(const double volume) noexcept {
+inline int32_t VolumePercent(double volume) {
 	return static_cast<int32_t>(std::lround(ClampVolume(volume) * 100.0));
 }
 
-[[nodiscard]] inline double SliderVolumeAt(const double pointer_x, const double track_x,
-	const double track_width) noexcept {
+inline double SliderVolumeAt(double pointer_x, double track_x,
+	double track_width) {
 	if (track_width <= 0.0) return 0.0;
 	return ClampVolume((pointer_x - track_x) / track_width);
 }
 
-[[nodiscard]] inline uint64_t ElapsedMillis(const uint64_t now, const uint64_t start) noexcept {
+inline uint64_t ElapsedMillis(uint64_t now, uint64_t start) {
 	return (start <= now) ? (now - start) : 0;
 }
 
@@ -160,11 +155,11 @@ enum class RunOutcome {
 	GameOver,
 };
 
-[[nodiscard]] inline int32_t ActIndex(const int32_t layer) noexcept {
+inline int32_t ActIndex(int32_t layer) {
 	return std::clamp(layer / 10, 0, 2);
 }
 
-[[nodiscard]] inline int32_t FloorInAct(const int32_t layer) noexcept {
+inline int32_t FloorInAct(int32_t layer) {
 	return std::max(layer, 0) % 10;
 }
 
@@ -179,8 +174,8 @@ struct VictoryProgress {
 	int32_t next_layer = 0;
 };
 
-[[nodiscard]] inline VictoryProgress ResolveVictory(const int32_t enemy_type,
-	const int32_t layer) noexcept {
+inline VictoryProgress ResolveVictory(int32_t enemy_type,
+	int32_t layer) {
 	if ((enemy_type == 2) && (layer >= 29)) {
 		return { VictoryDestination::Result, layer };
 	}
@@ -197,8 +192,8 @@ enum class CardZone {
 	Discard,
 };
 
-[[nodiscard]] inline bool NeedsBoardDetach(const CardZone expected,
-	const CardZone destination) noexcept {
+inline bool NeedsBoardDetach(CardZone expected,
+	CardZone destination) {
 	const bool was_board_managed = (expected == CardZone::Hand) || (expected == CardZone::Board);
 	const bool remains_board_managed = (destination == CardZone::Hand) || (destination == CardZone::Board);
 	return was_board_managed && !remains_board_managed;
@@ -212,9 +207,9 @@ struct CardZoneChange {
 
 class BattleDeckState {
 public:
-	void Initialize(const int32_t card_count, std::vector<int32_t> draw_order = {}) {
+	void Initialize(int32_t card_count, std::vector<int32_t> draw_order = {}) {
 		m_zones.assign(static_cast<std::size_t>(std::max(card_count, 0)), CardZone::DrawPile);
-		m_draw_pile.clear();
+		m_drawPile.clear();
 		m_hand.clear();
 		m_board.clear();
 		m_discard.clear();
@@ -223,53 +218,43 @@ public:
 			std::iota(draw_order.begin(), draw_order.end(), 0);
 		}
 		if (!IsCompleteOrder(draw_order)) return;
-		m_draw_pile = std::move(draw_order);
+		m_drawPile = std::move(draw_order);
 	}
 
-	[[nodiscard]] int32_t CardCount() const noexcept {
+	int32_t CardCount() const {
 		return static_cast<int32_t>(m_zones.size());
 	}
 
-	[[nodiscard]] bool IsValidCard(const int32_t card_id) const noexcept {
+	bool IsValidCard(int32_t card_id) const {
 		return (0 <= card_id) && (card_id < CardCount());
 	}
 
-	[[nodiscard]] CardZone ZoneOf(const int32_t card_id) const noexcept {
-		return IsValidCard(card_id) ? m_zones[static_cast<std::size_t>(card_id)] : CardZone::DrawPile;
+	CardZone ZoneOf(int32_t card_id) const {
+		return IsValidCard(card_id) ? m_zones[card_id] : CardZone::DrawPile;
 	}
 
-	[[nodiscard]] const std::vector<int32_t>& Cards(const CardZone zone) const noexcept {
+	const std::vector<int32_t>& Cards(CardZone zone) const {
 		return Container(zone);
 	}
 
-	[[nodiscard]] bool CanMove(const int32_t card_id, const CardZone expected,
-		const CardZone destination) const noexcept {
+	bool Move(int32_t card_id, CardZone expected, CardZone destination) {
 		if (!IsValidCard(card_id) || (ZoneOf(card_id) != expected)) return false;
-		if (expected == destination) return true;
-		const auto& source = Container(expected);
-		const auto& target = Container(destination);
-		return (std::find(source.begin(), source.end(), card_id) != source.end())
-			&& (std::find(target.begin(), target.end(), card_id) == target.end());
-	}
-
-	bool Move(const int32_t card_id, const CardZone expected, const CardZone destination) {
-		if (!CanMove(card_id, expected, destination)) return false;
 		if (expected == destination) return true;
 		auto& source = Container(expected);
 		const auto it = std::find(source.begin(), source.end(), card_id);
 		auto& target = Container(destination);
 		source.erase(it);
 		target.push_back(card_id);
-		m_zones[static_cast<std::size_t>(card_id)] = destination;
+		m_zones[card_id] = destination;
 		return true;
 	}
 
 	bool RecycleDiscard() {
-		if (!m_draw_pile.empty() || !m_hand.empty() || !m_board.empty() || m_discard.empty()) return false;
+		if (!m_drawPile.empty() || !m_hand.empty() || !m_board.empty() || m_discard.empty()) return false;
 		for (const int32_t card_id : m_discard) {
-			m_zones[static_cast<std::size_t>(card_id)] = CardZone::DrawPile;
+			m_zones[card_id] = CardZone::DrawPile;
 		}
-		m_draw_pile = m_discard;
+		m_drawPile = m_discard;
 		m_discard.clear();
 		return true;
 	}
@@ -279,49 +264,55 @@ public:
 			return false;
 		}
 		m_zones.assign(m_zones.size(), CardZone::DrawPile);
-		m_draw_pile = std::move(draw_order);
+		m_drawPile = std::move(draw_order);
 		m_discard.clear();
 		return true;
 	}
 
-	[[nodiscard]] bool Validate() const noexcept {
+	bool Validate() const {
 		std::vector<int32_t> counts(m_zones.size(), 0);
 		for (const CardZone zone : { CardZone::DrawPile, CardZone::Hand, CardZone::Board, CardZone::Discard }) {
 			for (const int32_t card_id : Container(zone)) {
 				if (!IsValidCard(card_id) || (ZoneOf(card_id) != zone)) return false;
-				counts[static_cast<std::size_t>(card_id)]++;
+				counts[card_id]++;
 			}
 		}
-		return std::all_of(counts.begin(), counts.end(), [](const int32_t count) { return count == 1; });
+		return std::all_of(counts.begin(), counts.end(), [](int32_t count) { return count == 1; });
 	}
 
 private:
-	[[nodiscard]] bool IsCompleteOrder(const std::vector<int32_t>& order) const {
+	bool IsCompleteOrder(const std::vector<int32_t>& order) const {
 		if (order.size() != m_zones.size()) return false;
 		std::vector<bool> seen(m_zones.size(), false);
 		for (const int32_t card_id : order) {
-			if (!IsValidCard(card_id) || seen[static_cast<std::size_t>(card_id)]) return false;
-			seen[static_cast<std::size_t>(card_id)] = true;
+			if (!IsValidCard(card_id) || seen[card_id]) return false;
+			seen[card_id] = true;
 		}
 		return true;
 	}
 
-	[[nodiscard]] const std::vector<int32_t>& Container(const CardZone zone) const noexcept {
+	const std::vector<int32_t>& Container(CardZone zone) const {
 		switch (zone) {
-		case CardZone::DrawPile: return m_draw_pile;
+		case CardZone::DrawPile: return m_drawPile;
 		case CardZone::Hand: return m_hand;
 		case CardZone::Board: return m_board;
 		case CardZone::Discard: return m_discard;
 		}
-		return m_draw_pile;
+		return m_drawPile;
 	}
 
-	[[nodiscard]] std::vector<int32_t>& Container(const CardZone zone) noexcept {
-		return const_cast<std::vector<int32_t>&>(std::as_const(*this).Container(zone));
+	std::vector<int32_t>& Container(CardZone zone) {
+		switch (zone) {
+		case CardZone::DrawPile: return m_drawPile;
+		case CardZone::Hand: return m_hand;
+		case CardZone::Board: return m_board;
+		case CardZone::Discard: return m_discard;
+		}
+		return m_drawPile;
 	}
 
 	std::vector<CardZone> m_zones;
-	std::vector<int32_t> m_draw_pile;
+	std::vector<int32_t> m_drawPile;
 	std::vector<int32_t> m_hand;
 	std::vector<int32_t> m_board;
 	std::vector<int32_t> m_discard;

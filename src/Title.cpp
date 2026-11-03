@@ -1,4 +1,8 @@
 #include "Title.hpp"  
+#if defined(DEBUG) || defined(_DEBUG)
+#include "DebugScenarioFactory.hpp"
+#include <utility>
+#endif
 using namespace std;
 
 Title::Title(const InitData& init) : IScene(init),
@@ -28,6 +32,20 @@ void Title::update() {
         }
         return;
     }
+#if defined(DEBUG) || defined(_DEBUG)
+    if (m_debugButtonRect.mouseOver()) {
+        Cursor::RequestStyle(CursorStyle::Hand);
+        if (m_debugButtonRect.leftClicked()) {
+            // 起動引数で選べる途中の戦闘を，タイトルからも開く．
+            Reseed(DebugScenarioRules::Midgame().seed);
+            auto debugData = DebugScenarioFactory::CreateMidgame();
+            debugData->audio_settings = getData().audio_settings;
+            getData() = std::move(*debugData);
+            changeScene(State::Battle, 0.5s);
+            return;
+        }
+    }
+#endif
     if (m_startButtonRect.mouseOver())
     {
         Cursor::RequestStyle(CursorStyle::Hand);
@@ -97,4 +115,10 @@ void Title::draw() const {
         m_endButtonTexture.drawAt(Scene::Center().x, Scene::Center().y); // m_endButtonRectの領域に合わせて画像を引き伸ばし
     }
 
+#if defined(DEBUG) || defined(_DEBUG)
+    m_debugButtonRect.draw(m_debugButtonRect.mouseOver()
+        ? ColorF{ 0.3, 0.3, 0.3, 0.9 } : ColorF{ 0.1, 0.1, 0.1, 0.9 });
+    m_debugButtonRect.drawFrame(2, Palette::White);
+    m_font(U"デバッグモード").drawAt(m_debugButtonRect.center(), Palette::White);
+#endif
 }

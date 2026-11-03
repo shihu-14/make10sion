@@ -8,7 +8,6 @@
 struct Piece {
 	char content;
 	int x, y;
-	int stat;
 };
 
 
@@ -17,7 +16,6 @@ private:
 	std::vector<std::vector<Piece>> contents;
 	int sizeX, sizeY;
 	int posX, posY;
-	int stat;
 	//画像読み込み
 	std::vector<Texture> number_imgs;
 	std::vector<Texture> special_imgs;
@@ -39,12 +37,10 @@ public:
 	int32 OccupiedCellCount() const;
 	std::pair<int, int> GetPos() const { return { posX, posY }; }
 	void SetPos(int x, int y) { posX = x; posY = y; }
-	void ResetRuntimeState() { posX = 0; posY = 0; stat = 0; }
+	void ResetRuntimeState() { posX = 0; posY = 0; }
 	Piece& GetPiece(int x, int y) { return contents[x][y]; }
 	const Piece& GetPiece(int x, int y) const { return contents[x][y]; }
 	void Rotate();
-	int GetStat() const { return stat; }
-	void SetStat(int newStat) { stat = newStat; }
 	bool IsHovered(Point cursor_pos) const;
 	void Draw(std::pair<int, int> pos, double size = 1.0, double angle = 0.0,
 		double alpha = 1.0, const Grid<double>* cell_alphas = nullptr) const;

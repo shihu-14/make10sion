@@ -1,10 +1,12 @@
 #include "Deck.hpp"
 #include "common.hpp"
+#include <algorithm>
 using namespace std;
 
-void Deck::init(vector<Block>& deck) {
+void Deck::init(const vector<Block>& deck, const vector<int32>& discarded) {
 	deck_size = (int)deck.size(); //デッキのサイズを設定
 	deck_data = deck; //デッキのカードを設定
+	discarded_cards = discarded;
 	card_pos.clear(); //カードの位置を初期化
 	for (int i = 0;i < deck_size;i++)
 		card_pos.push_back({ 400 + (i % 6) * 200, 300 + 250 * (i / 6) }); //カードの位置を設定
@@ -26,7 +28,7 @@ bool Deck::update() {
 	}
 	const uint64 elapsed = GameStateRules::ElapsedMillis(Time::GetMillisec(), timer);
 	if (elapsed < 1000) {
-		updateFadeIn(static_cast<double>(elapsed) / 1000.0);
+		updateFadeIn(elapsed / 1000.0);
 		fade_mode = true;
 	} else {
 		if (fade_mode)fade_mode = false;
@@ -52,7 +54,9 @@ void Deck::draw() const {
 	//デッキ画像を描画
 	for (int i = 0;i < deck_size;i++) {
 		{
-			double card_fade_value = (deck_data.at(i).GetStat() == -1) ? 0.5 : 1.0;
+			const bool discarded = std::find(discarded_cards.begin(), discarded_cards.end(), i)
+				!= discarded_cards.end();
+			const double card_fade_value = discarded ? 0.5 : 1.0;
 			const ScopedColorMul2D colorMul{ ColorF{ card_fade_value, card_fade_value, fade_alpha } };
 			if (fade_mode) {
 				deck_data.at(i).Draw({ card_pos.at(i).first, card_pos.at(i).second + now_y }, card_fade.at(i), Math::Pi * (1.0 - card_fade.at(i)), card_fade.at(i));

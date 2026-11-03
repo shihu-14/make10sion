@@ -6,7 +6,6 @@
 
 class Banner {
 private:
-	//Write private functions or varables here.
 	bool isHovered_deck = false;
 	double deck_alpha = 0.0;
 	bool isHovered_setting = false;
@@ -26,10 +25,10 @@ private:
 public:
 	bool update(std::vector<Block>& deck_data, bool allow_deck_open = true);
 	bool update(std::vector<Block>& deck_data, bool allow_deck_open, Point cursor_pos,
-		bool left_down, bool left_up, bool focused);
+		bool left_down, bool left_up, bool focused, const std::vector<int32>& discarded = {});
 	bool IsDeckButtonHovered(Point cursor_pos) const;
 	bool IsSettingButtonHovered(Point cursor_pos) const;
-	void OpenDeck(std::vector<Block>& deck_data);
+	void OpenDeck(const std::vector<Block>& deck_data, const std::vector<int32>& discarded = {});
 	void CloseDeck();
 	void CancelPointerGesture();
 	void draw(int money, int floor, const Leric& leric) const;

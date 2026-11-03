@@ -35,32 +35,24 @@ private:
 		Point board_anchor = { -1,-1 };
 		int32 rotation = 0;
 		BattleCardRules::CardLifecycle lifecycle = BattleCardRules::CardLifecycle::InDeck;
-		BattleCardRules::VisualMotion visual_motion;
+		BattleCardRules::ReturnMotion visual_motion;
+		Point motion_start = { 0,0 };
+		Point motion_end = { 0,0 };
 	};
 
 	// ドラッグ中のカードと開始位置を保持する．
 	struct DragContext {
 		bool active = false;
-		int32 board_block_index = -1;
 		int32 deck_index = -1;
-		Block* block = nullptr;
 		bool from_board = false;
 		Point start_screen_pos = { -1,-1 };
-		Point hand_pos = { -1,-1 };
 		Point board_anchor = { -1,-1 };
 		Point cursor_offset = { 0,0 };
-		int32 hand_slot = -1;
 		int32 start_rotation = 0;
 		int32 rotation_steps = 0;
 	};
 
-	enum class DropType {
-		ReturnToHand,
-		RestoreToBoard,
-		Place,
-		Swap,
-		BoardSwap,
-	};
+	using DropType = BattleCardRules::DropResult;
 
 	struct DropPlan {
 		DropType type = DropType::ReturnToHand;
@@ -89,9 +81,8 @@ private:
 	Array<int32> board_off_def = { 1,1,1,0,0,0 };//1を攻撃列，0を防御列として扱う．
 	Array<int32> result_of_calc = { 0,0,0,0,0,0 };
 	Array<bool> row_valid = { true,true,true,true,true,true };
-	const Point offset = { BattleLayoutRules::BoardOffset().x, BattleLayoutRules::BoardOffset().y };//盤面左上の絶対座標を保持する．
-	//const Point offset_u = {0,0};//Boardの左上の絶対座標(アンロック時)(使わないかも)
-	const double img_scale = 1.8;//盤面画像の表示倍率を表す．
+	const Point offset = BattleLayoutRules::BoardOffset;//盤面左上の絶対座標を保持する．
+		const double img_scale = 1.8;//盤面画像の表示倍率を表す．
 	const int32 cell_size = int(50 * img_scale);//50ピクセルのマスを表示倍率に合わせる．
 	const Texture board_img{ U"../../image/banmen_kuuhaku.png" };
 	const Texture chosed_board_img{ U"../../image/special_n.png" };
@@ -106,6 +97,7 @@ private:
 	int32 add_armor = 0;//レリックによる防御補正を保持する．
 	bool do_armor_raise = false;//防御力を最低値まで引き上げるか表す．
 	int32 add_damage_by_cards = 0;//配置カード数による攻撃補正を保持する．
+	bool m_calculationChanged = true;
 	int32 off_count = 3;//初期状態で先頭3行を攻撃列として扱う．
 	uint64 current_frame_number = 0;
 	Array<String> interaction_trace;
@@ -123,9 +115,8 @@ private:
 	Point GetBoardAnchorFromScreenPosition(const Block& block, Point screen_pos) const;
 	bool GetBlockCells(const Block& block, Point anchor, Array<Point>& cells) const;
 	bool IsBoardBlockPlaced(int32 index) const;
-	bool CanPlaceBlock(int32 index, Point anchor, int32 ignored_index_1, int32 ignored_index_2 = -1) const;
-	bool ValidateBoardState(int32 allowed_target_index = -1, String* diagnostic = nullptr) const;
-	void AssertBoardState(int32 allowed_target_index = -1) const;
+	bool ValidateBoardState(String* diagnostic = nullptr) const;
+	void AssertBoardState() const;
 	void TraceTransition(StringView event, int32 deck_index = -1, StringView detail = U"");
 	void QueueZoneChange(int32 deck_index, GameStateRules::CardZone expected,
 		GameStateRules::CardZone destination);
@@ -133,18 +124,16 @@ private:
 	Point PutBlockAt(Point screen_pos) const;
 	DropPlan AnalyzeDrop(Point candidate_anchor, Point release_cursor, Point release_screen_pos) const;
 	void PutBlock(Point release_cursor, Point release_screen_pos);
-	bool ClearBoardBlock(int32 index);
+	void ClearBoardBlock(int32 index);
 	bool HasBoardOccupancy(int32 index) const;
-	bool ForceOrphanedDragToHand();
-	bool UpdateBoardNum(int32 index, Point putAt);
+	void UpdateBoardNum(int32 index, Point putAt);
 	void SetBoardBlockPosition(int32 index, Point anchor);
 	void SetBlockRotation(int32 index, int32 rotation);
-	bool RotateDraggedBlock();
-	bool SwapBoardBlocks(int32 selected_index, int32 target_index);
-	bool ReturnDraggedBlockToHand();
-	bool RestoreDraggedBlockToBoard();
-	bool RestoreDraggedBlockAfterFailedCommit();
-	bool RollbackDraggedBlock();
+	void RotateDraggedBlock();
+	void SwapBoardBlocks(int32 selected_index, int32 target_index);
+	void ReturnDraggedBlockToHand();
+	void RestoreDraggedBlockToBoard();
+	void RollbackDraggedBlock();
 	void ClearDrag();
 	void StartVisualReturn(int32 index, BattleCardRules::CardLifecycle lifecycle, Point end_pos);
 	void UpdateVisualMotions(double delta_seconds);
@@ -155,12 +144,10 @@ private:
 	void CalcRow();
 	Grid<double> GetBoardCellAlphas(const BoardBlockState& state) const;
 	void DrawOnlyBoard() const;
-	void DrawBlock(Block block_on_board);
 	void DrawAddPlaceBoard() const;
-	void DoRelic(std::vector<int32> relics);
+	void DoRelic(const std::vector<int32>& relics);
 
 	double inline CalcDist(Point a, Point b) const { return pow((a.x - b.x), 2) + pow((a.y - b.y), 2); };
-
 
 public:
 
@@ -180,12 +167,13 @@ public:
 	void BeginUnlockSelection(const GameStateRules::BoardProgress& progress);
 	Point GetBoardCellAt(Point screen_pos) const;
 	void Discard();
-	void Update(int32 idx, std::vector<int32> relics, const BoardInputFrame& input, bool allow_input = true);
+	void Update(int32 idx, const std::vector<int32>& relics, const BoardInputFrame& input, bool allow_input = true);
 	void DrawBoard(int32 idx, bool show_calculation_values = true) const;
 	void DrawInteractionOverlay() const;
-	std::pair<int32, int32> Confirm();
+	std::pair<int32, int32> Confirm() const;
+	bool ConsumeCalculationChange();
 	bool RegisterHandBlock(Block& block, int32 deck_index, int32 hand_slot, Point hand_pos);
-	bool DetachCard(int32 deck_index);
+	void DetachCard(int32 deck_index);
 	bool PassBlock(Block& selectedBlock, int32 deck_index, Point cursor_pos);
 	void CancelActiveDrag();
 	void CompleteVisualMotions();

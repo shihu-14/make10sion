@@ -1,202 +1,152 @@
 #ifndef BATTLE_HPP
 #define BATTLE_HPP
 
-# include "Block.hpp" // Block クラスの定義があるヘッダファイルをインクルード
-# include "common.hpp"
-# include "Board.hpp" // Board クラスの定義があるヘッダファイルをインクルード
-# include "Enemy.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
-# include "Banner.hpp" // Enemy クラスの定義があるヘッダファイルをインクルード
-# include "BattleCardRules.hpp"
-# include "BattleLayoutRules.hpp"
-# include "EnemyIntentRules.hpp"
+#include "common.hpp"
+#include "Board.hpp"
+#include "Enemy.hpp"
+#include "Banner.hpp"
 #include "HPBar.hpp"
-#include "BattleDamageRules.hpp"
+#include "BattleCombat.hpp"
+#include "BattleLayoutRules.hpp"
+#include "EnemyIntentRules.hpp"
 
-// Data Manager の Deck を模倣したグローバル変数
-// 実際には Data Manager クラス (DataManager.hpp) で定義し、ここからインクルードするのが望ましい
-
-struct EnemyState
-{
-	String name;
-	Texture texture;
-	int32 type = 0;
-	int32 hp = 0;
-	int32 maxHp = 0;
-	Array<EnemyAction> actionPattern; // 現在のターンで敵が何をするか
-};
-
-class Battle : public App::Scene
-{
+class Battle : public App::Scene {
 private:
-
-	Board m_board; // 盤面の状態を管理する Board クラスのインスタンス
-	Banner m_banner; // バナーの表示を管理する Banner クラスのインスタンス
-	bool is_deck = false; // デッキ画面にいるかどうか
-	bool is_board_locked = false; // 盤面の操作がロックされているかどうか
-	bool is_exit = false; // 敵が逃走するか
-	bool is_boss3 = false;
-	bool is_settings_open = false;
+	// 配る → 置く → 自分の攻撃 → 敵の攻撃 → 捨てる，で1ターン．
+	enum class Phase { Drawing, Planning, PlayerAttack, EnemyAttack, Discarding, Victory, Defeat };
+	// デッキと設定は，戦闘の進み具合とは別に開く．
+	enum class Overlay { None, Deck, Settings };
 	enum class VolumeSlider { None, Bgm, Se };
-	VolumeSlider m_activeVolumeSlider = VolumeSlider::None;
-	EnemyIntentRules::TurnState m_enemyIntentState;
-	bool is_scene_transition_started = false;
-	BattleCardRules::PointerInputOwner m_pointerInputOwner = BattleCardRules::PointerInputOwner::None;
-	uint64 m_frameNumber = 0;
-	int32 now_turn = 0; // ターン数
-	int32 turn_start = 0; // 攻撃/防御のパターンの変化を管理(基本的には0のまま)
-	int32 action_cycle = 1; // 敵の行動パターンのサイクル
-	int32 table_max_size; // 手札のサイズ
-	int32 deck_size = 0;
-	Enemy m_enemyDB;
-	EnemyState m_enemy; // 現在の敵の状態を保持する
-	// 攻撃・防御の情報を保持するための変数
-	int32 my_attack = 0;
-	int32 my_defense = 0;
-	int32 my_real_attack = 0;
-	int32 my_attack_effect = 0;
-	int32 ene_attack = 0;
-	int32 ene_defense = 0;
-	int32 ene_real_attack = 0;
-	int32 ene_attack_effect = 0;
-	double m_playerAttackStatPulseElapsed = BattleLayoutRules::CombatStatPulseDuration;
-	double m_playerDefenseStatPulseElapsed = BattleLayoutRules::CombatStatPulseDuration;
-	BattleLayoutRules::PlayerCombatStatPulseChanges m_playerCombatStatPulseChanges;
-	int32 my_defense_effect = 0; // 自分の防御力を減らすエフェクトのための変数
-	int32 ene_defense_effect = 0; // 敵の防御力のへらすエフェクトのための変数
-	int32 reward_money = 0; // 報酬の金額
-	std::vector<Block> m_cards;
-	GameStateRules::BattleDeckState m_deckState;
+	enum class DealPhase { RotatePile, Cards, ReturnPile };
 
-
-	enum class BattleAnimationState
-	{
-		Idle,               // 何もアニメーションしていない状態
-		CombatEnemyEffect,       // 敵への攻撃・防御演出中
-		CombatMyEffect,       // 自分への攻撃・防御演出中
-		DiscardEffect,      // 手札が捨て札に行く演出中
-		CardDrawEffect,     // 山札からのカードドロー演出中
-		WinEffect,      // 勝利演出中
-		GameOver    // ゲームオーバー表示中
+	struct EnemyState {
+		Texture texture;
+		int32 hp = 0;
+		int32 maxHp = 0;
+		int32 type = 0;
+		Array<EnemyAction> actions;
 	};
-	// 現在のアニメーション状態
-	BattleAnimationState m_currentAnimState = BattleAnimationState::Idle;
 
-	// アニメーションの時間を制御するための変数
-	Stopwatch m_animeStopwatch;
+	Board m_board;
+	Banner m_banner;
+	Enemy m_enemyDB;
+	EnemyState m_enemy;
+	EnemyIntentRules::TurnState m_enemyIntent;
+	GameStateRules::BattleDeckState m_deck;
+	// 位置や回転を変えるのはこのコピー．所持デッキには戻さない．
+	std::vector<Block> m_cards;
+	Phase m_phase = Phase::Drawing;
+	Overlay m_overlay = Overlay::None;
+	VolumeSlider m_activeVolumeSlider = VolumeSlider::None;
+	BattleCardRules::PointerInputOwner m_pointerOwner = BattleCardRules::PointerInputOwner::None;
+	bool m_transitionStarted = false;
+	bool m_blocksPlayerDamage = false;
+	uint64 m_frame = 0;
+	// 最初の配札が終わったところを0ターン目にする
+	int32 m_turn = -1;
+	// 敵によっては，行動の途中から別の周期に切り替わる．
+	int32 m_turnStart = 0;
+	int32 m_actionCycle = 1;
+	int32 m_handLimit = 0;
+	int32 m_cardCount = 0;
+	int32 m_reward = 0;
 
+	// 盤面から決まった値と，演出で減っていく表示の値を分けておく．
+	BattleCombat::CombatValues m_playerStats;
+	BattleCombat::CombatValues m_enemyStats;
+	BattleCombat::CombatValues m_playerDisplay;
+	BattleCombat::CombatValues m_enemyDisplay;
+	// 「=」を押した時点の結果．敵の攻撃が終わるまで使う．
+	BattleCombat::CombatResult m_turnResult;
+	BattleCombat::AttackAnimation m_attack;
+	Point m_hitPosition{ -1, -1 };
+	double m_playerAttackPulseTime = BattleLayoutRules::CombatStatPulseDuration;
+	double m_playerDefensePulseTime = BattleLayoutRules::CombatStatPulseDuration;
+	double m_enemyBaseScale = 1.0;
+	double m_enemyHitScale = 1.0;
+	double m_enemyAlpha = 1.0;
+	double m_playerAngle = 0.0;
+	// 配札・捨て札・勝敗の演出に使う．攻撃の時間は m_attack 側．
+	Stopwatch m_phaseTimer;
 
-	// Texture 
-	Texture m_backgroundTexture; // 背景画像
-	Texture m_myTexture; // プレイヤーのテクスチャ
-	Texture m_yamahudaTexture; // 山札のテクスチャ
-	Texture m_sutehudaTexture; // 捨て札のテクスチャ
-	Texture m_buttonTexture; // =ボタンのテクスチャ
-	Texture m_effectTexture; // 攻撃エフェクトのテクスチャ
-	HPBar my_hpbar; // 自分のHPバーのインスタンス
-	HPBar ene_hpbar; // 敵のHPバーのインスタンス
+	// 戦闘画面で使う画像と音
+	Texture m_backgroundTexture;
+	Texture m_playerTexture;
+	Texture m_drawPileTexture;
+	Texture m_discardPileTexture;
+	Texture m_attackButtonTexture;
+	Texture m_effectTexture;
 	Texture m_attackIcon;
-	Texture m_defenceIcon;
-	Texture m_reward_money; // 報酬のテクスチャ
-	Texture m_settingsBackgroundTexture; // 設定画面の背景テクスチャ
-	Texture m_settingsBackButtonTexture; // 設定画面の戻るボタン
-	// Array<Rect> m_tehuda_hantei; // 手札の判定
-	Font m_rewardFont; // 報酬のフォント
-	Font m_numFont; // 攻撃・防御の数字のフォント
-	Font m_combatFont; // 攻撃・防御値専用のフォント
+	Texture m_defenseIcon;
+	Texture m_rewardTexture;
+	Texture m_settingsBackgroundTexture;
+	Texture m_settingsBackButtonTexture;
+	HPBar m_playerHpBar;
+	HPBar m_enemyHpBar;
+	Font m_rewardFont;
+	Font m_numFont;
+	Font m_combatFont;
+	Audio m_battleBgm{ U"../../audio/battle_bgm.wav", Loop::Yes };
+	Audio m_drawCardSound{ U"../../audio/draw_card.mp3" };
+	Audio m_dragCardSound{ U"../../audio/drag_card.mp3" };
+	Audio m_attackSound{ U"../../audio/attack.mp3" };
+	// 報酬を出すときは，背後の戦闘画面だけをぼかす．
+	RenderTexture m_sceneBuffer;
+	RenderTexture m_blurBuffer;
 
-	const Audio battle_bgm{ U"../../audio/battle_bgm.wav" , Loop::Yes };
-	const Audio draw_card_se{ U"../../audio/draw_card.mp3" , Loop::No };
-	const Audio drag_card_se{ U"../../audio/drag_card.mp3" , Loop::No };
-	const Audio attack_se{ U"../../audio/attack.mp3" , Loop::No };
-
-	// 味方・敵にダメージが入るまでの演出のための変数
-	Vec2 my_attack_icon_pos;
-	Vec2 ene_attack_icon_pos;
-	Vec2 my_attack_icon_start;
-	Vec2 ene_attack_icon_start;
-	Vec2 my_attack_icon_end;
-	Vec2 ene_attack_icon_end;
-	double my_attack_icon_scale = 1.0;
-	double ene_attack_icon_scale = 1.0;
-	int32 my_attack_type = 0;
-	int32 ene_attack_type = 0;
-
-	// damage_effectの演出のための変数
-	double enemy_base_scale = 1.0;
-	double enemy_scale_multiplier = 1.0;
-	double my_angle = 0.0;
-	int32 my_damage_effect_cnt = 0;
-	int32 ene_damage_effect_cnt = 0;
-	std::vector<int32> m_playerDamageHits;
-	std::vector<int32> m_enemyDamageHits;
-	int32 my_effect_x = -1, my_effect_y = -1; // エフェクトの位置
-	int32 ene_effect_x = -1, ene_effect_y = -1; // エフェクトの位置
-	int32 flag_once_draw = 0; // 一回だけ描画させるための制御変数
-
-	// wineffectのための変数
-	bool is_gamewin = false;
-	double enemy_image_alpha = 1.0; // 敵を倒した際のフェードアウト演出のための変数
-	RenderTexture m_combatSceneBuffer; // 戦闘画面全体を描き込むためのレンダーターゲット
-	RenderTexture m_blurInternalBuffer;
-
-	int32 table_id = 0; // 手札のID
-	bool m_handDealComplete = false;
-	double yamahuda_angle = 0.0;
-	double sutehuda_angle = 0.0;
-	struct DiscardCardMotion {
-		int32 card_id = -1;
+	// 描き始めた枚数．手札へ移した枚数とは別．
+	int32 m_dealtCardCount = 0;
+	DealPhase m_dealPhase = DealPhase::RotatePile;
+	double m_drawPileAngle = 0.0;
+	double m_discardPileAngle = 0.0;
+	struct DiscardMotion {
+		int32 cardId = -1;
 		Vec2 start;
 		bool detached = false;
 		bool complete = false;
 	};
-	std::vector<DiscardCardMotion> m_discardCardMotions;
-	bool m_discardCardMotionsInitialized = false;
+	std::vector<DiscardMotion> m_discardMotions;
+	bool m_discardStarted = false;
 
-	// コンストラクタで呼ばれる関数
-	int32 getTableSize() const;
-	Point GetHandPosition(int32 slot) const;
-	Rect GetAttackButtonRect() const;
-	void setupEnemy(int32 type, int32 layer);
+	int32 handLimit() const;
+	Point handPosition(int32 slot) const;
+	int32 hoveredHandCard(Point cursor) const;
+	void setupEnemy(int32 type, int32 act);
 
-	// これらはupdate()から呼ばれ、アニメーションの状態を更新し、完了時に次の状態へ遷移させる
-	void getEnemyInfo();
-	void attack();
-	void updateTableDeck();
-	void PrepareDrawPileForTurn();
-	bool MoveCard(int32 card_id, GameStateRules::CardZone expected, GameStateRules::CardZone destination);
-	bool ApplyBoardZoneChanges();
-	const std::vector<int32>& Cards(GameStateRules::CardZone zone) const;
-	void updateCombatEnemyEffect();
-	void updateCombatMyEffect();
-	void updateDiscardEffect();
-	void updateCardDrawEffect();
-	void updateWinEffect();
-	void updateGameOverEffect();
-	void updateSettingsOverlay(const BoardInputFrame& input);
-	void ApplyAudioSettings() const;
-	void AssertCardOwnership(const char* context) const;
-	// void finish();
+	void beginDraw();
+	void beginPlanning();
+	void beginPlayerAttack();
+	void beginEnemyAttack();
+	void beginDiscard();
+	void updateDraw();
+	void updatePlanning(const BoardInputFrame& input);
+	void updateAttack(double deltaSeconds);
+	void updateDiscard();
+	void updateVictory();
+	void updateDefeat();
 
-	// これらはdraw()から呼ばれ、現在のアニメーション状態に基づいて描画を行う
-	// void drawTableDeck() const;
-	void drawHandCards() const;
-	bool drawDefault() const;
-	void drawCombatEnemyEffect() const;
-	void drawCombatMyEffect() const;
-	void drawDiscardEffect() const;
-	void drawCardDrawEffect() const;
-	void drawWinEffect() const;
-	void drawSettingsOverlay() const;
+	void updateEnemyIntent();
+	void refreshCombatPreview();
+	bool updateOverlay(const BoardInputFrame& input);
+	bool updateDeckButton(const BoardInputFrame& input, bool allowOpen);
+	void updateCardInput(const BoardInputFrame& input, int32 hoveredCardId);
+	void updateSettings(const BoardInputFrame& input);
+	void applyAudioSettings();
+	void prepareDrawPile();
+	bool moveCard(int32 cardId, GameStateRules::CardZone source, GameStateRules::CardZone destination);
+	void applyBoardChanges();
+	const std::vector<int32>& cards(GameStateRules::CardZone zone) const;
+	void checkCardOwnership(const char* context) const;
 
+	void drawHand() const;
+	void drawScene() const;
+	void drawAttack() const;
+	void drawVictory() const;
+	void drawSettings() const;
 
 public:
-
 	Battle(const InitData& init);
-
-	// ~Battle(); 
-
 	void update() override;
-
 	void draw() const override;
 };
 

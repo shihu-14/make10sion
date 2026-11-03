@@ -5,16 +5,12 @@
 
 class Title : public App::Scene {
 private:
-	//Write private functions or varables here.
 	Texture m_background;  // 背景画像用のTextureオブジェクト
 	Font m_font;
 	RoundRect m_startButtonRect; // ボタンの矩形
 	RoundRect m_endButtonRect;
-#if defined(DEBUG) || defined(_DEBUG)
-	RectF m_debugButtonRect{ Scene::Width() - 320, Scene::Height() - 100, 280, 60 };
-#endif
+	RectF m_demoButtonRect{ Scene::Width() - 320, Scene::Height() - 100, 280, 60 };
 	Audio titleBGM{ U"../../audio/title_bgm.wav",Loop::Yes }; // タイトル画面のBGM
-	Audio m_buttonSE; // ボタン押下時の効果音
 	Texture m_titlelogo; // タイトルロゴのテクスチャ
 	Texture m_startButtonTexture;
 	Texture m_startButtonTexture2;// スタートボタンのテクスチャ
@@ -26,7 +22,6 @@ private:
 	std::vector<Texture> fadeTextures; // フェード用のテクスチャ
 public:
 	Title(const InitData& init);
-	//Write public functions here.
 	~Title() = default;
 
 	void update() override;

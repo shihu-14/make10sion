@@ -1,0 +1,92 @@
+name: Windows build and startup check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
+      - name: Install OpenSiv3D v0.6.16
+        run: |
+          $zip = "$env:RUNNER_TEMP/siv3d.zip"
+          Invoke-WebRequest https://siv3d.jp/downloads/Siv3D/manual/0.6.16/OpenSiv3D_SDK_0.6.16.zip -OutFile $zip
+          if ((Get-FileHash $zip -Algorithm SHA256).Hash -ne '5819af501b3589d5bdd8052a97688af19a854c6a0af7d7f5bc70ae2a1975fcdd') {
+            throw 'The SDK archive does not match the verified v0.6.16 download.'
+          }
+          Expand-Archive $zip "$env:RUNNER_TEMP/siv3d"
+          "SIV3D_0_6_16=$env:RUNNER_TEMP/siv3d/OpenSiv3D_SDK_0.6.16" >> $env:GITHUB_ENV
+      - name: Build Release x64
+        run: |
+          New-Item reports -ItemType Directory -Force | Out-Null
+          msbuild windows/make10sion.sln /m:2 /p:Configuration=Release /p:Platform=x64 /fl '/flp:logfile=reports/build.log;verbosity=normal'
+          if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
+      - name: Package Windows game
+        run: |
+          $package = 'dist/make10sion'
+          New-Item "$package/windows/App" -ItemType Directory -Force | Out-Null
+          Copy-Item windows/App/make10sion.exe "$package/windows/App/"
+          Copy-Item windows/App/dll "$package/windows/App/" -Recurse
+          Copy-Item image,audio $package -Recurse
+          Get-ChildItem windows/App/engine -File -Recurse | Where-Object {
+            $_.Name -match '^LICENSE|^license|^GMGSx.sf2.txt$'
+          } | ForEach-Object {
+            $relative = [IO.Path]::GetRelativePath((Resolve-Path 'windows/App/engine'), $_.FullName)
+            $target = Join-Path "$package/licenses" $relative
+            New-Item (Split-Path $target) -ItemType Directory -Force | Out-Null
+            Copy-Item $_.FullName $target
+          }
+          @'
+          make10sion - Windows x64
+
+          想定動作環境：Windows 10 / 11（64ビット），Intel / AMD 製 x64 CPU，マウス，キーボード，音声出力機器．
+
+          起動方法：ZIP 全体を展開し，windows/App/make10sion.exe を開いてください．
+          フォルダの配置を変えたり，exe だけを移動したりしないでください．
+          タイトル右下の「デモモード」から，盤面をすべて解放した戦闘を開始できます．
+          カードはマウスでドラッグして配置し，R キーで回転，「＝」で攻撃します．
+
+          この配布物は Release・x64 でビルドされています．
+          自動起動チェックと，人が画面・音声・操作を確認する動作確認は別です．
+          実際のゲーム操作を含む Windows での確認は，別途必要です．
+          '@ | Set-Content "$package/README.txt" -Encoding utf8
+          Compress-Archive -Path $package -DestinationPath dist/make10sion-windows-x64.zip
+          Expand-Archive dist/make10sion-windows-x64.zip "$env:RUNNER_TEMP/windows-smoke"
+      - name: Check title and demo startup from extracted ZIP
+        id: startup
+        continue-on-error: true
+        run: ./windows/check-launch.ps1 -AppDirectory "$env:RUNNER_TEMP/windows-smoke/make10sion/windows/App" -ReportDirectory reports
+      - name: Summarize verification
+        if: always()
+        run: |
+          "## Windows verification" >> $env:GITHUB_STEP_SUMMARY
+          "- SDK: OpenSiv3D v0.6.16" >> $env:GITHUB_STEP_SUMMARY
+          "- Build: Release x64 (see Build Release x64 step)" >> $env:GITHUB_STEP_SUMMARY
+          "- Automated startup: ${{ steps.startup.outcome }}" >> $env:GITHUB_STEP_SUMMARY
+          "- Human verification of rendering, audio, input, and complete game flow: NOT performed" >> $env:GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-verification-logs
+          path: reports/
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: make10sion-windows-x64
+          path: dist/make10sion-windows-x64.zip
+          if-no-files-found: error
+      - name: Require startup checks to pass
+        if: always() && steps.startup.outcome == 'failure'
+        run: throw 'Windows startup failed. Inspect the uploaded verification logs.'

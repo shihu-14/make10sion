@@ -500,7 +500,7 @@
 	<ClInclude Include="..\src\BattleLayoutRules.hpp">
 	  <Filter>Header Files</Filter>
 	</ClInclude>
-	<ClInclude Include="..\src\DebugScenarioFactory.hpp">
+	<ClInclude Include="..\src\DemoScenarioFactory.hpp">
 	  <Filter>Header Files</Filter>
 	</ClInclude>
     <ClInclude Include="..\src\Enemy.hpp">

@@ -1,8 +1,6 @@
 #include "Title.hpp"  
-#if defined(DEBUG) || defined(_DEBUG)
-#include "DebugScenarioFactory.hpp"
+#include "DemoScenarioFactory.hpp"
 #include <utility>
-#endif
 using namespace std;
 
 Title::Title(const InitData& init) : IScene(init),
@@ -26,26 +24,23 @@ fadeTextures(3)
 
 void Title::update() {
     if (go_to_map) {
-        if (GameStateRules::ElapsedMillis(Time::GetMillisec(), timer) > 9000) { // 6000ミリ秒待つ
+        if (GameStateRules::ElapsedMillis(Time::GetMillisec(), timer) > 9000) { // 説明画像を9秒表示してから始める．
             getData().ResetForNewRun();
             changeScene(State::Battle, 0.5s); // マップシーンへ遷移
         }
         return;
     }
-#if defined(DEBUG) || defined(_DEBUG)
-    if (m_debugButtonRect.mouseOver()) {
+    if (m_demoButtonRect.mouseOver()) {
         Cursor::RequestStyle(CursorStyle::Hand);
-        if (m_debugButtonRect.leftClicked()) {
-            // 起動引数で選べる途中の戦闘を，タイトルからも開く．
-            Reseed(DebugScenarioRules::Midgame().seed);
-            auto debugData = DebugScenarioFactory::CreateMidgame();
-            debugData->audio_settings = getData().audio_settings;
-            getData() = std::move(*debugData);
+        if (m_demoButtonRect.leftClicked()) {
+            // 盤面をすべて解放した状態で，戦闘から遊べる．
+            auto demoData = DemoScenarioFactory::CreateMidgame();
+            demoData->audio_settings = getData().audio_settings;
+            getData() = std::move(*demoData);
             changeScene(State::Battle, 0.5s);
             return;
         }
     }
-#endif
     if (m_startButtonRect.mouseOver())
     {
         Cursor::RequestStyle(CursorStyle::Hand);
@@ -75,19 +70,19 @@ void Title::draw() const {
         const uint64 time = GameStateRules::ElapsedMillis(Time::GetMillisec(), timer);
         double animation = 0.0;
         if (time < 1000){
-            const double t = static_cast<double>(time) / 1000.0; // 0.0から1.0の範囲に正規化
+            const double t = time / 1000.0; // 0.0から1.0の範囲に正規化
             const double progress = EaseInOutExpo(t);
             animation = 1080 * Math::Lerp(0.0, 1.0, progress); // 1080は画面の高さ
         }else if (time < 3000){
             animation = 1080; // 2秒目以降はアニメーションを固定
         }else if (time < 4000){
-            const double t = static_cast<double>(time - 3000) / 1000.0; // 0.0から1.0の範囲に正規化
+            const double t = (time - 3000) / 1000.0; // 0.0から1.0の範囲に正規化
             const double progress = EaseInOutExpo(t);
             animation = 1080 + 1080 * Math::Lerp(0.0, 1.0, progress); // 1080は画面の高さ
         }else if (time < 6000){
             animation = 2160;
         }else if (time < 7000){
-            const double t = static_cast<double>(time - 6000) / 1000.0; // 0.0から1.0の範囲に正規化
+            const double t = (time - 6000) / 1000.0; // 0.0から1.0の範囲に正規化
             const double progress = EaseInOutExpo(t);
             animation = 2160 + 1080 * Math::Lerp(0.0, 1.0, progress); // 1080は画面の高さ
         }else{
@@ -101,24 +96,22 @@ void Title::draw() const {
     }
 
     if (m_startButtonRect.mouseOver()) {
-        // マウスがボタンの上にいる場合、ホバー時の画像を描画
+        // マウスがボタンの上にいる場合，ホバー時の画像を描画
         m_startButtonTexture2.drawAt(Scene::Center().x, Scene::Center().y); // m_startButtonRectの領域に合わせて画像を引き伸ばし
     } else {
-        // マウスがボタンの上にいない場合、通常時の画像を描画
+        // マウスがボタンの上にいない場合，通常時の画像を描画
         m_startButtonTexture.drawAt(Scene::Center().x, Scene::Center().y); // m_startButtonRectの領域に合わせて画像を引き伸ばし
     }
     if (m_endButtonRect.mouseOver()) {
-        // マウスがボタンの上にいる場合、ホバー時の画像を描画
+        // マウスがボタンの上にいる場合，ホバー時の画像を描画
         m_endButtonTexture2.drawAt(Scene::Center().x, Scene::Center().y); // m_endButtonRectの領域に合わせて画像を引き伸ばし
     } else {
-        // マウスがボタンの上にいない場合、通常時の画像を描画
+        // マウスがボタンの上にいない場合，通常時の画像を描画
         m_endButtonTexture.drawAt(Scene::Center().x, Scene::Center().y); // m_endButtonRectの領域に合わせて画像を引き伸ばし
     }
 
-#if defined(DEBUG) || defined(_DEBUG)
-    m_debugButtonRect.draw(m_debugButtonRect.mouseOver()
+    m_demoButtonRect.draw(m_demoButtonRect.mouseOver()
         ? ColorF{ 0.3, 0.3, 0.3, 0.9 } : ColorF{ 0.1, 0.1, 0.1, 0.9 });
-    m_debugButtonRect.drawFrame(2, Palette::White);
-    m_font(U"デバッグモード").drawAt(m_debugButtonRect.center(), Palette::White);
-#endif
+    m_demoButtonRect.drawFrame(2, Palette::White);
+    m_font(U"デモモード").drawAt(m_demoButtonRect.center(), Palette::White);
 }

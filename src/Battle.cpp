@@ -18,7 +18,7 @@ Battle::Battle(const InitData& init)
 	: IScene(init),
 	m_cards(getData().Deck)
 {
-	// 画像を読み込む．フォントと，ぼかしに使う描画先もここで用意する．
+	// 画像を読み込む．フォントと，ぼかしに使う描画先もここで用意しとく
 	m_backgroundTexture = Texture(U"../../image/haikei_sentou.png");
 	m_playerTexture = Texture(U"../../image/chara_player.png");
 	m_drawPileTexture = Texture(U"../../image/yamahuda.png");
@@ -45,8 +45,8 @@ Battle::Battle(const InitData& init)
 	m_actionCycle = static_cast<int32>(m_enemy.actions.size());
 	m_reward = m_enemy.type == 0 ? 20 : m_enemy.type == 1 ? 40 : 100;
 	// デモでは，毎回同じ手札を確認できるように並びを固定している．
-	const bool preserve_deck_order = getData().debug_battle_overrides
-		&& getData().debug_battle_overrides->preserve_deck_order;
+	const bool preserve_deck_order = getData().demo_battle_overrides
+		&& getData().demo_battle_overrides->preserve_deck_order;
 	auto initial_draw_order = GameStateRules::CreateInitialDrawOrder(
 		m_cardCount, preserve_deck_order);
 	Array<int32> draw_order{ initial_draw_order.begin(), initial_draw_order.end() };
@@ -67,7 +67,7 @@ Battle::Battle(const InitData& init)
 void Battle::update()
 {
 	BoardInputFrame input{ Cursor::Pos(), MouseL.down(), MouseL.pressed(), MouseL.up(),
-		KeyR.down(), Window::GetState().focused, ++m_frame, Scene::DeltaTime() };
+		KeyR.down(), Window::GetState().focused, Scene::DeltaTime() };
 	if (!input.focused || m_phase != Phase::Planning) {
 		m_board.CancelActiveDrag();
 		applyBoardChanges();
@@ -102,9 +102,9 @@ void Battle::setupEnemy(int32 type, int32 layer)
 {
 	const EnemyData& data = m_enemyDB.getOneEnemy(type, layer);
 	// デモ用の画像が指定されていれば，そちらを使う．
-	const String texture_path = getData().debug_battle_overrides
-		&& !getData().debug_battle_overrides->enemy_texture_path.isEmpty()
-		? getData().debug_battle_overrides->enemy_texture_path : data.texturePath;
+	const String texture_path = getData().demo_battle_overrides
+		&& !getData().demo_battle_overrides->enemy_texture_path.isEmpty()
+		? getData().demo_battle_overrides->enemy_texture_path : data.texturePath;
 	m_enemy.texture = Texture(texture_path);
 	m_enemyBaseScale = Layout::EnemyBaseScale(m_enemy.texture.height());
 	m_enemyHitScale = 1.0;
@@ -117,8 +117,8 @@ void Battle::setupEnemy(int32 type, int32 layer)
 
 int32 Battle::handLimit() const
 {
-	int32 override_limit = getData().debug_battle_overrides
-		? getData().debug_battle_overrides->hand_limit : 0;
+	int32 override_limit = getData().demo_battle_overrides
+		? getData().demo_battle_overrides->hand_limit : 0;
 	return GameStateRules::ResolveBattleHandLimit(getData().board_progress, override_limit);
 }
 
@@ -126,12 +126,12 @@ Point Battle::handPosition(int32 slot) const
 {
 	const auto& hand = cards(GameStateRules::CardZone::Hand);
 	// カードの幅がまちまちなので，前のカードの幅を足して場所を決める．
-	int32 preceding_width_cells = 0;
+	int32 widthBefore = 0;
 	for (int32 index = 0; index < slot; ++index) {
-		preceding_width_cells += m_cards[hand[index]].Size().first;
+		widthBefore += m_cards[hand[index]].Size().first;
 	}
-	int32 card_width_cells = m_cards[hand[slot]].Size().first;
-	return Layout::HandPosition(slot, preceding_width_cells, card_width_cells);
+	int32 cardWidth = m_cards[hand[slot]].Size().first;
+	return Layout::HandPosition(slot, widthBefore, cardWidth);
 }
 
 void Battle::prepareDrawPile()
@@ -146,8 +146,8 @@ void Battle::prepareDrawPile()
 	if (!GameStateRules::ShouldRefreshDrawPile(remaining_cells, full_deck_cells,
 		getData().board_progress.UnlockedCount())) return;
 
-	const bool preserve_deck_order = getData().debug_battle_overrides
-		&& getData().debug_battle_overrides->preserve_deck_order;
+	const bool preserve_deck_order = getData().demo_battle_overrides
+		&& getData().demo_battle_overrides->preserve_deck_order;
 	auto initial_order = GameStateRules::CreateInitialDrawOrder(m_cardCount, preserve_deck_order);
 	Array<int32> draw_order{ initial_order.begin(), initial_order.end() };
 	if (!preserve_deck_order) draw_order.shuffle();
@@ -155,7 +155,6 @@ void Battle::prepareDrawPile()
 		std::vector<int32>{ draw_order.begin(), draw_order.end() });
 	assert(refreshed && "Draw pile refresh failed at a turn boundary");
 	if (!refreshed) return;
-	checkCardOwnership("PrepareDrawPileForTurn");
 }
 
 void Battle::applyAudioSettings()
@@ -229,18 +228,6 @@ void Battle::applyBoardChanges()
 		assert(moved && "Board and deck membership disagree");
 		if (!moved) return;
 	}
-}
-
-void Battle::checkCardOwnership(const char* context) const
-{
-#ifndef NDEBUG
-	if (!m_deck.Validate()) {
-		Logger << U"Invalid battle deck: " << Unicode::Widen(context);
-		assert(false && "Invalid battle deck");
-	}
-#else
-	(void)context;
-#endif
 }
 
 void Battle::updateEnemyIntent()
@@ -657,7 +644,6 @@ void Battle::updatePlanning(const BoardInputFrame& input)
 	m_playerHpBar.update(0.1);
 	m_enemyHpBar.update(0.1);
 	m_deck.RecycleDiscard();
-	checkCardOwnership("update");
 	m_playerAttackPulseTime = Min(Layout::CombatStatPulseDuration, m_playerAttackPulseTime + input.delta_seconds);
 	m_playerDefensePulseTime = Min(Layout::CombatStatPulseDuration, m_playerDefensePulseTime + input.delta_seconds);
 	if (m_board.ConsumeCalculationChange()) refreshCombatPreview();
@@ -727,7 +713,7 @@ void Battle::drawAttack() const
 		position = Vec2{ arcEnd };
 		scale = Layout::AttackArcArrivalScale;
 		if (m_attack.elapsed < 0.2) {
-			auto shield = playerAttacking ? Layout::EnemyCombatDefenseIconPosition : Layout::PlayerCombatDefenseIconPosition;
+			auto shield = playerAttacking ? Layout::EnemyDefenseIcon : Layout::PlayerDefenseIcon;
 			m_effectTexture.scaled(0.4).draw(shield.x, shield.y);
 		}
 		break;
@@ -791,14 +777,13 @@ void Battle::drawScene() const
 	bool showAttack = m_phase == Phase::Planning;
 	bool showDefense = showAttack || m_phase == Phase::PlayerAttack
 		|| m_phase == Phase::EnemyAttack || m_phase == Phase::Discarding;
-	const bool is_idle = (m_phase == Phase::Planning);
-	auto player_attack_combat_pulse = Layout::ResolveCombatStatPulse(
+	auto attackPulse = Layout::ResolveCombatStatPulse(
 		m_playerAttackPulseTime,
-		is_idle);
-	auto player_defense_combat_pulse = Layout::ResolveCombatStatPulse(
+		showAttack);
+	auto defensePulse = Layout::ResolveCombatStatPulse(
 		m_playerDefensePulseTime,
-		is_idle);
-	auto draw_combat_stat = [this](const Texture& icon, double icon_scale,
+		showAttack);
+	auto drawStat = [this](const Texture& icon, double icon_scale,
 		int32 value, Point icon_position,
 		Point value_position,
 		Layout::CombatStatPulse pulse) {
@@ -814,7 +799,7 @@ void Battle::drawScene() const
 			value_position.x, value_position.y, Palette::Black);
 	};
 	m_backgroundTexture.scaled(0.5).draw();
-	m_board.DrawBoard(0, is_idle);
+	m_board.DrawBoard(0, showAttack);
 	drawHand();
 	m_playerTexture.scaled(Layout::PlayerDisplayScale).rotated(m_playerAngle)
 		.draw(player_position.x, player_position.y);
@@ -825,25 +810,25 @@ void Battle::drawScene() const
 	m_attackButtonTexture.scaled(0.7).draw(equal_button.x, equal_button.y);
 	m_playerHpBar.draw(RectF{ player_hp_position.x, player_hp_position.y, 240, 15 });
 	m_enemyHpBar.draw(RectF{ enemy_hp_position.x, enemy_hp_position.y, 320, 20 });
-	if (is_idle || m_phase == Phase::PlayerAttack) {
-		draw_combat_stat(m_attackIcon, Layout::AttackIconScale,
-			m_enemyDisplay.attack, Layout::EnemyCombatAttackIconPosition,
-			Layout::EnemyCombatAttackValuePosition, {});
+	if (showAttack || m_phase == Phase::PlayerAttack) {
+		drawStat(m_attackIcon, Layout::AttackIconScale,
+			m_enemyDisplay.attack, Layout::EnemyAttackIcon,
+			Layout::EnemyAttackValue, {});
 	}
 	if (showDefense) {
-		draw_combat_stat(m_defenseIcon, Layout::DefenseIconScale,
-			m_enemyDisplay.defense, Layout::EnemyCombatDefenseIconPosition,
-			Layout::EnemyCombatDefenseValuePosition, {});
+		drawStat(m_defenseIcon, Layout::DefenseIconScale,
+			m_enemyDisplay.defense, Layout::EnemyDefenseIcon,
+			Layout::EnemyDefenseValue, {});
 	}
 	if (showAttack) {
-		draw_combat_stat(m_attackIcon, Layout::AttackIconScale,
-			m_playerDisplay.attack, Layout::PlayerCombatAttackIconPosition,
-			Layout::PlayerCombatAttackValuePosition, player_attack_combat_pulse);
+		drawStat(m_attackIcon, Layout::AttackIconScale,
+			m_playerDisplay.attack, Layout::PlayerAttackIcon,
+			Layout::PlayerAttackValue, attackPulse);
 	}
 	if (showDefense) {
-		draw_combat_stat(m_defenseIcon, Layout::DefenseIconScale,
-			m_playerDisplay.defense, Layout::PlayerCombatDefenseIconPosition,
-			Layout::PlayerCombatDefenseValuePosition, player_defense_combat_pulse);
+		drawStat(m_defenseIcon, Layout::DefenseIconScale,
+			m_playerDisplay.defense, Layout::PlayerDefenseIcon,
+			Layout::PlayerDefenseValue, defensePulse);
 	}
 	m_banner.draw(getData().money, getData().Layer, getData().leric);
 }

@@ -31,7 +31,6 @@ void Board::BeginBattle(const GameStateRules::BoardProgress& progress) {
 	do_armor_raise = false;
 	board_blocks.clear();
 	drag_context = {};
-	interaction_trace.clear();
 	pending_zone_changes.clear();
 }
 
@@ -44,7 +43,7 @@ void Board::BeginTurn() {//毎ターン開始時に呼び出してもらう
 }
 
 void Board::EndTurn() {
-	// 次ターンへ持ち越す効果は、盤面のカードを取り除く前に確定する。
+	// 次ターンへ持ち越す効果は，盤面のカードを取り除く前に確定する．
 	CancelActiveDrag();
 	BoardCalculationRules::CommitDelayedEffects(board_effect_back, board_effect_committed);
 }
@@ -65,7 +64,6 @@ Point Board::GetBoardCellAt(Point screen_pos) const {
 }
 
 void Board::Update(int32 idx, const vector<int32>& relics, const BoardInputFrame& input, bool allow_input) {
-	current_frame_number = input.frame_number;
 	if (idx != 0) return;
 	if (drag_context.active) {
 		if (!input.focused || !allow_input) {
@@ -85,7 +83,6 @@ void Board::Update(int32 idx, const vector<int32>& relics, const BoardInputFrame
 	}
 	DoRelic(relics);
 	UpdateVisualMotions(input.delta_seconds);
-	AssertBoardState();
 }
 
 void Board::DrawBoard(int32 idx, const bool show_calculation_values) const {//idx : 0:バトル中, 1:リザルト(マス解放時)
@@ -187,7 +184,6 @@ void Board::UpdateVisualMotions(double delta_seconds) {
 		state.block->SetPos(position.x, position.y);
 		if (!completed) continue;
 		BattleCardRules::SettleReturnLifecycle(state.lifecycle);
-		TraceTransition(U"motion-complete", state.deck_index);
 	}
 }
 
@@ -197,9 +193,7 @@ void Board::CompleteVisualMotions() {
 		state.visual_motion.Complete();
 		state.block->SetPos(state.motion_end.x, state.motion_end.y);
 		BattleCardRules::SettleReturnLifecycle(state.lifecycle);
-		TraceTransition(U"motion-forced-complete", state.deck_index);
 	}
-	AssertBoardState();
 }
 
 bool Board::IsDragging() const {
@@ -236,10 +230,8 @@ void Board::DetachCard(const int32 deck_index) {
 		[deck_index](const GameStateRules::CardZoneChange& change) {
 			return change.card_id == deck_index;
 		}), pending_zone_changes.end());
-	TraceTransition(U"detach-card", deck_index);
 	board_blocks.erase(board_blocks.begin() + index);
 	if (occupancy_changed) CalcRow();
-	AssertBoardState();
 }
 
 void Board::CancelActiveDrag() {

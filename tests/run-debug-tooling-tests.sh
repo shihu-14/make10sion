@@ -15,7 +15,7 @@ with open(sys.argv[1], encoding="utf-8") as source:
 midgame = next(task for task in tasks if task["label"] == "Run Demo Mode on macOS")
 assert midgame.get("dependsOrder") == "sequence"
 assert midgame.get("dependsOn") == ["Build on macOS"]
-assert midgame.get("args") == ["--debug-midgame"]
+assert midgame.get("args") == ["--demo"]
 PY
 
 fingerprint_script="$repo_root/macos/build-input-fingerprint.sh"

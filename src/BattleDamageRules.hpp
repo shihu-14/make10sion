@@ -64,16 +64,6 @@ struct DefenseExchange {
 	return std::max(0, current_hp - std::max(0, damage));
 }
 
-[[nodiscard]] inline bool ShouldContinueHits(const std::int32_t current_hp) noexcept {
-	return 0 < current_hp;
-}
-
-[[nodiscard]] inline bool ShouldDrawHitEffect(
-	const std::int32_t hit_count, const std::int32_t effect_x,
-	const std::int32_t effect_y) noexcept {
-	return (0 < hit_count) && (0 <= effect_x) && (0 <= effect_y);
-}
-
 } // namespace BattleDamageRules
 
 #endif

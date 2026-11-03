@@ -1,11 +1,11 @@
-#ifndef DEBUG_SCENARIO_RULES_HPP
-#define DEBUG_SCENARIO_RULES_HPP
+#ifndef DEMO_SCENARIO_RULES_HPP
+#define DEMO_SCENARIO_RULES_HPP
 
 #include <cstdint>
 #include <string_view>
 #include <vector>
 
-namespace DebugScenarioRules {
+namespace DemoScenarioRules {
 
 struct Scenario {
 	int32_t layer = 0;
@@ -40,6 +40,6 @@ struct Scenario {
 	return scenario;
 }
 
-} // namespace DebugScenarioRules
+} // namespace DemoScenarioRules
 
 #endif

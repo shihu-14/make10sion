@@ -20,7 +20,6 @@ struct BoardInputFrame {
 	bool left_up = false;
 	bool rotate_pressed = false;
 	bool focused = true;
-	uint64 frame_number = 0;
 	double delta_seconds = 0.0;
 };
 
@@ -99,8 +98,6 @@ private:
 	int32 add_damage_by_cards = 0;//配置カード数による攻撃補正を保持する．
 	bool m_calculationChanged = true;
 	int32 off_count = 3;//初期状態で先頭3行を攻撃列として扱う．
-	uint64 current_frame_number = 0;
-	Array<String> interaction_trace;
 	std::vector<GameStateRules::CardZoneChange> pending_zone_changes;
 
 	//function
@@ -115,12 +112,8 @@ private:
 	Point GetBoardAnchorFromScreenPosition(const Block& block, Point screen_pos) const;
 	bool GetBlockCells(const Block& block, Point anchor, Array<Point>& cells) const;
 	bool IsBoardBlockPlaced(int32 index) const;
-	bool ValidateBoardState(String* diagnostic = nullptr) const;
-	void AssertBoardState() const;
-	void TraceTransition(StringView event, int32 deck_index = -1, StringView detail = U"");
 	void QueueZoneChange(int32 deck_index, GameStateRules::CardZone expected,
 		GameStateRules::CardZone destination);
-	void DumpInteractionState(StringView context) const;
 	Point PutBlockAt(Point screen_pos) const;
 	DropPlan AnalyzeDrop(Point candidate_anchor, Point release_cursor, Point release_screen_pos) const;
 	void PutBlock(Point release_cursor, Point release_screen_pos);
@@ -147,7 +140,11 @@ private:
 	void DrawAddPlaceBoard() const;
 	void DoRelic(const std::vector<int32>& relics);
 
-	double inline CalcDist(Point a, Point b) const { return pow((a.x - b.x), 2) + pow((a.y - b.y), 2); };
+	double DistanceSquared(Point a, Point b) const {
+		double dx = a.x - b.x;
+		double dy = a.y - b.y;
+		return dx * dx + dy * dy;
+	}
 
 public:
 

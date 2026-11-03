@@ -41,7 +41,6 @@ private:
 	BattleCardRules::PointerInputOwner m_pointerOwner = BattleCardRules::PointerInputOwner::None;
 	bool m_transitionStarted = false;
 	bool m_blocksPlayerDamage = false;
-	uint64 m_frame = 0;
 	// 最初の配札が終わったところを0ターン目にする
 	int32 m_turn = -1;
 	// 敵によっては，行動の途中から別の周期に切り替わる．
@@ -136,7 +135,6 @@ private:
 	bool moveCard(int32 cardId, GameStateRules::CardZone source, GameStateRules::CardZone destination);
 	void applyBoardChanges();
 	const std::vector<int32>& cards(GameStateRules::CardZone zone) const;
-	void checkCardOwnership(const char* context) const;
 
 	void drawHand() const;
 	void drawScene() const;

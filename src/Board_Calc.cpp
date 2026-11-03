@@ -76,7 +76,7 @@ std::pair<int, int> Board::Confirm() const {
 	for (int32 i = 0; i < static_cast<int32>(board_blocks.size()); i++) {
 		if (IsBoardBlockPlaced(i)) placed_block_count++;
 	}
-	const int64 attack_bonus = static_cast<int64>(add_damage)
+	const int64 attack_bonus = add_damage
 		+ static_cast<int64>(add_damage_by_cards) * placed_block_count;
 	if ((std::numeric_limits<int32>::min() <= attack_bonus)
 		&& (attack_bonus <= std::numeric_limits<int32>::max())) {
@@ -108,7 +108,7 @@ void Board::Discard() {
 }
 
 void Board::UpdateBoardNum(int32 index, Point putAt) {
-	// 配置範囲と重なりは AnalyzeDrop で確認済み。
+	// 配置範囲と重なりは AnalyzeDrop で確認済み．
 	Block* block = board_blocks[index].block;
 	for (int i = 0; i < block->Size().second; i++) {
 		for (int j = 0; j < block->Size().first; j++) {

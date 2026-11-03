@@ -1,25 +1,25 @@
-#ifndef DEBUG_SCENARIO_FACTORY_HPP
-#define DEBUG_SCENARIO_FACTORY_HPP
+#ifndef DEMO_SCENARIO_FACTORY_HPP
+#define DEMO_SCENARIO_FACTORY_HPP
 
 #include "common.hpp"
-#include "DebugScenarioRules.hpp"
+#include "DemoScenarioRules.hpp"
 
 #include <memory>
 
-namespace DebugScenarioFactory {
+namespace DemoScenarioFactory {
 
 inline std::shared_ptr<GameData> CreateMidgame()
 {
+	const auto& scenario = DemoScenarioRules::Midgame();
+	Reseed(scenario.seed);
 	auto data = std::make_shared<GameData>();
-	data->ResetForNewRun();
-	const auto& scenario = DebugScenarioRules::Midgame();
 	data->Layer = scenario.layer;
 	data->Index = 1;
 	data->HP = scenario.hp;
 	data->MaxHP = scenario.max_hp;
 	data->money = scenario.money;
 	data->enemy = scenario.enemy_type;
-	data->debug_battle_overrides = GameData::DebugBattleOverrides{
+	data->demo_battle_overrides = GameData::DemoBattleOverrides{
 		scenario.hand_limit_override,
 		scenario.preserve_deck_order,
 		Unicode::Widen(std::string{ scenario.enemy_texture_path }),

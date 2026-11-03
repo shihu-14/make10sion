@@ -248,7 +248,7 @@ void TestDamageHitRules() {
 	for (const int32_t hit : std::array<int32_t, 3>{ 4, 4, 4 }) {
 		hp = ApplyHit(hp, hit);
 		++applied_hits;
-		if (!ShouldContinueHits(hp)) break;
+		if (hp <= 0) break;
 	}
 	Expect((hp == 0) && (applied_hits == 2),
 		"remaining hit effects stop immediately when HP reaches zero");

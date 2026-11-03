@@ -11,7 +11,7 @@ expected_sha=$(git -C "$repo_root" rev-parse HEAD)
 expected_source_fingerprint=$(zsh "$script_dir/build-input-fingerprint.sh" "$repo_root")
 
 if [[ ! -f "$binary_path" || ! -f "$manifest_path" ]]; then
-	echo "No verified build is available. Run 'Siv3D: Build macOS' first." >&2
+	echo "No verified build is available. Run 'zsh macos/build-debug.sh' first." >&2
 	exit 1
 fi
 
@@ -37,16 +37,16 @@ if (( $# == 1 )); then
 		--check)
 			exit 0
 			;;
-		--debug-midgame)
-			run_args+=("--debug-midgame")
+		--demo)
+			run_args+=("--demo")
 			;;
 		*)
-			echo "Usage: $0 [--check|--debug-midgame]" >&2
+			echo "Usage: $0 [--check|--demo]" >&2
 			exit 2
 			;;
 	esac
 elif (( $# != 0 )); then
-	echo "Usage: $0 [--check|--debug-midgame]" >&2
+	echo "Usage: $0 [--check|--demo]" >&2
 	exit 2
 fi
 cd "$repo_root/macos/App"

@@ -19,7 +19,7 @@ struct CombatValues {
 	std::int32_t defense = 0;
 };
 
-// 攻撃を始める前の値を残しておく。表示の数字が減っても、ダメージは変えない。
+// 攻撃を始める前の値を残しておく．表示の数字が減っても，ダメージは変えない．
 struct CombatResult {
 	CombatValues player;
 	CombatValues enemy;
@@ -46,7 +46,7 @@ inline CombatResult ResolveCombat(CombatValues player, CombatValues enemy,
 
 enum class AttackPhase { Delay, Arc, Defense, Impact, Hits, Complete };
 
-// この更新で起きたことだけを返す。音を鳴らす処理はシーン側。
+// この更新で起きたことだけを返す．音を鳴らす処理はシーン側．
 struct AttackEvents {
 	bool shieldHit = false;
 	bool hit = false;
@@ -57,7 +57,7 @@ class AttackAnimation {
 public:
 	AttackPhase phase = AttackPhase::Complete;
 	double elapsed = 0;
-	// こちらは演出中に表示する数字。防御を削る間は少しずつ変わる。
+	// こちらは演出中に表示する数字．防御を削る間は少しずつ変わる．
 	std::int32_t attack = 0;
 	std::int32_t defense = 0;
 
@@ -78,7 +78,7 @@ public:
 	AttackEvents Update(double deltaSeconds) {
 		AttackEvents events;
 		if (phase == AttackPhase::Complete) return events;
-		// 段階を切り替えたら時間を0に戻す。一度の更新で先へ飛ばしすぎないように。
+		// 段階を切り替えたら時間を0に戻す．一度の更新で先へ飛ばしすぎないように．
 		elapsed += deltaSeconds;
 		switch (phase) {
 		case AttackPhase::Delay:
@@ -116,7 +116,7 @@ public:
 					++m_nextHit;
 				}
 			}
-			// 最後のダメージを返す更新で Complete にもなるので、呼び出し側は先にヒットを扱う。
+			// 最後のダメージを返す更新で Complete にもなるので，呼び出し側は先にヒットを扱う．
 			if (m_nextHit == m_hits.size()) ChangePhase(AttackPhase::Complete);
 			break;
 		case AttackPhase::Complete:
